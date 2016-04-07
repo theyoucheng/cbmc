@@ -300,10 +300,10 @@ void cpp_typecheckt::typecheck_member_initializer(codet &code)
       if(access==ID_private || access=="noaccess")
       {
         #if 0
-        err_location(code.source_location());
-        str << "error: constructor of `"
-            << to_string(symbol_expr)
-            << "' is not accessible";
+        error().source_location=code.source_location();
+        error() << "error: constructor of `"
+                << to_string(symbol_expr)
+                << "' is not accessible" << eom;
         throw 0;
         #endif
       }
@@ -359,7 +359,7 @@ void cpp_typecheckt::typecheck_member_initializer(codet &code)
       if(is_reference(symbol_expr.type()))
       {
         // it's a reference member
-        if(code.operands().size()!= 1)
+        if(code.operands().size()!=1)
         {
           error().source_location=code.find_source_location();
           error() << " reference `" << to_string(symbol_expr)
@@ -550,9 +550,11 @@ Function: cpp_typecheckt::typecheck_assign
 
 void cpp_typecheckt::typecheck_assign(codet &code)
 {
-
   if(code.operands().size()!=2)
-    throw "assignment statement expected to have two operands";
+  {
+    error() << "assignment statement expected to have two operands" << eom;
+    throw 0;
+  }
 
   // turn into a sideeffect
   side_effect_exprt expr(code.get(ID_statement));

@@ -375,6 +375,7 @@ void linkingt::detailed_conflict_report_rec(
     error() << '\n';
     error() << type_to_string_verbose(ns, old_symbol, t1) << '\n';
     error() << type_to_string_verbose(ns, new_symbol, t2) << '\n';
+    error() << eom;
   }
 
   #ifdef DEBUG
@@ -405,10 +406,10 @@ void linkingt::link_error(
           << old_symbol.display_name()
           << "'" << '\n';
   error() << "old definition in module `" << old_symbol.module
-          << "' " << old_symbol.location << "\n"
-          << type_to_string_verbose(ns, old_symbol) << "\n";
+          << "' " << old_symbol.location << '\n'
+          << type_to_string_verbose(ns, old_symbol) << '\n';
   error() << "new definition in module `" << new_symbol.module
-          << "' " << new_symbol.location << "\n"
+          << "' " << new_symbol.location << '\n'
           << type_to_string_verbose(ns, new_symbol)
           << eom;
 
@@ -434,7 +435,7 @@ void linkingt::link_warning(
 {
   warning() << "warning: " << msg << " \""
             << old_symbol.display_name()
-            << "\"" << '\n';
+            << "\"\n";
   warning() << "old definition in module " << old_symbol.module
             << " " << old_symbol.location << '\n'
             << type_to_string_verbose(ns, old_symbol) << '\n';

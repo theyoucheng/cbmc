@@ -1104,12 +1104,16 @@ void cpp_typecheckt::typecheck_expr_explicit_typecast(exprt &expr)
       error().source_location=expr.find_source_location();
       error() << "invalid explicit cast:\n"
               << "operand type: `" << to_string(expr.op0().type()) << "'\n"
-              << "casting to: `" << to_string(expr.type()) << "'" << eom;
+              << "casting to: `" << to_string(expr.type()) << "'"
+              << eom;
       throw 0;
     }
   }
   else
-    throw "explicit typecast expects 0 or 1 operands";
+  {
+    error() << "explicit typecast expects 0 or 1 operands" << eom;
+    throw 0;
+  }
 }
 
 /*******************************************************************\
@@ -1192,7 +1196,10 @@ Purpose:
 void cpp_typecheckt::typecheck_expr_delete(exprt &expr)
 {
   if(expr.operands().size()!=1)
-    throw "delete expects one operand";
+  {
+    error() << "delete expects one operand" << eom;
+    throw 0;
+  }
     
   const irep_idt statement=expr.get(ID_statement);
 
@@ -1525,7 +1532,8 @@ void cpp_typecheckt::typecheck_cast_expr(exprt &expr)
   if(e.arguments().size() != 1)
   {
     error().source_location=expr.find_source_location();
-    throw "cast expressions expect one operand";
+    error() << "cast expressions expect one operand" << eom;
+    throw 0;
   }
 
   exprt &f_op=e.function();
@@ -1668,7 +1676,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(fargs.operands.size()<1)
       {
         error().source_location=source_location;
-        throw "__sync_* primitives take as least one argument";
+        error() << "__sync_* primitives take as least one argument" << eom;
+        throw 0;
       }
 
       const exprt &ptr_arg=fargs.operands.front();
@@ -1676,7 +1685,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(ptr_arg.type().id()!=ID_pointer)
       {
         error().source_location=source_location;
-        throw "__sync_* primitives take a pointer as first argument";
+        error() << "__sync_* primitives take a pointer as first argument" << eom;
+        throw 0;
       }
 
       symbol_exprt result;
@@ -1699,7 +1709,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(fargs.operands.size()!=2)
       {
         error().source_location=source_location;
-        throw id2string(identifier)+" expects two arguments";
+        error() << identifier << " expects two arguments" << eom;
+        throw 0;
       }
 
       const exprt &ptr_arg=fargs.operands.front();
@@ -1707,7 +1718,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(ptr_arg.type().id()!=ID_pointer)
       {
         error().source_location=source_location;
-        throw id2string(identifier)+" takes a pointer as first argument";
+        error() << identifier << " takes a pointer as first argument" << eom;
+        throw 0;
       }
       
       symbol_exprt result;
@@ -1730,7 +1742,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(fargs.operands.size()!=3)
       {
         error().source_location=source_location;
-        throw id2string(identifier)+" expects three arguments";
+        error() << identifier << " expects three arguments" << eom;
+        throw 0;
       }
 
       const exprt &ptr_arg=fargs.operands.front();
@@ -1738,7 +1751,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(ptr_arg.type().id()!=ID_pointer)
       {
         error().source_location=source_location;
-        throw id2string(identifier)+" takes a pointer as first argument";
+        error() << identifier << " takes a pointer as first argument" << eom;
+        throw 0;
       }
       
       symbol_exprt result;
@@ -1762,7 +1776,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(fargs.operands.size()!=3)
       {
         error().source_location=source_location;
-        throw id2string(identifier)+" expects three arguments";
+        error() << identifier << " expects three arguments" << eom;
+        throw 0;
       }
 
       const exprt &ptr_arg=fargs.operands.front();
@@ -1770,7 +1785,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(ptr_arg.type().id()!=ID_pointer)
       {
         error().source_location=source_location;
-        throw id2string(identifier)+" takes a pointer as first argument";
+        error() << identifier << " takes a pointer as first argument" << eom;
+        throw 0;
       }
       
       symbol_exprt result;
@@ -1929,7 +1945,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(fargs.operands.size()!=3)
       {
         error().source_location=source_location;
-        throw "__atomic_*_fetch primitives take three arguments";
+        error() << "__atomic_*_fetch primitives take three arguments" << eom;
+        throw 0;
       }
       
       const exprt &ptr_arg=fargs.operands.front();
@@ -1937,7 +1954,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(ptr_arg.type().id()!=ID_pointer)
       {
         error().source_location=source_location;
-        throw "__atomic_*_fetch primitives take pointer as first argument";
+        error() << "__atomic_*_fetch primitives take pointer as first argument" << eom;
+        throw 0;
       }
 
       symbol_exprt result;
@@ -1961,7 +1979,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(fargs.operands.size()!=3)
       {
         error().source_location=source_location;
-        throw "__atomic_fetch_* primitives take three arguments";
+        error() << "__atomic_fetch_* primitives take three arguments" << eom;
+        throw 0;
       }
       
       const exprt &ptr_arg=fargs.operands.front();
@@ -1969,7 +1988,8 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       if(ptr_arg.type().id()!=ID_pointer)
       {
         error().source_location=source_location;
-        throw "__atomic_fetch_* primitives take pointer as first argument";
+        error() << "__atomic_fetch_* primitives take pointer as first argument" << eom;
+        throw 0;
       }
 
       symbol_exprt result;
@@ -2682,7 +2702,10 @@ Purpose:
 void cpp_typecheckt::typecheck_side_effect_assignment(side_effect_exprt &expr)
 {
   if(expr.operands().size()!=2)
-    throw "assignment side effect expected to have two operands";
+  {
+    error() << "assignment side effect expected to have two operands" << eom;
+    throw 0;
+  }
     
   typet type0=expr.op0().type();
 
@@ -2777,9 +2800,11 @@ void cpp_typecheckt::typecheck_side_effect_inc_dec(
   side_effect_exprt &expr)
 {
   if(expr.operands().size()!=1)
-    throw std::string("statement ")+
-          id2string(expr.get_statement())+
-          " expected to have one operand";
+  {
+    error() << "statement " << expr.get_statement()
+            << " expected to have one operand" << eom;
+    throw 0;
+  }
 
   add_implicit_dereference(expr.op0());
 

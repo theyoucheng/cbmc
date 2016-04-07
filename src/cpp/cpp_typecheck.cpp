@@ -107,6 +107,7 @@ void cpp_typecheckt::convert(cpp_itemt &item)
     convert(item.get_static_assert());
   else
   {
+    error().source_location=item.source_location();
     error() << "unknown parse-tree element: " << item.id() << eom;
     throw 0;
   }
