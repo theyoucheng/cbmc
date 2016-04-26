@@ -15,11 +15,11 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/goto_functions.h>
 
 bool taint_analysis(
+  const symbol_tablet &,
   goto_functionst &,
-  const namespacet &,
   const std::string &taint_file_name,
   message_handlert &,
   bool show_full,
-  bool json);
+  const std::string &json_file_name);
 
 #endif

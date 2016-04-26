@@ -1,6 +1,6 @@
 CORE
-virtual3.class
-
+jar-file2.jar
+--main-class some_class
 ^EXIT=10$
 ^SIGNAL=0$
 ^VERIFICATION FAILED$

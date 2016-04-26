@@ -162,12 +162,14 @@ Function: java_bytecode_typecheckt::typecheck_expr_symbol
 
 void java_bytecode_typecheckt::typecheck_expr_member(member_exprt &expr)
 {
-  // the member might be in a parent class
+  // The member might be in a parent class, which we resolve here.
   const irep_idt component_name=expr.get_component_name();
-
+  
   while(1)
   {
-    // TODO handle vtables
+    if(ns.follow(expr.struct_op().type()).id()!=ID_struct)
+      break; // give up
+  
     const struct_typet &struct_type=
       to_struct_type(ns.follow(expr.struct_op().type()));
 
@@ -175,15 +177,12 @@ void java_bytecode_typecheckt::typecheck_expr_member(member_exprt &expr)
       return; // done
 
     // look at parent
-    const struct_typet::componentst &components=struct_type.components();
+    const struct_typet::componentst &components=
+      struct_type.components();
     
     if(components.empty())
-    {
-      error().source_location=expr.find_source_location();
-      error() << "failed to find field in class hierarchy" << eom;
-      throw 0;
-    }
-    
+      break; // give up
+
     const struct_typet::componentt &c=components.front();
     
     member_exprt m(expr.struct_op(), c.get_name(), c.type());
@@ -191,4 +190,12 @@ void java_bytecode_typecheckt::typecheck_expr_member(member_exprt &expr)
     
     expr.struct_op()=m;
   }
+
+  warning().source_location=expr.source_location();
+  warning() << "failed to find field `"
+            << component_name << "` in class hierarchy" << eom;
+
+  // We replace by a non-det of same type
+  side_effect_expr_nondett nondet(expr.type());
+  expr.swap(nondet);
 }

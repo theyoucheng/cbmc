@@ -196,92 +196,33 @@ Function: java_array_type
 
 \*******************************************************************/
 
-pointer_typet java_array_type(const typet &subtype, unsigned dimension)
-{
-  assert(dimension!=0);
-
-  // Multi-dimensional arrays in Java are arrays of arrays
-  typet final_subtype;
-  
-  struct_typet array_type;
-  
-  if(dimension==1)
-  {
-    final_subtype=subtype;
-  
-    if(subtype==java_char_type())
-      array_type.set_tag("java_char_array");
-    else if(subtype==java_float_type())
-      array_type.set_tag("java_float_array");
-    else if(subtype==java_double_type())
-      array_type.set_tag("java_double_array");
-    else if(subtype==java_byte_type())
-      array_type.set_tag("java_byte_array");
-    else if(subtype==java_short_type())
-      array_type.set_tag("java_short_array");
-    else if(subtype==java_int_type())
-      array_type.set_tag("java_int_array");
-    else if(subtype==java_long_type())
-      array_type.set_tag("java_long_array");
-  }
-  else
-  {
-    final_subtype=java_array_type(subtype, dimension-1);
-  }
-
-  // This is a pointer to a struct containing the length
-  // plus a pointer to the data.
-
-  struct_typet::componentt length("length", java_int_type());
-  struct_typet::componentt data("data", pointer_typet(final_subtype));
-
-  array_type.components().push_back(length);
-  array_type.components().push_back(data);
-
-  return pointer_typet(array_type);
-}
-
-/*******************************************************************\
-
-Function: java_array_type
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
 pointer_typet java_array_type(const char subtype)
 {
-  // This is a pointer to a struct containing the length
-  // plus a pointer to the data.
+  std::string subtype_str;
 
-  struct_typet array_type;
+  switch(subtype)
+  {
+  case 'b': subtype_str="byte"; break;
+  case 'f': subtype_str="float"; break;
+  case 'd': subtype_str="double"; break;
+  case 'i': subtype_str="int"; break;
+  case 'c': subtype_str="char"; break;
+  case 's': subtype_str="short"; break;
+  case 'z': subtype_str="boolean"; break;
+  case 'v': subtype_str="void"; break;
+  case 'j': subtype_str="long"; break;
+  case 'l': subtype_str="long"; break;
+  case 'a': subtype_str="reference"; break;
+  default: assert(false);
+  }
+
+  irep_idt class_name="array["+subtype_str+"]";
+
+  symbol_typet symbol_type("java::"+id2string(class_name));
+  symbol_type.set(ID_C_base_name, class_name);
+  symbol_type.set(ID_C_element_type, java_type_from_char(subtype));
   
-  if(subtype=='c')
-    array_type.set_tag("java_char_array");
-  else if(subtype=='f')
-    array_type.set_tag("java_float_array");
-  else if(subtype=='d')
-    array_type.set_tag("java_double_array");
-  else if(subtype=='b')
-    array_type.set_tag("java_byte_array");
-  else if(subtype=='s')
-    array_type.set_tag("java_short_array");
-  else if(subtype=='i')
-    array_type.set_tag("java_int_array");
-  else if(subtype=='l')
-    array_type.set_tag("java_long_array");
-
-  struct_typet::componentt length("length", java_int_type());
-  struct_typet::componentt data("data", pointer_typet(java_type_from_char(subtype)));
-
-  array_type.components().push_back(length);
-  array_type.components().push_back(data);
-
-  return pointer_typet(array_type);
+  return pointer_typet(symbol_type);
 }
 
 /*******************************************************************\
@@ -318,6 +259,7 @@ typet java_type_from_char(char t)
   switch(t)
   {
   case 'i': return java_int_type();
+  case 'j': return java_long_type();
   case 'l': return java_long_type();
   case 's': return java_short_type();
   case 'b': return java_byte_type();
@@ -443,9 +385,12 @@ typet java_type_from_string(const std::string &src)
     {
       if(src.size()<=1) return nil_typet();
       const typet subtype=java_type_from_string(src.substr(1, std::string::npos));
-      return java_array_type(subtype, 1);
+      typet tmp=java_array_type('a');
+      tmp.subtype().set(ID_C_element_type, subtype);
+      return tmp;
     }
     
+  case 'B': return java_byte_type();
   case 'F': return java_float_type();    
   case 'D': return java_double_type();
   case 'I': return java_int_type();
@@ -459,14 +404,16 @@ typet java_type_from_string(const std::string &src)
     {
       // ends on ;
       if(src[src.size()-1]!=';') return nil_typet();
-      std::string identifier="java::"+src.substr(1, src.size()-2);
+      std::string class_name=src.substr(1, src.size()-2);
 
-      for(unsigned i=0; i<identifier.size(); i++)
-        if(identifier[i]=='/') identifier[i]='.';
+      for(unsigned i=0; i<class_name.size(); i++)
+        if(class_name[i]=='/') class_name[i]='.';
+
+      std::string identifier="java::"+class_name;
 
       reference_typet result;
       result.subtype()=symbol_typet(identifier);
-
+      result.subtype().set(ID_C_base_name, class_name);
       return result;
     }
   
@@ -516,4 +463,52 @@ char java_char_from_type(const typet &type)
     return 'z';
 
   return 'a';
+}
+
+/*******************************************************************\
+
+Function: java_classname
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+// java/lang/Object -> java.lang.Object
+static std::string slash_to_dot(const std::string &src)
+{
+  std::string result=src;
+  for(std::string::iterator it=result.begin(); it!=result.end(); it++)
+    if(*it=='/') *it='.';
+  return result;
+}
+
+/*******************************************************************\
+
+Function: java_classname
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+symbol_typet java_classname(const std::string &id)
+{
+  if(!id.empty() && id[0]=='[')
+    return to_symbol_type(java_type_from_string(id).subtype());
+  
+  std::string class_name=id;
+
+  class_name=slash_to_dot(class_name);
+  irep_idt identifier="java::"+class_name;
+  symbol_typet symbol_type(identifier);
+  symbol_type.set(ID_C_base_name, class_name);
+
+  return symbol_type;
 }

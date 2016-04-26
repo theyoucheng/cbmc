@@ -22,7 +22,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/symbol.h>
 #include <util/pointer_predicates.h>
 #include <util/pointer_offset_size.h>
-#include <util/vtable.h>
 #include <util/namespace_utils.h>
 
 #include <linking/zero_initializer.h>
@@ -537,43 +536,40 @@ void goto_convertt::do_cpp_new(
   dest.destructive_append(tmp_initializer);
 }
 
-namespace {
-symbol_exprt get_vt(const irep_idt &class_name) {
-  const std::string &name(id2string(class_name));
-  const irep_idt vttype_name(vtnamest::get_type(name));
-  const irep_idt vt_name(vtnamest::get_table(name));
-  const symbol_typet vttype(vttype_name);
-  return symbol_exprt(vt_name, vttype);
-}
+/*******************************************************************\
 
-bool is_type_missing(const namespacet &ns, const symbol_typet &type)
-{
-  return !ns.get_symbol_table().has_symbol(type.get_identifier());
-}
+Function: set_class_identifier
 
-exprt &get_vt_pointer_member(struct_exprt &expr)
-{
-  // We assume the first member is vt_pointer or super class object.
-  assert(expr.has_operands());
-  exprt &op0=expr.op0();
-  if (ID_struct != op0.id()) return op0;
-  return get_vt_pointer_member(to_struct_expr(op0));
-}
+  Inputs:
 
-void set_vt_pointer(struct_exprt &expr, const namespacet &ns,
-    const symbol_typet &class_type)
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void set_class_identifier(
+  struct_exprt &expr,
+  const namespacet &ns,
+  const symbol_typet &class_type)
 {
-  if (is_type_missing(ns, class_type)) return;
-  const irep_idt &class_name(class_type.get_identifier());
-  const symbol_exprt vt(get_vt(class_name));
-  exprt &vt_pointer_member=get_vt_pointer_member(expr);
-  const typet &member_type=vt_pointer_member.type();
-  const address_of_exprt vt_pointer(vt);
-  if (type_eq(member_type, vt_pointer.type(), ns))
-    vt_pointer_member=vt_pointer;
+  const struct_typet &struct_type=
+    to_struct_type(ns.follow(expr.type()));
+  const struct_typet::componentst &components=struct_type.components();
+
+  if(components.empty()) return;
+  assert(!expr.operands().empty());
+  
+  if(components.front().get_name()=="@class_identifier")
+  {
+    assert(expr.op0().id()==ID_constant);
+    expr.op0()=constant_exprt(class_type.get_identifier(), string_typet());
+  }
   else
-    vt_pointer_member=typecast_exprt(vt_pointer, member_type);
-}
+  {
+    assert(expr.op0().id()==ID_struct);
+    set_class_identifier(to_struct_expr(expr.op0()), ns, class_type);
+  }
 }
 
 /*******************************************************************\
@@ -600,6 +596,9 @@ void goto_convertt::do_java_new(
 
   assert(rhs.operands().empty());
 
+  if(rhs.type().id()!=ID_pointer)
+    throw "do_java_new returns pointer";
+
   typet object_type=rhs.type().subtype();
   
   // build size expression
@@ -620,7 +619,7 @@ void goto_convertt::do_java_new(
   // zero-initialize the object
   dereference_exprt deref(lhs, object_type);
   exprt zero_object=zero_initializer(object_type, location, ns, get_message_handler());
-  set_vt_pointer(to_struct_expr(zero_object), ns, to_symbol_type(object_type));
+  set_class_identifier(to_struct_expr(zero_object), ns, to_symbol_type(object_type));
   goto_programt::targett t_i=dest.add_instruction(ASSIGN);
   t_i->code=code_assignt(deref, zero_object);
   t_i->source_location=location;
@@ -644,11 +643,14 @@ void goto_convertt::do_java_new_array(
   goto_programt &dest)
 {
   if(lhs.is_nil())
-    throw "do_java_new without lhs is yet to be implemented";
+    throw "do_java_new_array without lhs is yet to be implemented";
     
   source_locationt location=rhs.source_location();
 
   assert(rhs.operands().size()>=1); // one per dimension
+  
+  if(rhs.type().id()!=ID_pointer)
+    throw "do_java_new_array returns pointer";
 
   typet object_type=rhs.type().subtype();
   
@@ -656,7 +658,7 @@ void goto_convertt::do_java_new_array(
   exprt object_size=size_of_expr(object_type, ns);
   
   if(object_size.is_nil())
-    throw "do_java_new got nil object_size";
+    throw "do_java_new_array got nil object_size";
 
   // we produce a malloc side-effect, which stays
   side_effect_exprt malloc_expr(ID_malloc);
@@ -669,19 +671,19 @@ void goto_convertt::do_java_new_array(
   
   // multi-dimensional?
   
-  assert(object_type.id()==ID_struct);
-  const struct_typet &struct_type=to_struct_type(object_type);
-  assert(struct_type.components().size()==2);
+  assert(ns.follow(object_type).id()==ID_struct);
+  const struct_typet &struct_type=to_struct_type(ns.follow(object_type));
+  assert(struct_type.components().size()==3);
 
   // if it's an array, we need to set the length field
   dereference_exprt deref(lhs, object_type);
-  member_exprt length(deref, struct_type.components()[0].get_name(), struct_type.components()[0].type());
+  member_exprt length(deref, struct_type.components()[1].get_name(), struct_type.components()[1].type());
   goto_programt::targett t_s=dest.add_instruction(ASSIGN);
   t_s->code=code_assignt(length, rhs.op0());
   t_s->source_location=location;
   
   // we also need to allocate space for the data
-  member_exprt data(deref, struct_type.components()[1].get_name(), struct_type.components()[1].type());
+  member_exprt data(deref, struct_type.components()[2].get_name(), struct_type.components()[2].type());
   side_effect_exprt data_cpp_new_expr(ID_cpp_new_array, data.type());
   data_cpp_new_expr.set(ID_size, rhs.op0());
   goto_programt::targett t_p=dest.add_instruction(ASSIGN);
@@ -711,7 +713,6 @@ void goto_convertt::do_java_new_array(
     
     side_effect_exprt sub_java_new=rhs;
     sub_java_new.operands().erase(sub_java_new.operands().begin());
-    sub_java_new.type()=data.type().subtype();
     
     side_effect_exprt inc(ID_assign);
     inc.operands().resize(2);
@@ -1000,7 +1001,7 @@ Function: goto_convertt::do_function_call_symbol
 
 void goto_convertt::do_function_call_symbol(
   const exprt &lhs,
-  const exprt &function,
+  const symbol_exprt &function,
   const exprt::operandst &arguments,
   goto_programt &dest)
 {
@@ -1008,7 +1009,7 @@ void goto_convertt::do_function_call_symbol(
     return; // ignore
 
   // lookup symbol
-  const irep_idt &identifier=function.get(ID_identifier);
+  const irep_idt &identifier=function.get_identifier();
 
   const symbolt *symbol;
   if(ns.lookup(identifier, symbol))
@@ -1023,45 +1024,8 @@ void goto_convertt::do_function_call_symbol(
     throw "error: function `"+id2string(identifier)+"' type mismatch: expected code";
   }
   
-  if(identifier==CPROVER_PREFIX "parameter_predicates" || 
-     identifier==CPROVER_PREFIX "return_predicates")
-  {
-    if(arguments.size() != 0)
-    {
-      err_location(function);
-      throw "`"+id2string(identifier)+"' expected to have no arguments";
-    }
-
-    goto_programt::targett t = dest.add_instruction(OTHER);
-    t->source_location = function.source_location();
-    t->source_location.set("user-provided", true);
-    if(identifier==CPROVER_PREFIX "parameter_predicates")
-    {
-      t->code = codet(ID_user_specified_parameter_predicates);
-      t->code.set_statement(ID_user_specified_parameter_predicates);
-    }
-    else
-    {
-      t->code = codet(ID_user_specified_return_predicates);
-      t->code.set_statement(ID_user_specified_return_predicates);
-    }
-  }
-  else if(identifier==CPROVER_PREFIX "predicate")
-  {
-    if(arguments.size()!=1)
-    {
-      err_location(function);
-      throw "`"+id2string(identifier)+"' expected to have one argument";
-    }
-
-    goto_programt::targett t=dest.add_instruction(OTHER);
-    t->guard=arguments.front();
-    t->source_location=function.source_location();
-    t->source_location.set("user-provided", true);
-    t->code=codet(ID_user_specified_predicate);
-  }
-  else if(identifier==CPROVER_PREFIX "assume" ||
-          identifier=="__VERIFIER_assume")
+  if(identifier==CPROVER_PREFIX "assume" ||
+     identifier=="__VERIFIER_assume")
   {
     if(arguments.size()!=1)
     {

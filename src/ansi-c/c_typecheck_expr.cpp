@@ -2283,6 +2283,8 @@ exprt c_typecheck_baset::do_special_functions(
       throw 0;
     }
 
+    typecheck_function_call_arguments(expr);
+
     exprt get_must_expr=
       binary_predicate_exprt(expr.arguments()[0], "get_must", expr.arguments()[1]);
     get_must_expr.add_source_location()=source_location;
@@ -2297,6 +2299,8 @@ exprt c_typecheck_baset::do_special_functions(
       error() << "get_may expects two operands" << eom;
       throw 0;
     }
+
+    typecheck_function_call_arguments(expr);
 
     exprt get_may_expr=
       binary_predicate_exprt(expr.arguments()[0], "get_may", expr.arguments()[1]);

@@ -26,15 +26,14 @@ Function: jsont::escape_string
 
 void jsont::escape_string(const std::string &src, std::ostream &out)
 {
-  for(std::string::const_iterator
-      it=src.begin(); it!=src.end(); it++)
+  for(const auto & it : src)
   {
-    switch(*it)
+    switch(it)
     {
     case '\\':
     case '"':
       out << '\\';
-      out << *it;
+      out << it;
       break;
     
     case '\b':
@@ -58,7 +57,7 @@ void jsont::escape_string(const std::string &src, std::ostream &out)
       break;
       
     default:
-      out << *it;
+      out << it;
     }
   }
 }
@@ -100,8 +99,7 @@ void jsont::output_rec(std::ostream &out, unsigned indent) const
 
       out << '\n';
       
-      for(unsigned i=0; i<((indent+1)*2); i++)
-        out << ' ';
+      out << std::string((indent+1)*2, ' ');
 
       out << '"';
       escape_string(o_it->first, out);
@@ -112,8 +110,7 @@ void jsont::output_rec(std::ostream &out, unsigned indent) const
     if(!object.empty())
     {
       out << '\n';
-      for(unsigned i=0; i<(indent*2); i++)
-        out << ' ';
+      out << std::string(indent*2, ' ');
     }
     out << '}';
     break;
@@ -130,8 +127,7 @@ void jsont::output_rec(std::ostream &out, unsigned indent) const
       if(a_it->is_object())
       {
         out << '\n';
-        for(unsigned i=0; i<((indent+1)*2); i++)
-          out << ' ';
+        out << std::string((indent+1)*2, ' ');
       }
       else
         out << ' ';
@@ -147,6 +143,7 @@ void jsont::output_rec(std::ostream &out, unsigned indent) const
         out << ' ';
     }
 
+    out << std::string(indent*2, ' ');
     out << ']';
     break;
     

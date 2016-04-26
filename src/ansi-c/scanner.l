@@ -151,7 +151,7 @@ integer		{digit}+
 binary		{bindigit}+
 msiw_suffix     ([iI]("8"|"16"|"32"|"64"|"128"))
 int_suffix      [uUlLiIjJ]*|[uU]?{msiw_suffix}
-bininteger	"0"[bB]{bindigit}+{int_suffix}
+bininteger	"0"[bB]({bindigit}|"'")+{int_suffix}
 decinteger	[1-9]({digit}|"'")*{int_suffix}
 octinteger	"0"({octdigit}|"'")*{int_suffix}
 hexinteger	"0"[xX]{hexdigit}({hexdigit}|"'")*{int_suffix}
@@ -1374,6 +1374,9 @@ __decltype          { if(PARSER.cpp98 && PARSER.mode==ansi_c_parsert::GCC)
 
 "weak" |
 "__weak__"          { BEGIN(GCC_ATTRIBUTE3); loc(); return TOK_GCC_ATTRIBUTE_WEAK; }
+
+"noreturn" |
+"__noreturn__"      { BEGIN(GCC_ATTRIBUTE3); loc(); return TOK_GCC_ATTRIBUTE_NORETURN; }
 
 {ws}                { /* ignore */ }
 {newline}           { /* ignore */ }
