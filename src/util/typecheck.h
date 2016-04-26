@@ -11,6 +11,24 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "message_stream.h"
 
+class legacy_typecheckt:public message_streamt
+{
+public:
+  legacy_typecheckt(message_handlert &_message_handler):
+    message_streamt(_message_handler) { }
+  virtual ~legacy_typecheckt() { }
+  
+  bool error_found;
+
+protected:
+  // main function -- overload this one
+  virtual void typecheck()=0;
+  
+public:
+  // call that one
+  virtual bool typecheck_main();
+};
+
 class typecheckt:public messaget
 {
 public:
@@ -26,14 +44,14 @@ public:
   {
     error_found=true;
     return messaget::error();
-  }  
-  
+  }
+
   bool error_found;
 
 protected:
   // main function -- overload this one
   virtual void typecheck()=0;
-  
+
 public:
   // call that one
   virtual bool typecheck_main();
