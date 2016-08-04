@@ -8,6 +8,7 @@ Date: May 2016
 
 \*******************************************************************/
 
+#include <iostream>
 #include <algorithm>
 #include <iterator>
 
@@ -117,6 +118,20 @@ bool is_condition(const exprt &src)
   
   return true;
 }
+
+bool all_conditions(const std::vector<exprt> &operands)
+{
+  for(const auto &p : operands)
+    if(not is_condition(p))
+      return false;
+  return true;
+}
+
+
+
+
+
+
 
 /*******************************************************************\
 
@@ -246,12 +261,44 @@ void collect_mcdc_controlling_rec(
     }
     else if(!operands.empty())
     {
+
       for(unsigned i=0; i<operands.size(); i++)
       {
+
         const exprt op=operands[i];
       
         if(is_condition(op))
         {
+
+          if(src.id()==ID_or)
+          {
+            std::vector<exprt> others1, others2;
+        	//others.reserve(operands.size()-1);
+            if(not conditions.empty())
+            {
+              others1.push_back(conjunction(conditions));
+              others2.push_back(conjunction(conditions));
+            }
+
+            for(unsigned j=0; j<operands.size(); j++)
+            {
+              others1.push_back(not_exprt(operands[j]));
+        	  if(i!=j)
+              {
+        	    others2.push_back(not_exprt(operands[j]));
+              }
+        	  else
+        	    others2.push_back((operands[j]));
+            }
+
+
+        	exprt c1=conjunction(others1);
+        	exprt c2=conjunction(others2);
+        	result.insert(c1);
+        	result.insert(c2);
+        	continue;
+          }
+
           std::vector<exprt> o=operands;
         
           // 'o[i]' needs to be true and false
@@ -311,10 +358,296 @@ std::set<exprt> collect_mcdc_controlling(
   std::set<exprt> result;
   
   for(const auto &d : decisions)
+  {
     collect_mcdc_controlling_rec(d, { }, result);
+  }
+  return result;
+}
+
+std::set<exprt> conjunction(const std::set<exprt> &res,
+		                    const std::vector<exprt> &operands,
+							const int i)
+{
+	std::set<exprt> result;
+	for(auto &y : res)
+    {
+      std::vector<exprt> others;
+      for(unsigned j=0; j<operands.size(); j++)
+        if(i!=j)
+        {
+          others.push_back(operands[j]);
+        }
+      others.push_back(y);
+      exprt c=conjunction(others);
+      result.insert(c);
+    }
+	return result;
+}
+
+std::set<exprt> collect_mcdc_controlling_nested(
+  const std::set<exprt> &decisions)
+{
+  std::set<exprt> controlling = collect_mcdc_controlling(decisions);
+  std::set<exprt> result;
+  for(auto &src : controlling)
+  {
+    std::set<exprt> s1, s2;
+	s1.insert(src);
+	while(true) //dual-loop structure to eliminate complex non-conditional terms
+	{
+	  bool changed=false;
+	  for(auto &x : s1)
+	  {
+	    std::vector<exprt> operands;
+	    collect_operands(x, operands);
+	    for(int i=0; i<operands.size(); i++)
+	    {
+	      std::set<exprt> res;
+	      if(operands[i].id()==ID_not)
+	      {
+	        exprt no=operands[i].op0();
+	        if(not is_condition(no))
+	      	{
+	          changed=true;
+	      	  std::set<exprt> dec_no;
+	      	  dec_no.insert(no);
+	      	  res=collect_mcdc_controlling(dec_no);
+	      	}
+	      }
+	      else if(not is_condition(operands[i]))
+	      {
+	        changed=true;
+	      	std::set<exprt> dec_no;
+	      	dec_no.insert(operands[i]);
+	      	res=collect_mcdc_controlling(dec_no);
+	      }
+
+	      std::set<exprt> co=conjunction(res, operands, i);
+	      s2.insert(co.begin(), co.end());
+	      if(res.size() > 0) break;
+	    }
+	    if(not changed) s2.insert(x);
+	  }
+	  s1=s2;
+	  if(not changed) {break;}
+	  s2.clear();
+	}
+	result.insert(s1.begin(), s1.end());
+  }
 
   return result;
 }
+
+
+/*******************************************************************\
+
+Function: negate an expr (<, <=, ==, >=, >) with the AUTOSAC semantic
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+std::set<exprt> autosac_atomic_negate(const exprt &src)
+{
+  /**
+   * This is an customized approach to "negate" exprts
+   */
+  std::set<exprt> result;
+  if( src.id()==ID_equal)
+  {
+    // the negation of "==" is "<" and ">"
+    exprt e1(ID_lt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    exprt e2(ID_gt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+
+    result.insert(e1);
+    result.insert(e2);
+
+
+  }
+  else if(src.id()==ID_lt)
+  {
+    //the negation of "<" should be "==" and ">"
+    exprt e1(ID_equal);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    exprt e2(ID_gt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+
+    result.insert(e1);
+    result.insert(e2);
+
+  }
+  else if(src.id()==ID_le)
+  {
+    //the negation of "<=" should be ">"
+    exprt e1(ID_gt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    result.insert(e1);
+
+
+  }
+  else if(src.id()==ID_ge)
+  {
+    //the negation of ">=" should be "<"
+    exprt e1(ID_lt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    result.insert(e1);
+  }
+  else if(src.id()==ID_gt)
+  {
+    //the negation of ">" should be "==" and "<"
+    exprt e1(ID_equal);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    exprt e2(ID_lt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+
+    result.insert(e1);
+    result.insert(e2);
+  }
+ /** else
+  {
+    exprt neg(src);
+    neg.make_not();
+    result.insert(neg);
+  }
+**/
+  return result;
+}
+
+
+signed sign_of_exprt(const exprt &e, const exprt E)
+{
+  // to check the sign of "e" inside a compact boolean
+  // formula "E"
+
+  auto &ops = E.operands();
+  for(auto &x : ops)
+  {
+	exprt y(x);
+	if(y == e) return 1;
+	else if(y.id()==ID_not)
+	{
+	  y.make_not();
+	  if(y==e) return -1;
+	  if(not is_condition(y))
+	  {
+	    int res = sign_of_exprt(e,y);
+	    if(res!=0) return res;
+	  }
+	}
+	else if(not is_condition(y))
+	{
+	  int res = sign_of_exprt(e,y);
+	  if(res!=0) return res;
+	}
+  }
+  return 0;
+}
+
+void remove_redundancy(std::set<exprt> &exprts)
+{
+  std::set<exprt> conditions;
+  for(auto &x: exprts)
+  {
+    std::set<exprt> new_conditions = collect_conditions(x);
+    conditions.insert(new_conditions.begin(), new_conditions.end());
+  }
+
+  std::set<exprt> new_exprts;
+  for(auto &x: exprts)
+  {
+
+    bool red=false;
+    for(auto &y: new_exprts)
+    {
+      bool iden = true;
+      for(auto &c : conditions)
+        if(sign_of_exprt(c, x) != sign_of_exprt(c, y))
+        {
+          iden = false;
+          break;
+        }
+      if(iden)
+      {
+        red = true;
+        break;
+      }
+    }
+    if(not red) new_exprts.insert(x);
+  }
+  exprts = new_exprts;
+}
+
+std::set<exprt> autosac_expand(const exprt &src)
+{
+  std::set<exprt> result;
+
+  std::set<exprt> s1, s2;
+  s1.insert(src);
+
+  while(true) // dual-loop structure to expand negations
+  {
+	bool changed=false;
+	for(auto &x : s1)
+	{
+
+      std::vector<exprt> operands;
+      collect_operands(x, operands);
+      for(int i=0; i<operands.size(); i++)
+      {
+    	std::set<exprt> res;
+    	if(operands[i].id()==ID_not)
+    	{
+    	  exprt no=operands[i].op0();
+    	  if((no.id()==ID_equal or no.id()==ID_lt or no.id()==ID_le or no.id()==ID_ge or no.id()==ID_gt))
+    	  {
+    	    changed=true;
+    		res=autosac_atomic_negate(no);
+    	  }
+
+    	}
+
+	    std::set<exprt> co=conjunction(res, operands, i);
+	    s2.insert(co.begin(), co.end());
+	    if(res.size() > 0) break;
+      }
+      if(not changed) s2.insert(x);
+    }
+	if(not changed)
+	  return s1;
+	s1=s2;
+	s2.clear();
+  }
+}
+
+
+
         
 /*******************************************************************\
 
@@ -614,10 +947,9 @@ void instrument_cover_goals(
           i_it++;
       }
       break;
-      
+
+    case coverage_criteriont::AUTOSAC:
     case coverage_criteriont::MCDC:
-      if(i_it->is_assert())
-        i_it->make_skip();
 
       // 1. Each entry and exit point is invoked
       // 2. Each decision takes every possible outcome
@@ -625,13 +957,18 @@ void instrument_cover_goals(
       // 4. Each condition in a decision is shown to independently
       //    affect the outcome of the decision.
       {
+        bool autosac=(criterion==coverage_criteriont::AUTOSAC);
+    	if(i_it->is_assert())
+    	  if(not autosac)
+    	    i_it->make_skip();
         const std::set<exprt> conditions=collect_conditions(i_it);
         const std::set<exprt> decisions=collect_decisions(i_it);
-        
+
         std::set<exprt> both;
         std::set_union(conditions.begin(), conditions.end(),
                        decisions.begin(), decisions.end(),
                        inserter(both, both.end()));
+
 
         const source_locationt source_location=i_it->source_location;
 
@@ -646,6 +983,7 @@ void instrument_cover_goals(
             
           std::string p_string=from_expr(ns, "", p);
         
+
           std::string comment_t=description+" `"+p_string+"' true";
           goto_program.insert_before_swap(i_it);
           i_it->make_assertion(p);
@@ -659,10 +997,26 @@ void instrument_cover_goals(
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_f);
           i_it->source_location.set_property_class("coverage");
+
+          std::cout << "comment t/f" << comment_t << "/" << comment_f << std::endl;
         }
         
         std::set<exprt> controlling;
-        controlling=collect_mcdc_controlling(decisions);
+        controlling=collect_mcdc_controlling_nested(decisions);
+        remove_redundancy(controlling);
+
+        if(autosac)
+        {
+          std::set<exprt> controlling2;
+          for(auto &x: controlling)
+          {
+            std::set<exprt> res=autosac_expand(x);
+            controlling2.insert(res.begin(), res.end());
+          }
+          controlling=controlling2;
+          remove_redundancy(controlling);
+        }
+
 
         for(const auto & p : controlling)
         {
@@ -672,7 +1026,10 @@ void instrument_cover_goals(
             "MC/DC independence condition `"+p_string+"'";
             
           goto_program.insert_before_swap(i_it);
-          i_it->make_assertion(p);
+          if(autosac)
+        	  i_it->make_assertion(not_exprt(p));
+          else
+            i_it->make_assertion(p);
           i_it->source_location=source_location;
           i_it->source_location.set_comment(description);
           i_it->source_location.set_property_class("coverage");
