@@ -237,6 +237,14 @@ protected:
   public:
     exprt expr;
     literalt l;
+    irep_idt id;
+    /** 
+     * The following fields are originally designed to apply
+     * a quantifier (forall, exists) upon an array.
+     **/
+    exprt index_expr;
+    // the min/upper bounds on the array elements accessed
+    mp_integer lb, ub;
   };
 
   typedef std::list<quantifiert> quantifier_listt;
