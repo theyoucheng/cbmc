@@ -972,6 +972,8 @@ bool cbmc_parse_optionst::process_goto_program(
         c=coverage_criteriont::MCDC;
       else if(criterion=="cover")
         c=coverage_criteriont::COVER;
+      else if(criterion=="autosac")
+        c=coverage_criteriont::AUTOSAC;
       else
       {
         error() << "unknown coverage criterion" << eom;

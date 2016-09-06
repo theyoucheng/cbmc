@@ -1045,6 +1045,162 @@ std::set<exprt> collect_decisions(const goto_programt::const_targett t)
 
 /*******************************************************************\
 
+Function: autosac_atomic_negate
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: negate an expr (<, <=, ==, >=, >) by the AUTOSAC semantic
+
+\*******************************************************************/
+
+std::set<exprt> autosac_atomic_negate(const exprt &src)
+{
+  /**
+   * This is a customized approach to "negate" exprs 
+   **/
+  std::set<exprt> result;
+
+  if( src.id()==ID_equal)
+  {
+    // the negation of "==" is "<" and ">"
+    exprt e1(ID_lt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    exprt e2(ID_gt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+
+    result.insert(e1);
+    result.insert(e2);
+
+    return result;
+  }
+  if(src.id()==ID_lt)
+  {
+    //the negation of "<" should be "==" and ">"
+    exprt e1(ID_equal);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    exprt e2(ID_gt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+
+    result.insert(e1);
+    result.insert(e2);
+
+    return result;
+  }
+  if(src.id()==ID_le)
+  {
+    //the negation of "<=" should be ">"
+    exprt e1(ID_gt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    result.insert(e1);
+
+    return result;
+  }
+  if(src.id()==ID_ge)
+  {
+    //the negation of ">=" should be "<"
+    exprt e1(ID_lt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    result.insert(e1);
+
+    return result;
+  }
+  if(src.id()==ID_gt)
+  {
+    //the negation of ">" should be "==" and "<"
+    exprt e1(ID_equal);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+
+    exprt e2(ID_lt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+
+    result.insert(e1);
+    result.insert(e2);
+
+    return result;
+  }
+  return result;
+}
+
+/*******************************************************************\
+
+Function: autosac_expand
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: expand an expr by the AUTOSAC semantic
+
+\*******************************************************************/
+
+std::set<exprt> autosac_expand(const exprt &src)
+{
+  std::set<exprt> result;
+
+  std::set<exprt> s1, s2;
+  s1.insert(src);
+
+  while(true) // dual-loop structure to expand negations
+  {
+    bool changed=false;
+    for(auto &x : s1)
+    {
+      std::vector<exprt> operands;
+      collect_operands(x, operands);
+      for(int i=0; i<operands.size(); i++)
+      {
+        std::set<exprt> res;
+        if(operands[i].id()==ID_not)
+        {
+          exprt no=operands[i].op0();
+          if(no.id()==ID_equal 
+             or no.id()==ID_lt 
+             or no.id()==ID_le 
+             or no.id()==ID_ge 
+             or no.id()==ID_gt)
+          {
+            changed=true;
+            res=autosac_atomic_negate(no);
+          }
+        }
+
+        std::set<exprt> co=replacement_conjunction(res, operands, i);
+        s2.insert(co.begin(), co.end());
+        if(res.size() > 0) break;
+      }
+      if(not changed) s2.insert(x);
+    }
+    if(not changed)
+      return s1;
+    s1=s2;
+    s2.clear();
+  }
+}
+
+/*******************************************************************\
+
 Function: instrument_cover_goals
 
   Inputs:
@@ -1252,9 +1408,8 @@ void instrument_cover_goals(
       }
       break;
       
+    case coverage_criteriont::AUTOSAC:
     case coverage_criteriont::MCDC:
-      if(i_it->is_assert())
-        i_it->make_skip();
 
       // 1. Each entry and exit point is invoked
       // 2. Each decision takes every possible outcome
@@ -1262,6 +1417,9 @@ void instrument_cover_goals(
       // 4. Each condition in a decision is shown to independently
       //    affect the outcome of the decision.
       {
+        bool autosac=(criterion==coverage_criteriont::AUTOSAC);
+        if(i_it->is_assert())
+          if(not autosac) i_it->make_skip();
         const std::set<exprt> conditions=collect_conditions(i_it);
         const std::set<exprt> decisions=collect_decisions(i_it);
         
@@ -1307,6 +1465,19 @@ void instrument_cover_goals(
         // for now, we restrict to the case of a single ''decision'';
         // however, this is not true, e.g., ''? :'' operator.
         minimize_mcdc_controlling(controlling, *decisions.begin());
+
+        if(autosac)
+        {
+          std::set<exprt> controlling2;
+          for(auto &x: controlling)
+          {
+            std::set<exprt> res=autosac_expand(x);
+            controlling2.insert(res.begin(), res.end());
+          }
+          controlling=controlling2;
+          remove_repetition(controlling);
+        }
+
 
         for(const auto & p : controlling)
         {
