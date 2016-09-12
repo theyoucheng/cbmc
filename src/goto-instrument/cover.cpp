@@ -1243,12 +1243,6 @@ std::set<exprt> autosac_expand(const exprt &src)
             res=autosac_atomic_negate(no);
           }
         }
-        if(operands[i].id()==ID_le
-           or operands[i].id()==ID_ge)
-        {
-          changed=true;
-          res=autosac_atomic_expand(operands[i]);
-        }
 
         std::set<exprt> co=replacement_conjunction(res, operands, i);
         s2.insert(co.begin(), co.end());
