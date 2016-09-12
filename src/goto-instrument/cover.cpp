@@ -1145,6 +1145,64 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
 
 /*******************************************************************\
 
+Function: autosac_atomic_expand
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: expane an expr (<=, >=) by the AUTOSAC semantic
+
+\*******************************************************************/
+
+std::set<exprt> autosac_atomic_expand(const exprt &src)
+{
+  /**
+   * This is a customized approach to "expand" exprs 
+   **/
+  std::set<exprt> result;
+
+  if(src.id()==ID_le)
+  {
+    //the expansion of "<=" should be "<" and "=="
+    exprt e1(ID_lt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+
+    exprt e2(ID_equal);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+    result.insert(e2);
+
+    return result;
+  }
+  if(src.id()==ID_ge)
+  {
+    //the expansion of ">=" should be ">" and "=="
+    exprt e1(ID_gt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+
+    exprt e2(ID_equal);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+    result.insert(e2);
+
+    return result;
+  }
+
+  return result;
+}
+
+
+/*******************************************************************\
+
 Function: autosac_expand
 
   Inputs:
@@ -1193,10 +1251,43 @@ std::set<exprt> autosac_expand(const exprt &src)
       if(not changed) s2.insert(x);
     }
     if(not changed)
-      return s1;
+      break; //return s1;
     s1=s2;
     s2.clear();
   }
+
+  s2.clear();
+  while(true) // dual-loop structure to expand autosac atomics
+  {
+    bool changed=false;
+    for(auto &x : s1)
+    {
+      std::vector<exprt> operands;
+      collect_operands(x, operands);
+      for(int i=0; i<operands.size(); i++)
+      {
+        std::set<exprt> res;
+        if(operands[i].id()==ID_le
+           or operands[i].id()==ID_ge)
+        {
+          changed=true;
+          res=autosac_atomic_expand(operands[i]);
+        }
+
+        std::set<exprt> co=replacement_conjunction(res, operands, i);
+        s2.insert(co.begin(), co.end());
+        if(res.size() > 0) break;
+      }
+      if(not changed) s2.insert(x);
+    }
+    if(not changed)
+      break; //return s1;
+    s1=s2;
+    s2.clear();
+  }
+
+  return s1;
+
 }
 
 /*******************************************************************\
