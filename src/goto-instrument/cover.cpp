@@ -1510,7 +1510,7 @@ void instrument_cover_goals(
       {
         bool autosac=(criterion==coverage_criteriont::AUTOSAC);
         if(i_it->is_assert())
-          if(not autosac) i_it->make_skip();
+          i_it->make_skip();
         const std::set<exprt> conditions=collect_conditions(i_it);
         const std::set<exprt> decisions=collect_decisions(i_it);
         
