@@ -1501,6 +1501,8 @@ void instrument_cover_goals(
       
     case coverage_criteriont::AUTOSAC:
     case coverage_criteriont::MCDC:
+      if(i_it->is_assert())
+        i_it->make_skip();
 
       // 1. Each entry and exit point is invoked
       // 2. Each decision takes every possible outcome
@@ -1509,8 +1511,6 @@ void instrument_cover_goals(
       //    affect the outcome of the decision.
       {
         bool autosac=(criterion==coverage_criteriont::AUTOSAC);
-        if(i_it->is_assert())
-          i_it->make_skip();
         const std::set<exprt> conditions=collect_conditions(i_it);
         const std::set<exprt> decisions=collect_decisions(i_it);
         
