@@ -9,6 +9,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <cassert>
 
 #include <util/std_expr.h>
+#include <solvers/prop/literal_expr.h>
 #include <util/expr_util.h>
 
 #include <langapi/language_util.h>
@@ -32,7 +33,7 @@ Function: symex_target_equationt::symex_target_equationt
 \*******************************************************************/
 
 symex_target_equationt::symex_target_equationt(
-  const namespacet &_ns):ns(_ns)
+  const namespacet &_ns):is_incremental(false), ns(_ns), io_count(0)
 {
 }
 
@@ -620,7 +621,7 @@ Function: symex_target_equationt::convert
 \*******************************************************************/
 
 void symex_target_equationt::convert(
-   prop_convt &prop_conv)
+  prop_convt &prop_conv)
 {
   convert_guards(prop_conv);
   convert_assignments(prop_conv);
@@ -645,12 +646,15 @@ Function: symex_target_equationt::convert_assignments
 \*******************************************************************/
 
 void symex_target_equationt::convert_assignments(
-  decision_proceduret &decision_procedure) const
+  decision_proceduret &decision_procedure)
 {
-  for(const auto &step : SSA_steps)
+  for(auto &step : SSA_steps)
   {
-    if(step.is_assignment() && !step.ignore)
+    if(step.is_assignment() && !step.ignore && !step.converted)
+    {
+      step.converted=true;
       decision_procedure.set_to_true(step.cond_expr);
+    }
   }
 }
 
@@ -667,12 +671,13 @@ Function: symex_target_equationt::convert_decls
 \*******************************************************************/
 
 void symex_target_equationt::convert_decls(
-  prop_convt &prop_conv) const
+  prop_convt &prop_conv)
 {
-  for(const auto &step : SSA_steps)
+  for(auto &step : SSA_steps)
   {
-    if(step.is_decl() && !step.ignore)
+    if(step.is_decl() && !step.ignore && !step.converted)
     {
+      step.converted=true;
       // The result is not used, these have no impact on
       // the satisfiability of the formula.
       prop_conv.convert(step.cond_expr);
@@ -771,15 +776,16 @@ Function: symex_target_equationt::convert_constraints
 \*******************************************************************/
 
 void symex_target_equationt::convert_constraints(
-  decision_proceduret &decision_procedure) const
+  decision_proceduret &decision_procedure)
 {
-  for(const auto &step : SSA_steps)
+  for(auto &step : SSA_steps)
   {
     if(step.is_constraint())
     {
-      if(step.ignore)
+      if(step.ignore || step.converted)
         continue;
 
+      step.converted=true;
       decision_procedure.set_to_true(step.cond_expr);
     }
   }
@@ -808,18 +814,67 @@ void symex_target_equationt::convert_assertions(
   if(number_of_assertions==0)
     return;
 
+  exprt assumption=true_exprt();
+
+  // literal a_k to be added to assertions clauses
+  // to de-/activate them for incr. solving
+  literalt activation_literal;
+  if(is_incremental)
+  {
+    activation_literal=prop_conv.convert(
+      symbol_exprt("symex::act$"+
+                   std::to_string(activate_assertions.size()), bool_typet()));
+
+    if(!activate_assertions.empty())
+    {
+      literalt last_activation_literal=activate_assertions.back();
+      activate_assertions.pop_back();
+      activate_assertions.push_back(!last_activation_literal);
+    }
+    activate_assertions.push_back(!activation_literal);
+
+    // set assumptions (a_0 ... -a_k) for incremental solving
+    prop_conv.set_assumptions(activate_assertions);
+  }
+
   if(number_of_assertions==1)
   {
     for(auto &step : SSA_steps)
     {
-      if(step.is_assert())
+      // ignore already converted assertions in the error trace
+      if(step.is_assert() && step.converted)
+        step.ignore=true;
+
+      if(step.is_assert() && !step.ignore && !step.converted)
       {
-        prop_conv.set_to_false(step.cond_expr);
+        step.converted=true;
+
+        if(is_incremental)
+        {
+          prop_conv.set_to_true(
+            or_exprt(
+              literal_exprt(activation_literal),
+              not_exprt(step.cond_expr)));
+        }
+        else
+          prop_conv.set_to_false(step.cond_expr);
+
         step.cond_literal=const_literal(false);
+
         return; // prevent further assumptions!
       }
       else if(step.is_assume())
-        prop_conv.set_to_true(step.cond_expr);
+      {
+        if(is_incremental)
+        {
+          prop_conv.set_to_true(
+            or_exprt(
+              literal_exprt(activation_literal),
+              step.cond_expr));
+        }
+        else
+          prop_conv.set_to_true(step.cond_expr);
+      }
     }
 
     assert(false); // unreachable
@@ -828,21 +883,30 @@ void symex_target_equationt::convert_assertions(
   // We do (NOT a1) OR (NOT a2) ...
   // where the a's are the assertions
   or_exprt::operandst disjuncts;
-  disjuncts.reserve(number_of_assertions);
+  disjuncts.reserve(
+    is_incremental ? number_of_assertions+1 : number_of_assertions);
 
-  exprt assumption=true_exprt();
+  if(is_incremental)
+  {
+    // assumptions for incremental solving:
+    // (a_0 ... -a_k-1) --> (a_0 ... a_k-1 -a_k)
+    disjuncts.push_back(literal_exprt(activation_literal));
+  }
 
   for(auto &step : SSA_steps)
   {
-    if(step.is_assert())
+    // ignore already converted assertions in the error trace
+    if(step.is_assert() && step.converted)
+      step.ignore=true;
+
+    if(step.is_assert() && !step.ignore && !step.converted)
     {
-      implies_exprt implication(
-        assumption,
-        step.cond_expr);
+      step.converted=true;
+
+      implies_exprt implication(assumption, step.cond_expr);
 
       // do the conversion
       step.cond_literal=prop_conv.convert(implication);
-
       // store disjunct
       disjuncts.push_back(literal_exprt(!step.cond_literal));
     }
@@ -864,6 +928,61 @@ void symex_target_equationt::convert_assertions(
 
 /*******************************************************************\
 
+Function: symex_target_equationt::current_activation_literal
+
+  Inputs:
+
+ Outputs: current activation literal
+
+ Purpose: get activation literal used for the assertions that have been
+          translated in the most recent call to convert()
+
+\*******************************************************************/
+
+literalt symex_target_equationt::current_activation_literal()
+{
+  if(!is_incremental)
+    return const_literal(false);
+
+  return !activate_assertions.back();
+}
+
+/*******************************************************************\
+
+Function: symex_target_equationt::new_activation_literal
+
+  Inputs:
+
+ Outputs: current activation literal
+
+ Purpose: generate activation literal, to be used if convert_assertions()
+          is never called in conversion, e.g. in cover_goals
+
+\*******************************************************************/
+
+void symex_target_equationt::new_activation_literal(prop_convt &prop_conv)
+{
+  if(is_incremental)
+  {
+    literalt activation_literal=prop_conv.convert(
+      symbol_exprt("symex::act$"+
+                   std::to_string(activate_assertions.size()), bool_typet()));
+
+    if(!activate_assertions.empty())
+    {
+      literalt last_activation_literal=activate_assertions.back();
+      activate_assertions.pop_back();
+      activate_assertions.push_back(!last_activation_literal);
+    }
+    activate_assertions.push_back(!activation_literal);
+
+    // set assumptions (a_0 ... -a_k) for incremental solving
+    prop_conv.set_assumptions(activate_assertions);
+  }
+}
+
+/*******************************************************************\
+
 Function: symex_target_equationt::convert_io
 
   Inputs: decision procedure
@@ -880,7 +999,7 @@ void symex_target_equationt::convert_io(
   unsigned io_count=0;
 
   for(auto &step : SSA_steps)
-    if(!step.ignore)
+    if(!step.ignore && !step.converted)
     {
       for(const auto &arg : step.io_args)
       {
@@ -982,8 +1101,12 @@ void symex_target_equationt::SSA_stept::output(
 
   switch(type)
   {
-  case goto_trace_stept::ASSERT: out << "ASSERT " << from_expr(ns, "", cond_expr) << std::endl; break;
-  case goto_trace_stept::ASSUME: out << "ASSUME " << from_expr(ns, "", cond_expr) << std::endl; break;
+  case goto_trace_stept::ASSERT:
+    out << "ASSERT " << from_expr(ns, "", cond_expr) << std::endl;
+    break;
+  case goto_trace_stept::ASSUME:
+    out << "ASSUME " << from_expr(ns, "", cond_expr) << std::endl;
+    break;
   case goto_trace_stept::LOCATION: out << "LOCATION" << std::endl; break;
   case goto_trace_stept::INPUT: out << "INPUT" << std::endl; break;
   case goto_trace_stept::OUTPUT: out << "OUTPUT" << std::endl; break;
@@ -1010,16 +1133,28 @@ void symex_target_equationt::SSA_stept::output(
     break;
 
   case goto_trace_stept::DEAD: out << "DEAD" << std::endl; break;
-  case goto_trace_stept::FUNCTION_CALL: out << "FUNCTION_CALL" << std::endl; break;
-  case goto_trace_stept::FUNCTION_RETURN: out << "FUNCTION_RETURN" << std::endl; break;
+  case goto_trace_stept::FUNCTION_CALL:
+    out << "FUNCTION_CALL" << std::endl;
+    break;
+  case goto_trace_stept::FUNCTION_RETURN:
+    out << "FUNCTION_RETURN" << std::endl;
+    break;
   case goto_trace_stept::CONSTRAINT: out << "CONSTRAINT" << std::endl; break;
   case goto_trace_stept::SHARED_READ: out << "SHARED READ" << std::endl; break;
-  case goto_trace_stept::SHARED_WRITE: out << "SHARED WRITE" << std::endl; break;
-  case goto_trace_stept::ATOMIC_BEGIN: out << "ATOMIC_BEGIN" << std::endl; break;
+  case goto_trace_stept::SHARED_WRITE:
+    out << "SHARED WRITE" << std::endl;
+    break;
+  case goto_trace_stept::ATOMIC_BEGIN:
+    out << "ATOMIC_BEGIN" << std::endl;
+    break;
   case goto_trace_stept::ATOMIC_END: out << "AUTOMIC_END" << std::endl; break;
   case goto_trace_stept::SPAWN: out << "SPAWN" << std::endl; break;
-  case goto_trace_stept::MEMORY_BARRIER: out << "MEMORY_BARRIER" << std::endl; break;
-  case goto_trace_stept::GOTO: out << "IF " << from_expr(ns, "", cond_expr) << " GOTO" << std::endl; break;
+  case goto_trace_stept::MEMORY_BARRIER:
+    out << "MEMORY_BARRIER" << std::endl;
+    break;
+  case goto_trace_stept::GOTO:
+    out << "IF " << from_expr(ns, "", cond_expr) << " GOTO" << std::endl;
+    break;
 
   default: assert(false);
   }

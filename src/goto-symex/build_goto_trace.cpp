@@ -166,6 +166,9 @@ void build_goto_trace(
   {
     const symex_target_equationt::SSA_stept &SSA_step=*it;
 
+    if(SSA_step.ignore)
+      continue;
+    
     if(prop_conv.l_get(SSA_step.guard_literal)!=tvt(true))
       continue;
 
@@ -217,6 +220,9 @@ void build_goto_trace(
     if(it->is_assignment() &&
        (SSA_step.assignment_type==symex_target_equationt::PHI ||
         SSA_step.assignment_type==symex_target_equationt::GUARD))
+      continue;
+
+    if(SSA_step.comment==SYMEX_CONTINUATION_CHECK)
       continue;
 
     goto_tracet::stepst &steps=time_map[current_time];
@@ -319,7 +325,8 @@ void build_goto_trace(
       s_it1=goto_trace.steps.begin();
       s_it1!=goto_trace.steps.end();
       s_it1++)
-    if(s_it1->is_assert() && !s_it1->cond_value)
+    if(s_it1->is_assert() && !s_it1->cond_value && 
+       s_it1->comment!=SYMEX_CONTINUATION_CHECK)
     {
       s_it1++;
 

@@ -21,6 +21,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "symex_target.h"
 
+#define SYMEX_CONTINUATION_CHECK "symex_continuation_check"
+
 // central data structure: state
 class goto_symex_statet
 {
@@ -221,7 +223,8 @@ public:
 
   // gotos
   typedef std::list<goto_statet> goto_state_listt;
-  typedef std::map<goto_programt::const_targett, goto_state_listt> goto_state_mapt;
+  typedef std::map<goto_programt::const_targett, goto_state_listt>
+    goto_state_mapt;
 
   // stack frames -- these are used for function calls and
   // for exceptions
@@ -257,11 +260,13 @@ public:
     {
       loop_infot():
         count(0),
+        fully_unwound(false),
         is_recursion(false)
       {
       }
 
       unsigned count;
+      bool fully_unwound;
       bool is_recursion;
     };
     typedef std::unordered_map<irep_idt, loop_infot, irep_id_hash>

@@ -11,6 +11,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/message.h>
 
+#include <langapi/language_ui.h>
+
 #include <goto-symex/goto_symex.h>
 
 class symex_bmct:
@@ -22,6 +24,8 @@ public:
     const namespacet &_ns,
     symbol_tablet &_new_symbol_table,
     symex_targett &_target);
+
+  void set_ui(language_uit::uit _ui) { ui=_ui; }
 
   // To show progress
   source_locationt last_source_location;
@@ -50,6 +54,9 @@ public:
   }
 
 protected:
+  // use gui format
+  language_uit::uit ui;
+
   // We have
   // 1) a global limit (max_unwind)
   // 2) a limit per loop, all threads
@@ -68,7 +75,7 @@ protected:
   //
   // overloaded from goto_symext
   //
-  virtual void symex_step(
+  virtual bool symex_step(
     const goto_functionst &goto_functions,
     statet &state);
 
