@@ -171,6 +171,46 @@ exprt get_quantifier_body(const exprt &re_quantifier)
   return res;
 }
 
+/*******************************************************************\
+
+Function: instantiate(index_expr, index_inst, expr)
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: Replace all "index_expr"s inside "expr" with "index_inst"
+
+\*******************************************************************/
+void instantiate(const exprt &index_expr,
+                 const mp_integer &index_inst,
+                 exprt &expr)
+{
+  for(auto &x: expr.operands())
+  {
+    if(x==index_expr)
+    {
+      x=from_integer(index_inst, x.type()); 
+      continue;
+    }
+
+    if(x.operands().size()>1)
+    {
+      instantiate(index_expr, index_inst, x);
+      continue;
+    }
+    if(x.operands().size()==0) continue;
+    if(x.id()==ID_not) 
+    {
+      instantiate(index_expr, index_inst, x.op0());
+      continue;
+    }
+    if(!(x.op0()==index_expr)) continue;
+    exprt nu=from_integer(index_inst, x.op0().type()); 
+    x.operands().clear(); 
+    x.operands().push_back(nu);
+  }
+}
 
 /*******************************************************************\
 
@@ -205,10 +245,9 @@ literalt boolbvt::convert_quantifier(const exprt &expr)
      max_i.is_false() ||
      body_expr.is_false())
     return SUB::convert_rest(expr);
-
+  
   quantifier_list.push_back(quantifiert());
 
-  quantifier_list.back().expr=body_expr;
   quantifier_list.back().index_expr=index_expr;
   to_integer(min_i, quantifier_list.back().lb);
   to_integer(max_i, quantifier_list.back().ub);
@@ -217,43 +256,29 @@ literalt boolbvt::convert_quantifier(const exprt &expr)
   literalt l=prop.new_variable();
   quantifier_list.back().l=l;
 
+  // instantiate index-relevant variables in the body if there exists 
+  auto it=quantifier_list.end();
+  it--;
+  if(it->id==ID_exists)
+  {
+    it->expr=body_expr; 
+    return l;
+  }
+  std::vector<exprt> expr_insts;
+  for(mp_integer i=it->lb; i<=it->ub; ++i)
+  {
+    exprt constraint_expr=body_expr;
+    instantiate(it->index_expr, i, constraint_expr);
+    expr_insts.push_back(constraint_expr);
+  }
+  if(it->id==ID_forall)
+  {
+    it->expr=conjunction(expr_insts);
+  }
+
   return l;
 }
 
-/*******************************************************************\
-
-Function: instantiate(index_expr, index_inst, expr)
-
-  Inputs:
-
- Outputs:
-
- Purpose: Replace all "index_expr"s inside "expr" with "index_inst"
-
-\*******************************************************************/
-void instantiate(const exprt &index_expr,
-                 const mp_integer &index_inst,
-                 exprt &expr)
-{
-  for(auto &x: expr.operands())
-  {
-    if(x.operands().size()>1)
-    {
-      instantiate(index_expr, index_inst, x);
-      continue;
-    }
-    if(x.operands().size()==0) continue;
-    if(x.id()==ID_not) 
-    {
-      instantiate(index_expr, index_inst, x.op0());
-      continue;
-    }
-    if(!(x.op0()==index_expr)) continue;
-    exprt nu=from_integer(index_inst, x.op0().type()); 
-    x.operands().clear(); 
-    x.operands().push_back(nu);
-  }
-}
 
 /*******************************************************************\
 
