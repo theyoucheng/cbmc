@@ -38,6 +38,69 @@ Author: Daniel Kroening, kroening@kroening.com
 
 /*******************************************************************\
 
+Function: is_symbol
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: A method to detect symbol or typecast symbol
+
+\*******************************************************************/
+
+bool is_symbol(const exprt& expr)
+{
+  if(expr.id()==ID_symbol) return true;
+  if(expr.operands().size()==1)
+    if(expr.id()==ID_typecast && expr.op0().id()==ID_symbol)
+      return true;
+  return false;
+}
+
+
+/*******************************************************************\
+
+Function: is_constant
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: A method to detect symbol or typecast constant
+
+\*******************************************************************/
+
+bool is_constant(const exprt& expr)
+{
+  if(expr.id()==ID_constant) return true;
+  if(expr.operands().size()==1)
+    if(expr.id()==ID_typecast && expr.op0().id()==ID_constant)
+      return true;
+  return false;
+}
+
+/*******************************************************************\
+
+Function: expr_eq
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool expr_eq(const exprt &e1, const exprt &e2)
+{
+  exprt ee1=e1, ee2=e2;
+  if(e1.id()==ID_typecast) ee1=e1.op0();
+  if(e2.id()==ID_typecast) ee2=e2.op0();
+  return ee1==ee2;
+}
+
+/*******************************************************************\
+
 Function: get_index_expr
 
   Inputs:
@@ -60,8 +123,13 @@ exprt get_index_expr(const exprt &forall_rewritten)
      * is sensitive to the form of the "simplified quantifier"
      **/
     if(x.id()==ID_ge)
-      if(x.op0().id()==ID_symbol and x.op1().id()==ID_constant)
-        return x.op0();
+      if(is_symbol(x.op0()) and is_constant(x.op1()))
+      {
+        if(x.op0().id()==ID_symbol)
+          return x.op0();
+        else
+          return x.op0().op0();
+      }
   }
   return res;
 }
@@ -88,9 +156,10 @@ exprt get_min_index(const exprt &index_expr, const exprt &forall_rewritten)
     if(x.id()!=ID_not) continue;
     exprt y=x.op0();
     if(y.id()!=ID_ge) continue;
-    if(y.op0()==index_expr&&y.op1().id()==ID_constant)
+    if(expr_eq(y.op0(), index_expr) && is_constant(y.op1()))
     {
       res=y.op1();
+      if(res.id()==ID_typecast) res=res.op0();
       return res;
     }
   }
@@ -117,9 +186,10 @@ exprt get_max_index(const exprt &index_expr, const exprt &forall_rewritten)
   for(auto &x : forall_rewritten.operands())
   {
     if(x.id()!=ID_ge) continue;
-    if(x.op0()==index_expr&&x.op1().id()==ID_constant)
+    if(expr_eq(x.op0(), index_expr) && is_constant(x.op1()))
     {
       exprt over_expr=x.op1();
+      if(over_expr.id()==ID_typecast) over_expr=over_expr.op0();
       mp_integer over_i;
       to_integer(over_expr, over_i);
       /**
@@ -156,14 +226,14 @@ exprt get_quantifier_body(const exprt &re_quantifier)
   {
     if(x.id()==ID_ge)
     {
-      if(x.op0().id()==ID_symbol and x.op1().id()==ID_constant)
+      if(is_symbol(x.op0()) and is_constant(x.op1()))
         continue;
     }
     if(x.id()==ID_not)
     {
       exprt y=x.op0();
       if(y.id()!=ID_ge) continue;
-      if(x.op0().id()==ID_symbol and x.op1().id()==ID_constant)
+      if(is_symbol(x.op0()) and is_constant(x.op1()))
         continue;
     }
     return x;    
@@ -186,29 +256,14 @@ void instantiate(const exprt &index_expr,
                  const mp_integer &index_inst,
                  exprt &expr)
 {
+  if(expr==index_expr)
+  {
+    expr=from_integer(index_inst, expr.type()); 
+    return;
+  }
   for(auto &x: expr.operands())
   {
-    if(x==index_expr)
-    {
-      x=from_integer(index_inst, x.type()); 
-      continue;
-    }
-
-    if(x.operands().size()>1)
-    {
-      instantiate(index_expr, index_inst, x);
-      continue;
-    }
-    if(x.operands().size()==0) continue;
-    if(x.id()==ID_not) 
-    {
-      instantiate(index_expr, index_inst, x.op0());
-      continue;
-    }
-    if(!(x.op0()==index_expr)) continue;
-    exprt nu=from_integer(index_inst, x.op0().type()); 
-    x.operands().clear(); 
-    x.operands().push_back(nu);
+    instantiate(index_expr, index_inst, x);
   }
 }
 
