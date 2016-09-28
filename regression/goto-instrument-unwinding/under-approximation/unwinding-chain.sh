@@ -1,6 +1,6 @@
 #!/bin/bash
 
-src=../../../src
+src=../../../../src
 goto_cc=$src/goto-cc/goto-cc
 goto_instrument=$src/goto-instrument/goto-instrument
 cbmc=$src/cbmc/cbmc
