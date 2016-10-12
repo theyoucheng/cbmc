@@ -1575,7 +1575,8 @@ void instrument_cover_goals(
           std::string p_string=from_expr(ns, "", p);
 
           std::string description=
-            "MC/DC independence condition `"+p_string+"'";
+            "Decision "+from_expr(ns, "", *decisions.begin())+": `"+p_string+"'";
+            //"MC/DC independence condition `"+p_string+"'";
             
           goto_program.insert_before_swap(i_it);
           i_it->make_assertion(not_exprt(p));
