@@ -357,7 +357,23 @@ std::set<exprt> collect_mcdc_controlling(
   std::set<exprt> result;
   
   for(const auto &d : decisions)
-    collect_mcdc_controlling_rec(d, { }, result);
+  {
+    exprt e(d);
+    if(e.id()==ID_not) e=e.op0();
+    if(e.id()==ID_lt
+       or e.id()==ID_le
+       or e.id()==ID_equal
+       or e.id()==ID_ge
+       or e.id()==ID_gt)
+    {
+      result.insert(e);
+      e.make_not();
+      result.insert(e);
+      return result;
+    }
+    if(d.operands().size() > 1)
+      collect_mcdc_controlling_rec(d, { }, result);
+  }
 
   return result;
 }
@@ -1218,7 +1234,23 @@ std::set<exprt> autosac_expand(const exprt &src)
   std::set<exprt> result;
 
   std::set<exprt> s1, s2;
-  s1.insert(src);
+  if(src.id()!=ID_not)
+    s1.insert(src);
+  else
+  {
+    exprt no=src.op0();
+    if(no.id()==ID_equal 
+      or no.id()==ID_lt 
+      or no.id()==ID_le 
+      or no.id()==ID_ge 
+      or no.id()==ID_gt)
+    {
+      auto res=autosac_atomic_negate(no);
+      for(auto &x:res)
+        s1.insert(x);
+    }
+  }
+
 
   while(true) // dual-loop structure to expand negations
   {
@@ -1292,6 +1324,46 @@ std::set<exprt> autosac_expand(const exprt &src)
 
 /*******************************************************************\
 
+Function: is_autosac_function
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+bool is_autosac_function(const codet& code)
+{
+  const code_function_callt &code_function_call=
+    to_code_function_call(code);
+  std::string func_name=to_symbol_expr(
+    code_function_call.function()).get_identifier().c_str();
+  return has_prefix(func_name, "__AUTOSAC");
+}
+
+bool is_autosac_barrier(const codet& code)
+{
+  const code_function_callt &code_function_call=
+    to_code_function_call(code);
+  if(code_function_call.arguments().size()!=1) return false;
+  auto it=code_function_call.arguments().begin();
+  return from_expr(*it)=="\"preconditions\"" || from_expr(*it)=="\"postconditions\"";
+}
+
+std::string autosac_description(const codet& code)
+{
+  const code_function_callt &code_function_call=
+    to_code_function_call(code);
+  if(code_function_call.arguments().size()!=2) return "";
+  auto it=code_function_call.arguments().begin();
+  it++;
+  return from_expr(*it); //=="\"preconditions\"" || from_expr(*it)=="\"preconditions\"";
+}
+
+
+/*******************************************************************\
+
 Function: instrument_cover_goals
 
   Inputs:
@@ -1307,6 +1379,8 @@ void instrument_cover_goals(
   goto_programt &goto_program,
   coverage_criteriont criterion)
 {
+std::vector<std::set<exprt> > autosac_vect;
+std::vector<std::string > autosac_words;
   const namespacet ns(symbol_table);
   basic_blockst basic_blocks(goto_program);
   std::set<unsigned> blocks_done;
@@ -1510,10 +1584,46 @@ void instrument_cover_goals(
       // 4. Each condition in a decision is shown to independently
       //    affect the outcome of the decision.
       {
+        bool autosac_func_call=false;
+        bool autosac_barrier=false;
+
         bool autosac=(criterion==coverage_criteriont::AUTOSAC);
-        const std::set<exprt> conditions=collect_conditions(i_it);
-        const std::set<exprt> decisions=collect_decisions(i_it);
-        
+        if(autosac && i_it->is_function_call())
+          autosac_func_call=is_autosac_function(i_it->code);
+        if(autosac_func_call)
+          autosac_barrier=is_autosac_barrier(i_it->code);
+
+        const std::set<exprt> conditions1=collect_conditions(i_it); //0
+        const std::set<exprt> decisions1=collect_decisions(i_it);  //1
+std::vector<std::set<exprt> > cond_dec;
+std::vector<std::string > words;
+if(autosac_func_call and not autosac_barrier)
+{
+  autosac_vect.push_back(conditions1);
+  autosac_vect.push_back(decisions1);
+  autosac_words.push_back(autosac_description(i_it->code));
+}
+else if(autosac_barrier)
+{
+  cond_dec=autosac_vect;
+  words=autosac_words;
+  autosac_vect.clear();
+  autosac_words.clear();
+}
+else
+{
+  cond_dec.push_back(conditions1);
+  cond_dec.push_back(decisions1);
+  words.push_back("");
+}
+
+
+//if(not autosac_func_call)        
+for(int xx=0; xx < cond_dec.size(); xx+=2)
+{
+const std::set<exprt> conditions=cond_dec.at(xx);
+const std::set<exprt> decisions=cond_dec.at(xx+1);
+
         std::set<exprt> both;
         std::set_union(conditions.begin(), conditions.end(),
                        decisions.begin(), decisions.end(),
@@ -1575,7 +1685,7 @@ void instrument_cover_goals(
           std::string p_string=from_expr(ns, "", p);
 
           std::string description=
-            "Decision "+from_expr(ns, "", *decisions.begin())+": `"+p_string+"'";
+            words.at(xx/2)+" Decision "+from_expr(ns, "", *decisions.begin())+": `"+p_string+"'";
             //"MC/DC independence condition `"+p_string+"'";
             
           goto_program.insert_before_swap(i_it);
@@ -1588,6 +1698,7 @@ void instrument_cover_goals(
         
         for(std::size_t i=0; i<both.size()*2+controlling.size(); i++)
           i_it++;
+}
       }
       break;
 
