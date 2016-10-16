@@ -351,6 +351,8 @@ Function: collect_mcdc_controlling
 
 \*******************************************************************/
 
+std::set<exprt> autosac_atomic_expand(const exprt &src);
+
 std::set<exprt> collect_mcdc_controlling(
   const std::set<exprt> &decisions)
 {
@@ -366,9 +368,15 @@ std::set<exprt> collect_mcdc_controlling(
        or e.id()==ID_ge
        or e.id()==ID_gt)
     {
-      result.insert(e);
+      auto res=autosac_atomic_expand(e);
+      if(not res.empty())
+        result.insert(res.begin(), res.end());
+      else result.insert(e);
       e.make_not();
-      result.insert(e);
+      res=autosac_atomic_expand(e);
+      if(not res.empty())
+        result.insert(res.begin(), res.end());
+      else result.insert(e);
       return result;
     }
     if(d.operands().size() > 1)
