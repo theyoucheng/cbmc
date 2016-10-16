@@ -1339,7 +1339,7 @@ bool is_autosac_function(const codet& code)
     to_code_function_call(code);
   std::string func_name=to_symbol_expr(
     code_function_call.function()).get_identifier().c_str();
-  return has_prefix(func_name, "__AUTOSAC");
+  return has_prefix(func_name, "___AUTOSAC");
 }
 
 bool is_autosac_barrier(const codet& code)
@@ -1595,110 +1595,114 @@ std::vector<std::string > autosac_words;
 
         const std::set<exprt> conditions1=collect_conditions(i_it); //0
         const std::set<exprt> decisions1=collect_decisions(i_it);  //1
-std::vector<std::set<exprt> > cond_dec;
-std::vector<std::string > words;
-if(autosac_func_call and not autosac_barrier)
-{
-  autosac_vect.push_back(conditions1);
-  autosac_vect.push_back(decisions1);
-  autosac_words.push_back(autosac_description(i_it->code));
-}
-else if(autosac_barrier)
-{
-  cond_dec=autosac_vect;
-  words=autosac_words;
-  autosac_vect.clear();
-  autosac_words.clear();
-}
-else
-{
-  cond_dec.push_back(conditions1);
-  cond_dec.push_back(decisions1);
-  words.push_back("");
-}
 
-
-//if(not autosac_func_call)        
-for(int xx=0; xx < cond_dec.size(); xx+=2)
-{
-const std::set<exprt> conditions=cond_dec.at(xx);
-const std::set<exprt> decisions=cond_dec.at(xx+1);
-
-        std::set<exprt> both;
-        std::set_union(conditions.begin(), conditions.end(),
-                       decisions.begin(), decisions.end(),
-                       inserter(both, both.end()));
-
-        const source_locationt source_location=i_it->source_location;
-
-        for(const auto & p : both)
+        std::vector<std::set<exprt> > cond_dec;
+        std::vector<std::string > words;
+        if(autosac_func_call) // and not autosac_barrier)
         {
-          bool is_decision=decisions.find(p)!=decisions.end();
-          bool is_condition=conditions.find(p)!=conditions.end();
-          
-          std::string description=
-            (is_decision && is_condition)?"decision/condition":
-            is_decision?"decision":"condition";
-            
-          std::string p_string=from_expr(ns, "", p);
-        
-          std::string comment_t=description+" `"+p_string+"' true";
-          goto_program.insert_before_swap(i_it);
-          //i_it->make_assertion(p);
-          i_it->make_assertion(not_exprt(p));
-          i_it->source_location=source_location;
-          i_it->source_location.set_comment(comment_t);
-          i_it->source_location.set_property_class("coverage");
-
-          std::string comment_f=description+" `"+p_string+"' false";
-          goto_program.insert_before_swap(i_it);
-          //i_it->make_assertion(not_exprt(p));
-          i_it->make_assertion(p);
-          i_it->source_location=source_location;
-          i_it->source_location.set_comment(comment_f);
-          i_it->source_location.set_property_class("coverage");
+          //autosac_vect.push_back(conditions1);
+          //autosac_vect.push_back(decisions1);
+          //autosac_words.push_back(autosac_description(i_it->code));
+          cond_dec.push_back(conditions1);
+          cond_dec.push_back(decisions1);
+          words.push_back(autosac_description(i_it->code));
+        }
+        //else if(autosac_barrier)
+        //{
+        //  cond_dec=autosac_vect;
+        //  words=autosac_words;
+        //  autosac_vect.clear();
+        //  autosac_words.clear();
+        //}
+        else
+        {
+          cond_dec.push_back(conditions1);
+          cond_dec.push_back(decisions1);
+          words.push_back("");
         }
         
-        std::set<exprt> controlling;
-        //controlling=collect_mcdc_controlling(decisions);
-        controlling=collect_mcdc_controlling_nested(decisions);
-        remove_repetition(controlling);
-        // for now, we restrict to the case of a single ''decision'';
-        // however, this is not true, e.g., ''? :'' operator.
-        minimize_mcdc_controlling(controlling, *decisions.begin());
-
-        if(autosac)
+        
+        //if(not autosac_func_call)        
+        for(int xx=0; xx < cond_dec.size(); xx+=2)
         {
-          std::set<exprt> controlling2;
-          for(auto &x: controlling)
+          const std::set<exprt> conditions=cond_dec.at(xx);
+          const std::set<exprt> decisions=cond_dec.at(xx+1);
+        
+          std::set<exprt> both;
+          std::set_union(conditions.begin(), conditions.end(),
+                         decisions.begin(), decisions.end(),
+                         inserter(both, both.end()));
+        
+          const source_locationt source_location=i_it->source_location;
+        
+          for(const auto & p : both)
           {
-            std::set<exprt> res=autosac_expand(x);
-            controlling2.insert(res.begin(), res.end());
-          }
-          controlling=controlling2;
-          remove_repetition(controlling);
-        }
-
-
-        for(const auto & p : controlling)
-        {
-          std::string p_string=from_expr(ns, "", p);
-
-          std::string description=
-            words.at(xx/2)+" Decision "+from_expr(ns, "", *decisions.begin())+": `"+p_string+"'";
-            //"MC/DC independence condition `"+p_string+"'";
+            bool is_decision=decisions.find(p)!=decisions.end();
+            bool is_condition=conditions.find(p)!=conditions.end();
             
-          goto_program.insert_before_swap(i_it);
-          i_it->make_assertion(not_exprt(p));
-          //i_it->make_assertion(p);
-          i_it->source_location=source_location;
-          i_it->source_location.set_comment(description);
-          i_it->source_location.set_property_class("coverage");
-        }
+            std::string description=
+              (is_decision && is_condition)?"decision/condition":
+              is_decision?"decision":"condition";
+              
+            std::string p_string=from_expr(ns, "", p);
+          
+            std::string comment_t=description+" `"+p_string+"' true";
+            goto_program.insert_before_swap(i_it);
+            //i_it->make_assertion(p);
+            i_it->make_assertion(not_exprt(p));
+            i_it->source_location=source_location;
+            i_it->source_location.set_comment(comment_t);
+            i_it->source_location.set_property_class("coverage");
         
-        for(std::size_t i=0; i<both.size()*2+controlling.size(); i++)
-          i_it++;
-}
+            std::string comment_f=description+" `"+p_string+"' false";
+            goto_program.insert_before_swap(i_it);
+            //i_it->make_assertion(not_exprt(p));
+            i_it->make_assertion(p);
+            i_it->source_location=source_location;
+            i_it->source_location.set_comment(comment_f);
+            i_it->source_location.set_property_class("coverage");
+          }
+          
+          std::set<exprt> controlling;
+          //controlling=collect_mcdc_controlling(decisions);
+          controlling=collect_mcdc_controlling_nested(decisions);
+          remove_repetition(controlling);
+          // for now, we restrict to the case of a single ''decision'';
+          // however, this is not true, e.g., ''? :'' operator.
+          minimize_mcdc_controlling(controlling, *decisions.begin());
+        
+          if(autosac)
+          {
+            std::set<exprt> controlling2;
+            for(auto &x: controlling)
+            {
+              std::set<exprt> res=autosac_expand(x);
+              controlling2.insert(res.begin(), res.end());
+            }
+            controlling=controlling2;
+            remove_repetition(controlling);
+          }
+        
+        
+          for(const auto & p : controlling)
+          {
+            std::string p_string=from_expr(ns, "", p);
+        
+            std::string description=
+              words.at(xx/2)+" Decision "+from_expr(ns, "", *decisions.begin())+": `"+p_string+"'";
+              //"MC/DC independence condition `"+p_string+"'";
+              
+            goto_program.insert_before_swap(i_it);
+            i_it->make_assertion(not_exprt(p));
+            //i_it->make_assertion(p);
+            i_it->source_location=source_location;
+            i_it->source_location.set_comment(description);
+            i_it->source_location.set_property_class("coverage");
+          }
+          
+          for(std::size_t i=0; i<both.size()*2+controlling.size(); i++)
+            i_it++;
+        }
       }
       break;
 
