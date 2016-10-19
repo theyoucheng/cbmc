@@ -979,6 +979,41 @@ void minimize_mcdc_controlling(
 
 /*******************************************************************\
 
+Function: expand_ite_expr
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: expand an if-then-else expr
+
+\*******************************************************************/
+
+void expand_ite_expr(exprt &x)
+{
+  for(exprt & y : x.operands())
+    expand_ite_expr(y);
+
+  if(x.id()==ID_if)
+  {
+    assert(x.operands().size()==3);
+    std::vector<exprt> conj_a, conj_b, final_disj;
+    x.op0().type().id(ID_bool);
+    x.op1().type().id(ID_bool);
+    x.op2().type().id(ID_bool);
+    conj_a.push_back(x.op0());
+    conj_a.push_back(x.op1());
+    conj_b.push_back(not_exprt(x.op0()));
+    conj_b.push_back(x.op2());
+    final_disj.push_back(conjunction(conj_a));
+    final_disj.push_back(conjunction(conj_b));
+    exprt res=disjunction(final_disj);
+    x=res;
+  }
+}
+
+/*******************************************************************\
+
 Function: collect_decisions_rec
 
   Inputs:
@@ -1010,6 +1045,12 @@ void collect_decisions_rec(const exprt &src, std::set<exprt> &dest)
     {
       dest.insert(src); 
     }
+  }
+  else if(src.id()==ID_if)
+  {
+    exprt expr(src);
+    expand_ite_expr(expr); 
+    dest.insert(expr); 
   }
   else
   {
@@ -1347,7 +1388,7 @@ bool is_autosac_function(const codet& code)
     to_code_function_call(code);
   std::string func_name=to_symbol_expr(
     code_function_call.function()).get_identifier().c_str();
-  return has_prefix(func_name, "___AUTOSAC");
+  return has_prefix(func_name, "__AUTOSAC");
 }
 
 bool is_autosac_barrier(const codet& code)
@@ -1366,7 +1407,7 @@ std::string autosac_description(const codet& code)
   if(code_function_call.arguments().size()!=2) return "";
   auto it=code_function_call.arguments().begin();
   it++;
-  return from_expr(*it); //=="\"preconditions\"" || from_expr(*it)=="\"preconditions\"";
+  return from_expr(*it);
 }
 
 
@@ -1657,7 +1698,7 @@ std::vector<std::string > autosac_words;
             std::string comment_t=description+" `"+p_string+"' true";
             goto_program.insert_before_swap(i_it);
             //i_it->make_assertion(p);
-            if(p.id()==ID_forall) i_it->make_skip();
+            if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
             else i_it->make_assertion(not_exprt(p));
             i_it->source_location=source_location;
             i_it->source_location.set_comment(comment_t);
@@ -1667,7 +1708,7 @@ std::vector<std::string > autosac_words;
             std::string comment_f=description+" `"+p_string+"' false";
             goto_program.insert_before_swap(i_it);
             //i_it->make_assertion(not_exprt(p));
-            if(p.id()==ID_forall) i_it->make_skip();
+            if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
             else i_it->make_assertion(p);
             i_it->source_location=source_location;
             i_it->source_location.set_comment(comment_f);
@@ -1700,8 +1741,7 @@ std::vector<std::string > autosac_words;
             std::string p_string=from_expr(ns, "", p);
         
             std::string description=
-              words.at(xx/2)+" Decision "+from_expr(ns, "", *decisions.begin())+": `"+p_string+"'";
-              //"MC/DC independence condition `"+p_string+"'";
+              words.at(xx/2)+" `"+p_string+"'";
               
             goto_program.insert_before_swap(i_it);
             i_it->make_assertion(not_exprt(p));
