@@ -377,7 +377,7 @@ std::set<exprt> collect_mcdc_controlling(
       if(not res.empty())
         result.insert(res.begin(), res.end());
       else result.insert(e);
-      return result;
+      continue; //return result;
     }
     if(d.operands().size() > 1)
       collect_mcdc_controlling_rec(d, { }, result);
@@ -1046,12 +1046,12 @@ void collect_decisions_rec(const exprt &src, std::set<exprt> &dest)
       dest.insert(src); 
     }
   }
-  else if(src.id()==ID_if)
-  {
-    exprt expr(src);
-    expand_ite_expr(expr); 
-    dest.insert(expr); 
-  }
+  //else if(src.id()==ID_if)
+  //{
+  //  exprt expr(src);
+  //  expand_ite_expr(expr); 
+  //  dest.insert(expr); 
+  //}
   else
   {
     for(const auto & op : src.operands())
@@ -1689,9 +1689,9 @@ std::vector<std::string > autosac_words;
             bool is_decision=decisions.find(p)!=decisions.end();
             bool is_condition=conditions.find(p)!=conditions.end();
             
-            std::string description=
-              (is_decision && is_condition)?"decision/condition":
-              is_decision?"decision":"condition";
+            std::string description=words.at(xx/2)+": "+
+              ((is_decision && is_condition)?"decision/condition":
+              is_decision?"decision":"condition");
               
             std::string p_string=from_expr(ns, "", p);
           
@@ -1716,12 +1716,19 @@ std::vector<std::string > autosac_words;
           }
           
           std::set<exprt> controlling;
-          //controlling=collect_mcdc_controlling(decisions);
-          controlling=collect_mcdc_controlling_nested(decisions);
-          remove_repetition(controlling);
-          // for now, we restrict to the case of a single ''decision'';
-          // however, this is not true, e.g., ''? :'' operator.
-          minimize_mcdc_controlling(controlling, *decisions.begin());
+          controlling=collect_mcdc_controlling(decisions);
+          //controlling=collect_mcdc_controlling_nested(decisions);
+          //remove_repetition(controlling);
+          //// for now, we restrict to the case of a single ''decision'';
+          //// however, this is not true, e.g., ''? :'' operator.
+          //minimize_mcdc_controlling(controlling, *decisions.begin());
+          for(auto &dec: decisions)
+          {
+            std::set<exprt> ctrl=collect_mcdc_controlling_nested({dec});
+            remove_repetition(ctrl);
+            minimize_mcdc_controlling(ctrl, dec);
+            controlling.insert(ctrl.begin(), ctrl.end());
+          }
         
           if(autosac)
           {
@@ -1741,7 +1748,7 @@ std::vector<std::string > autosac_words;
             std::string p_string=from_expr(ns, "", p);
         
             std::string description=
-              words.at(xx/2)+" `"+p_string+"'";
+              words.at(xx/2)+": `"+p_string+"'";
               
             goto_program.insert_before_swap(i_it);
             i_it->make_assertion(not_exprt(p));
