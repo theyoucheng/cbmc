@@ -1720,12 +1720,6 @@ std::vector<std::string > autosac_words;
           }
           
           std::set<exprt> controlling;
-          controlling=collect_mcdc_controlling(decisions);
-          //controlling=collect_mcdc_controlling_nested(decisions);
-          //remove_repetition(controlling);
-          //// for now, we restrict to the case of a single ''decision'';
-          //// however, this is not true, e.g., ''? :'' operator.
-          //minimize_mcdc_controlling(controlling, *decisions.begin());
           for(auto &dec: decisions)
           {
             std::set<exprt> ctrl=collect_mcdc_controlling_nested({dec});
