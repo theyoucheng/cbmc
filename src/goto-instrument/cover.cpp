@@ -1723,6 +1723,12 @@ std::vector<std::string > autosac_words;
           for(auto &dec: decisions)
           {
             std::set<exprt> ctrl=collect_mcdc_controlling_nested({dec});
+                       
+            // collect its controls if there exists
+            std::set<exprt> ite_controlling;
+            collect_ite(dec, ite_controlling);
+            ctrl.insert(ite_controlling.begin(), ite_controlling.end());
+
             remove_repetition(ctrl);
             minimize_mcdc_controlling(ctrl, dec);
             controlling.insert(ctrl.begin(), ctrl.end());
@@ -1798,4 +1804,79 @@ void instrument_cover_goals(
       
     instrument_cover_goals(symbol_table, f_it->second.body, criterion);
   }
+}
+
+
+
+
+
+
+
+
+/*******************************************************************\
+
+Function: Handler for ite controlling
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+void collect_ite_rec(const exprt &e, 
+                     const exprt &prior_constr,
+                     std::set<exprt> &coll)
+{
+
+  std::vector<exprt> con_v;
+
+  if(e.id()!=ID_if)
+  {
+    exprt e_bool(e);
+    e_bool.type().id(ID_bool);
+    con_v.push_back(prior_constr);
+    con_v.push_back(e_bool);
+    coll.insert(conjunction(con_v));
+    return;
+  }  
+  
+  // if A then B else C
+  assert(e.operands().size()==3);
+  const exprt &op0=e.op0();
+  const exprt &op1=e.op1();
+  const exprt &op2=e.op2();
+  
+  // 1) A && B
+  con_v.clear();
+  con_v.push_back(prior_constr);
+  con_v.push_back(op0);
+  collect_ite_rec(op1, conjunction(con_v), coll); 
+  // 2) (not A) && C
+  con_v.clear();
+  con_v.push_back(prior_constr);
+  con_v.push_back(not_exprt(op0));
+  collect_ite_rec(op2, conjunction(con_v), coll); 
+}
+
+void collect_ite(const exprt &src, 
+                 std::set<exprt> &coll)
+{
+  exprt prior;
+  prior.make_true();
+  if(src.id()==ID_if)
+  {
+    collect_ite_rec(src, prior, coll);
+    return;
+  }
+
+  for(auto &op: src.operands())
+  {
+    if(op.id()==ID_if)
+      collect_ite_rec(op, prior, coll);
+    if(op.id()==ID_typecast)
+      if(op.op0().id()==ID_if)
+        collect_ite_rec(op.op0(), prior, coll);
+  }
+
 }
