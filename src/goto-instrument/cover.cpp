@@ -1647,23 +1647,27 @@ std::vector<std::string > autosac_words;
 
         std::vector<std::set<exprt> > cond_dec;
         std::vector<std::string > words;
-        if(autosac_func_call) // and not autosac_barrier)
+        if(autosac_func_call and not autosac_barrier)
         {
-          //autosac_vect.push_back(conditions1);
-          //autosac_vect.push_back(decisions1);
-          //autosac_words.push_back(autosac_description(i_it->code));
-          cond_dec.push_back(conditions1);
-          cond_dec.push_back(decisions1);
-          words.push_back(autosac_description(i_it->code));
+          /** 
+           * AUTOSAC assertions are inserted only when 
+           * meeting a barrier.
+           */
+          autosac_vect.push_back(conditions1);
+          autosac_vect.push_back(decisions1);
+          autosac_words.push_back(autosac_description(i_it->code));
+          //cond_dec.push_back(conditions1);
+          //cond_dec.push_back(decisions1);
+          //words.push_back(autosac_description(i_it->code));
         }
-        //else if(autosac_barrier)
-        //{
-        //  cond_dec=autosac_vect;
-        //  words=autosac_words;
-        //  autosac_vect.clear();
-        //  autosac_words.clear();
-        //}
-        else
+        else if(autosac_func_call and autosac_barrier)
+        {
+          cond_dec=autosac_vect;
+          words=autosac_words;
+          autosac_vect.clear();
+          autosac_words.clear();
+        }
+        else // not AUTOSAC function
         {
           cond_dec.push_back(conditions1);
           cond_dec.push_back(decisions1);
