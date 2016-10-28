@@ -1656,6 +1656,9 @@ std::vector<std::string > autosac_words;
           autosac_vect.push_back(conditions1);
           autosac_vect.push_back(decisions1);
           autosac_words.push_back(autosac_description(i_it->code));
+          std::string desc=autosac_description(i_it->code);
+          for(auto &sx: autosac_words)
+            if(sx=="") sx=desc;
           //cond_dec.push_back(conditions1);
           //cond_dec.push_back(decisions1);
           //words.push_back(autosac_description(i_it->code));
