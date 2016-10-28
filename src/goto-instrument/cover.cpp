@@ -1669,9 +1669,12 @@ std::vector<std::string > autosac_words;
         }
         else // not AUTOSAC function
         {
-          cond_dec.push_back(conditions1);
-          cond_dec.push_back(decisions1);
-          words.push_back("");
+          //cond_dec.push_back(conditions1);
+          //cond_dec.push_back(decisions1);
+          //words.push_back("");
+          autosac_vect.push_back(conditions1);
+          autosac_vect.push_back(decisions1);
+          autosac_words.push_back("");
         }
         
         
