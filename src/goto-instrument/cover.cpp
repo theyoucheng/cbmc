@@ -1708,8 +1708,9 @@ std::vector<std::string > autosac_words;
             std::string comment_t=description+" `"+p_string+"' true";
             goto_program.insert_before_swap(i_it);
             //i_it->make_assertion(p);
-            if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
-            else i_it->make_assertion(not_exprt(p));
+            //if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
+            //else 
+            i_it->make_assertion(not_exprt(p));
             i_it->source_location=source_location;
             i_it->source_location.set_comment(comment_t);
             i_it->source_location.set_property_class("coverage");
@@ -1718,8 +1719,9 @@ std::vector<std::string > autosac_words;
             std::string comment_f=description+" `"+p_string+"' false";
             goto_program.insert_before_swap(i_it);
             //i_it->make_assertion(not_exprt(p));
-            if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
-            else i_it->make_assertion(p);
+            //if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
+            //else 
+            i_it->make_assertion(p);
             i_it->source_location=source_location;
             i_it->source_location.set_comment(comment_f);
             i_it->source_location.set_property_class("coverage");

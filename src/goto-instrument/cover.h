@@ -27,4 +27,12 @@ void instrument_cover_goals(
   goto_functionst &goto_functions,
   coverage_criteriont);
 
+void collect_ite_rec(const exprt &e, 
+                     const exprt &prior_constr,
+                     std::set<exprt> &coll);
+
+void collect_ite(const exprt &src, 
+                 std::set<exprt> &coll);
+
+
 #endif
