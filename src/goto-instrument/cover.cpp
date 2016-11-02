@@ -357,14 +357,15 @@ std::set<exprt> collect_mcdc_controlling(
   std::set<exprt> result;
   
   for(const auto &d : decisions)
+  {
     collect_mcdc_controlling_rec(d, { }, result);
-
+  }
   return result;
 }
 
 /*******************************************************************\
 
-Function: replacement_conjunction
+Function: replacement_and_conjunction
 
   Inputs:
 
@@ -375,7 +376,7 @@ Function: replacement_conjunction
 
 \*******************************************************************/
 
-std::set<exprt> replacement_conjunction(
+std::set<exprt> replacement_and_conjunction(
   const std::set<exprt> &replacement_exprs,
   const std::vector<exprt> &operands,
   const std::size_t i)
@@ -477,7 +478,7 @@ std::set<exprt> collect_mcdc_controlling_nested(
 
           // To replace a non-atomic expr with its expansion
           std::set<exprt> co=
-            replacement_conjunction(res, operands, i);
+            replacement_and_conjunction(res, operands, i);
           s2.insert(co.begin(), co.end());
           if(res.size() > 0) break;
         }
@@ -1300,13 +1301,33 @@ void instrument_cover_goals(
           i_it->source_location.set_property_class("coverage");
         }
         
+        bool boundary_values_analysis=true;
         std::set<exprt> controlling;
-        //controlling=collect_mcdc_controlling(decisions);
-        controlling=collect_mcdc_controlling_nested(decisions);
-        remove_repetition(controlling);
-        // for now, we restrict to the case of a single ''decision'';
-        // however, this is not true, e.g., ''? :'' operator.
-        minimize_mcdc_controlling(controlling, *decisions.begin());
+        for(auto &dec: decisions)
+        {
+          std::set<exprt> ctrl=collect_mcdc_controlling_nested({dec});
+          if(boundary_values_analysis)
+          {
+            auto res=decision_expansion(dec);
+            ctrl.insert(res.begin(), res.end());
+          }
+          remove_repetition(ctrl);
+          minimize_mcdc_controlling(ctrl, dec);
+          controlling.insert(ctrl.begin(), ctrl.end());
+        }
+
+        if(boundary_values_analysis)
+        {
+          std::set<exprt> boundary_controlling;
+          for(auto &x: controlling)
+          {
+            auto res=non_ordered_expr_expansion(x);
+            boundary_controlling.insert(res.begin(), res.end());
+          }
+          controlling=boundary_controlling;
+          remove_repetition(controlling);
+        }
+
 
         for(const auto & p : controlling)
         {
