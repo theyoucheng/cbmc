@@ -357,14 +357,15 @@ std::set<exprt> collect_mcdc_controlling(
   std::set<exprt> result;
   
   for(const auto &d : decisions)
+  {
     collect_mcdc_controlling_rec(d, { }, result);
-
+  }
   return result;
 }
 
 /*******************************************************************\
 
-Function: replacement_conjunction
+Function: replacement_and_conjunction
 
   Inputs:
 
@@ -375,7 +376,7 @@ Function: replacement_conjunction
 
 \*******************************************************************/
 
-std::set<exprt> replacement_conjunction(
+std::set<exprt> replacement_and_conjunction(
   const std::set<exprt> &replacement_exprs,
   const std::vector<exprt> &operands,
   const std::size_t i)
@@ -477,7 +478,7 @@ std::set<exprt> collect_mcdc_controlling_nested(
 
           // To replace a non-atomic expr with its expansion
           std::set<exprt> co=
-            replacement_conjunction(res, operands, i);
+            replacement_and_conjunction(res, operands, i);
           s2.insert(co.begin(), co.end());
           if(res.size() > 0) break;
         }
@@ -1069,9 +1070,6 @@ void instrument_cover_goals(
      has_prefix(id2string(goto_program.instructions.front().source_location.get_file()),
                 "<builtin-library-"))
     return;
-
-  const irep_idt coverage_criterion=as_string(criterion);    
-  const irep_idt property_class="coverage";
   
   Forall_goto_program_instructions(i_it, goto_program)
   {
@@ -1082,8 +1080,7 @@ void instrument_cover_goals(
       if(i_it->is_assert())
       {
         i_it->guard=false_exprt();
-        i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-        i_it->source_location.set_property_class(property_class);
+        i_it->source_location.set_property_class("coverage");
       }
       break;
       
@@ -1104,8 +1101,7 @@ void instrument_cover_goals(
           i_it->type=ASSERT;
           i_it->code.clear();
           i_it->source_location.set_comment(comment);
-          i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-          i_it->source_location.set_property_class(property_class);
+          i_it->source_location.set_property_class("coverage");
         }
       }
       else if(i_it->is_assert())
@@ -1133,8 +1129,7 @@ void instrument_cover_goals(
             i_it->make_assertion(false_exprt());
             i_it->source_location=source_location;
             i_it->source_location.set_comment(comment);
-            i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-            i_it->source_location.set_property_class(property_class);
+            i_it->source_location.set_property_class("coverage");
             
             i_it++;
           }
@@ -1159,8 +1154,7 @@ void instrument_cover_goals(
         t->make_assertion(false_exprt());
         t->source_location=source_location;
         t->source_location.set_comment(comment);
-        t->source_location.set(ID_coverage_criterion, coverage_criterion);
-        t->source_location.set_property_class(property_class);
+        t->source_location.set_property_class("coverage");
       }
     
       if(i_it->is_goto() && !i_it->guard.is_true())
@@ -1178,15 +1172,13 @@ void instrument_cover_goals(
         i_it->make_assertion(not_exprt(guard));
         i_it->source_location=source_location;
         i_it->source_location.set_comment(true_comment);
-        i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-        i_it->source_location.set_property_class(property_class);
+        i_it->source_location.set_property_class("coverage");
 
         goto_program.insert_before_swap(i_it);
         i_it->make_assertion(guard);
         i_it->source_location=source_location;
         i_it->source_location.set_comment(false_comment);
-        i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-        i_it->source_location.set_property_class(property_class);
+        i_it->source_location.set_property_class("coverage");
         
         i_it++;
         i_it++;
@@ -1212,16 +1204,14 @@ void instrument_cover_goals(
           i_it->make_assertion(c);
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_t);
-          i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-          i_it->source_location.set_property_class(property_class);
+          i_it->source_location.set_property_class("coverage");
 
           const std::string comment_f="condition `"+c_string+"' false";
           goto_program.insert_before_swap(i_it);
           i_it->make_assertion(not_exprt(c));
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_f);
-          i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-          i_it->source_location.set_property_class(property_class);
+          i_it->source_location.set_property_class("coverage");
         }
         
         for(std::size_t i=0; i<conditions.size()*2; i++)
@@ -1248,23 +1238,22 @@ void instrument_cover_goals(
           i_it->make_assertion(d);
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_t);
-          i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-          i_it->source_location.set_property_class(property_class);
+          i_it->source_location.set_property_class("coverage");
 
           const std::string comment_f="decision `"+d_string+"' false";
           goto_program.insert_before_swap(i_it);
           i_it->make_assertion(not_exprt(d));
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_f);
-          i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-          i_it->source_location.set_property_class(property_class);
+          i_it->source_location.set_property_class("coverage");
         }
         
         for(std::size_t i=0; i<decisions.size()*2; i++)
           i_it++;
       }
       break;
-      
+
+    case coverage_criteriont::BOUNDARY:
     case coverage_criteriont::MCDC:
       if(i_it->is_assert())
         i_it->make_skip();
@@ -1302,8 +1291,7 @@ void instrument_cover_goals(
           i_it->make_assertion(not_exprt(p));
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_t);
-          i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-          i_it->source_location.set_property_class(property_class);
+          i_it->source_location.set_property_class("coverage");
 
           std::string comment_f=description+" `"+p_string+"' false";
           goto_program.insert_before_swap(i_it);
@@ -1311,17 +1299,36 @@ void instrument_cover_goals(
           i_it->make_assertion(p);
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_f);
-          i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-          i_it->source_location.set_property_class(property_class);
+          i_it->source_location.set_property_class("coverage");
         }
         
+        bool boundary_values_analysis=(coverage_criteriont::BOUNDARY==criterion);
         std::set<exprt> controlling;
-        //controlling=collect_mcdc_controlling(decisions);
-        controlling=collect_mcdc_controlling_nested(decisions);
-        remove_repetition(controlling);
-        // for now, we restrict to the case of a single ''decision'';
-        // however, this is not true, e.g., ''? :'' operator.
-        minimize_mcdc_controlling(controlling, *decisions.begin());
+        for(auto &dec: decisions)
+        {
+          std::set<exprt> ctrl=collect_mcdc_controlling_nested({dec});
+          if(boundary_values_analysis)
+          {
+            auto res=decision_expansion(dec);
+            ctrl.insert(res.begin(), res.end());
+          }
+          remove_repetition(ctrl);
+          minimize_mcdc_controlling(ctrl, dec);
+          controlling.insert(ctrl.begin(), ctrl.end());
+        }
+
+        if(boundary_values_analysis)
+        {
+          std::set<exprt> boundary_controlling;
+          for(auto &x: controlling)
+          {
+            auto res=non_ordered_expr_expansion(x);
+            boundary_controlling.insert(res.begin(), res.end());
+          }
+          controlling=boundary_controlling;
+          remove_repetition(controlling);
+        }
+
 
         for(const auto & p : controlling)
         {
@@ -1335,8 +1342,7 @@ void instrument_cover_goals(
           //i_it->make_assertion(p);
           i_it->source_location=source_location;
           i_it->source_location.set_comment(description);
-          i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-          i_it->source_location.set_property_class(property_class);
+          i_it->source_location.set_property_class("coverage");
         }
         
         for(std::size_t i=0; i<both.size()*2+controlling.size(); i++)
