@@ -60,6 +60,7 @@ Function: fault_localizationt::collect_guards
 
 void fault_localizationt::collect_guards(lpointst &lpoints)
 {
+  int index=0;
   for(symex_target_equationt::SSA_stepst::const_iterator
       it=bmc.equation.SSA_steps.begin();
       it!=bmc.equation.SSA_steps.end(); it++)
@@ -73,6 +74,14 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
         lpoints[it->guard_literal].target=it->source.pc;
         lpoints[it->guard_literal].score=0;
       }
+    }
+
+    if(it->is_goto()&&!it->cond_expr.is_true())
+    {
+      status() << "(control block) "
+               << "index: " << literalt(index++, false)
+               << ", position: " << it->source.pc->source_location
+               << eom;
     }
 
     // reached failed assertion?
