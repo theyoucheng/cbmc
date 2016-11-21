@@ -16,7 +16,6 @@ Date: May 2016
 #include <util/expr_util.h>
 
 #include "cover.h"
-#include <iostream>
 
 class basic_blockst
 {
