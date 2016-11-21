@@ -16,6 +16,7 @@ Date: May 2016
 #include <util/expr_util.h>
 
 #include "cover.h"
+#include <iostream>
 
 class basic_blockst
 {
@@ -218,6 +219,321 @@ void collect_operands(const exprt &src, std::vector<exprt> &dest)
 
 /*******************************************************************\
 
+Function: non_ordered_predicate_expansion
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: a non-ordered predicate contains <=, !=, >=
+
+\*******************************************************************/
+
+std::set<exprt> non_ordered_predicate_expansion(const exprt &src)
+{
+  std::set<exprt> result;
+  // the expansion of "<=" is "<" and "=="
+  if(src.id()==ID_le)
+  {
+    exprt e1(src);
+    e1.id(ID_lt);
+    result.insert(e1);
+
+    exprt e2(src);
+    e1.id(ID_equal);
+    result.insert(e2);
+  }
+  // the expansion of ">=" is ">" and "=="
+  else if(src.id()==ID_ge)
+  {
+    exprt e1(src);
+    e1.id(ID_gt);
+    result.insert(e1);
+
+    exprt e2(src);
+    e1.id(ID_equal);
+    result.insert(e2);
+  }
+  else if(src.id()==ID_notequal)
+  {
+    if(src.op0().type().id()==ID_c_bool
+       || src.op1().type().id()==ID_c_bool)
+    {
+      return result;
+    }
+    // the expansion of "==" is ">" and "<"
+    exprt e1(ID_gt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+
+    exprt e2(ID_lt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+    result.insert(e2);
+  }
+
+  return result;
+}
+
+/*******************************************************************\
+
+Function: ordered_negation
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+std::set<exprt> ordered_negation(const exprt &src)
+{
+  std::set<exprt> result;
+  // the negation of "==" is "<" and ">"
+  if(src.id()==ID_equal)
+  {
+    exprt e1(ID_le);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+
+    exprt e2(ID_ge);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+    result.insert(e2);
+  }
+  // the negation of "<" is "==" and ">"
+  if(src.id()==ID_lt)
+  {
+    exprt e1(ID_equal);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+
+    exprt e2(ID_gt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+    result.insert(e2);
+  }
+  // the negation of "<=" is ">"
+  if(src.id()==ID_le)
+  {
+    exprt e1(ID_gt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+  }
+  // the negation of ">=" is "<"
+  if(src.id()==ID_ge)
+  {
+    exprt e1(ID_lt);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+  }
+  // the negation of ">" is "==" and "<"
+  if(src.id()==ID_gt)
+  {
+    exprt e1(ID_equal);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+
+    exprt e2(ID_lt);
+    e2.type().id(src.type().id());
+    e2.operands().push_back(src.op0());
+    e2.operands().push_back(src.op1());
+    result.insert(e2);
+  }
+  // the negation of "!=" is "=="
+  if(src.id()==ID_notequal)
+  {
+    exprt e1(ID_equal);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+  }
+
+  return result;
+
+}
+
+/*******************************************************************\
+
+Function: is_arithmetic_predicate
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool is_arithmetic_predicate(const exprt &src)
+{
+  if(src.id()==ID_lt
+     || src.id()==ID_le
+     || src.id()==ID_equal
+     || src.id()==ID_ge
+     || src.id()==ID_gt
+     || src.id()==ID_notequal)
+    return true;
+
+  return false;
+}
+
+/*******************************************************************\
+
+Function: replacement_and_conjunction
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: To replace the i-th expr of ''operands'' with each
+          expr inside ''replacement_exprs''.
+
+\*******************************************************************/
+
+std::set<exprt> replacement_and_conjunction(
+  const std::set<exprt> &replacement_exprs,
+  const std::vector<exprt> &operands,
+  const std::size_t i)
+{
+  std::set<exprt> result;
+  for(auto &y : replacement_exprs)
+  {
+    std::vector<exprt> others;
+    for(std::size_t j=0; j<operands.size(); j++)
+      if(i!=j)
+        others.push_back(operands[j]);
+
+    others.push_back(y);
+    exprt c=conjunction(others);
+    result.insert(c);
+  }
+  return result;
+}
+        
+/*******************************************************************\
+
+Function: non_ordered_expr_expansion
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+std::set<exprt> non_ordered_expr_expansion(const exprt &src)
+{
+  std::set<exprt> result;
+
+  std::set<exprt> s1, s2;
+
+  if(src.id()!=ID_not||!is_arithmetic_predicate(src.op0()))
+    s1.insert(src);
+  else
+  {
+    auto res=ordered_negation(src.op0());
+    s1.insert(res.begin(), res.end());
+  }
+
+  // expand negations and non-ordered predicates
+  bool changed=true;
+  while(changed)
+  {
+    changed=false;
+    for(auto &x: s1)
+    {
+      std::vector<exprt> operands;
+      collect_operands(x, operands);
+      for(int i=0; i<operands.size(); i++)
+      {
+        std::set<exprt> res;
+        if(operands[i].id()==ID_not)
+        {
+          exprt no=operands[i].op0();
+          if(is_arithmetic_predicate(no))
+          {
+            res=ordered_negation(no);
+            if(res.size()>0) changed=true;
+          }
+        }
+        else
+        {
+          if(operands[i].id()==ID_le
+             || operands[i].id()==ID_ge
+             || operands[i].id()==ID_notequal)
+          {
+            res=non_ordered_predicate_expansion(operands[i]);
+            if(!res.empty()) changed=true;
+          }
+        }
+        std::set<exprt> co=replacement_and_conjunction(res, operands, i);
+        s2.insert(co.begin(), co.end());
+        if(!res.empty()) break;
+      }
+      if(!changed) s2.insert(x);
+    }
+    if(!changed) break;
+    s1.swap(s2);
+    s2.clear();
+  }
+
+  return s1;
+}
+
+/*******************************************************************\
+
+Function: decision_expansion
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+std::set<exprt> decision_expansion(const exprt &dec)
+{
+  std::set<exprt> ctrl;
+  // dec itself may be a non-ordered predicate
+  exprt d(dec);
+  if(d.id()==ID_not) d=d.op0();
+  if(is_arithmetic_predicate(d))
+  {
+    auto res=non_ordered_predicate_expansion(d);
+    if(not res.empty())
+      ctrl.insert(res.begin(), res.end());
+    else ctrl.insert(d);
+    d.make_not();
+    res=non_ordered_predicate_expansion(d);
+    if(not res.empty())
+      ctrl.insert(res.begin(), res.end());
+    else ctrl.insert(d);
+  }
+  return ctrl;
+}
+
+/*******************************************************************\
+
 Function: collect_mcdc_controlling_rec
 
   Inputs:
@@ -363,39 +679,6 @@ std::set<exprt> collect_mcdc_controlling(
   return result;
 }
 
-/*******************************************************************\
-
-Function: replacement_and_conjunction
-
-  Inputs:
-
- Outputs:
-
- Purpose: To replace the i-th expr of ''operands'' with each
-          expr inside ''replacement_exprs''.
-
-\*******************************************************************/
-
-std::set<exprt> replacement_and_conjunction(
-  const std::set<exprt> &replacement_exprs,
-  const std::vector<exprt> &operands,
-  const std::size_t i)
-{
-  std::set<exprt> result;
-  for(auto &y : replacement_exprs)
-  {
-    std::vector<exprt> others;
-    for(std::size_t j=0; j<operands.size(); j++)
-      if(i!=j)
-        others.push_back(operands[j]);
-
-    others.push_back(y);
-    exprt c=conjunction(others);
-    result.insert(c);
-  }
-  return result;
-}
-        
 /*******************************************************************\
 
 Function: collect_mcdc_controlling_nested
