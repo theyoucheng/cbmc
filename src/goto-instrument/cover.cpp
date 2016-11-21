@@ -296,78 +296,59 @@ std::set<exprt> ordered_negation(const exprt &src)
   // the negation of "==" is "<" and ">"
   if(src.id()==ID_equal)
   {
-    exprt e1(ID_le);
-    e1.type().id(src.type().id());
-    e1.operands().push_back(src.op0());
-    e1.operands().push_back(src.op1());
+    exprt e1(src);
+    e1.id(ID_lt);
     result.insert(e1);
 
-    exprt e2(ID_ge);
-    e2.type().id(src.type().id());
-    e2.operands().push_back(src.op0());
-    e2.operands().push_back(src.op1());
+    exprt e2(src);
+    e2.id(ID_gt);
     result.insert(e2);
   }
   // the negation of "<" is "==" and ">"
-  if(src.id()==ID_lt)
+  else if(src.id()==ID_lt)
   {
-    exprt e1(ID_equal);
-    e1.type().id(src.type().id());
-    e1.operands().push_back(src.op0());
-    e1.operands().push_back(src.op1());
+    exprt e1(src);
+    e1.id(ID_equal);
     result.insert(e1);
 
-    exprt e2(ID_gt);
-    e2.type().id(src.type().id());
-    e2.operands().push_back(src.op0());
-    e2.operands().push_back(src.op1());
+    exprt e2(src);
+    e2.id(ID_gt);
     result.insert(e2);
   }
   // the negation of "<=" is ">"
-  if(src.id()==ID_le)
+  else if(src.id()==ID_le)
   {
-    exprt e1(ID_gt);
-    e1.type().id(src.type().id());
-    e1.operands().push_back(src.op0());
-    e1.operands().push_back(src.op1());
+    exprt e1(src);
+    e1.id(ID_gt);
     result.insert(e1);
   }
   // the negation of ">=" is "<"
-  if(src.id()==ID_ge)
+  else if(src.id()==ID_ge)
   {
-    exprt e1(ID_lt);
-    e1.type().id(src.type().id());
-    e1.operands().push_back(src.op0());
-    e1.operands().push_back(src.op1());
+    exprt e1(src);
+    e1.id(ID_lt);
     result.insert(e1);
   }
   // the negation of ">" is "==" and "<"
-  if(src.id()==ID_gt)
+  else if(src.id()==ID_gt)
   {
-    exprt e1(ID_equal);
-    e1.type().id(src.type().id());
-    e1.operands().push_back(src.op0());
-    e1.operands().push_back(src.op1());
+    exprt e1(src);
+    e1.id(ID_equal);
     result.insert(e1);
 
-    exprt e2(ID_lt);
-    e2.type().id(src.type().id());
-    e2.operands().push_back(src.op0());
-    e2.operands().push_back(src.op1());
+    exprt e2(src);
+    e2.id(ID_lt);
     result.insert(e2);
   }
   // the negation of "!=" is "=="
-  if(src.id()==ID_notequal)
+  else if(src.id()==ID_notequal)
   {
-    exprt e1(ID_equal);
-    e1.type().id(src.type().id());
-    e1.operands().push_back(src.op0());
-    e1.operands().push_back(src.op1());
+    exprt e1(src);
+    e1.id(ID_equal);
     result.insert(e1);
   }
 
   return result;
-
 }
 
 /*******************************************************************\
