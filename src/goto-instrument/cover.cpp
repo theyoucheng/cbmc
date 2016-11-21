@@ -365,15 +365,12 @@ Function: is_arithmetic_predicate
 
 bool is_arithmetic_predicate(const exprt &src)
 {
-  if(src.id()==ID_lt
-     || src.id()==ID_le
-     || src.id()==ID_equal
-     || src.id()==ID_ge
-     || src.id()==ID_gt
-     || src.id()==ID_notequal)
-    return true;
-
-  return false;
+  return (src.id()==ID_lt
+          || src.id()==ID_le
+          || src.id()==ID_equal
+          || src.id()==ID_ge
+          || src.id()==ID_gt
+          || src.id()==ID_notequal);
 }
 
 /*******************************************************************\
@@ -444,7 +441,7 @@ std::set<exprt> non_ordered_expr_expansion(const exprt &src)
     {
       std::vector<exprt> operands;
       collect_operands(x, operands);
-      for(int i=0; i<operands.size(); i++)
+      for(std::size_t i=0; i<operands.size(); i++)
       {
         std::set<exprt> res;
         if(operands[i].id()==ID_not)
@@ -453,7 +450,7 @@ std::set<exprt> non_ordered_expr_expansion(const exprt &src)
           if(is_arithmetic_predicate(no))
           {
             res=ordered_negation(no);
-            if(res.size()>0) changed=true;
+            if(!res.empty()) changed=true;
           }
         }
         else
@@ -532,8 +529,7 @@ void collect_mcdc_controlling_rec(
   std::set<exprt> &result)
 {
   // src is conjunction (ID_and) or disjunction (ID_or)
-  if(src.id()==ID_and ||
-     src.id()==ID_or)
+  if(src.id()==ID_and || src.id()==ID_or)
   {
     std::vector<exprt> operands;
     collect_operands(src, operands);
@@ -745,7 +741,7 @@ std::set<exprt> collect_mcdc_controlling_nested(
           std::set<exprt> co=
             replacement_and_conjunction(res, operands, i);
           s2.insert(co.begin(), co.end());
-          if(res.size() > 0) break;
+          if(!res.empty()) break;
         }
         // if there is no change x.r.t current operands of ''x'',
         // i.e., they are all atomic, we reserve ''x''
@@ -891,7 +887,7 @@ void remove_repetition(std::set<exprt> &exprs)
       {
         std::set<signed> signs1=sign_of_expr(c, x);
         std::set<signed> signs2=sign_of_expr(c, y);
-        int s1=signs1.size(), s2=signs2.size();
+        std::size_t s1=signs1.size(), s2=signs2.size();
         // it is easy to check non-equivalence;
         if(s1!=s2)
         {
@@ -926,7 +922,7 @@ void remove_repetition(std::set<exprt> &exprs)
   }
 
   // update the original ''exprs''
-  exprs = new_exprs;
+  exprs.swap(new_exprs);
 }
 
 /*******************************************************************\
@@ -1007,7 +1003,7 @@ std::map<exprt, signed> values_of_atomic_exprs(
   for(auto &c : conditions)
   {
     std::set<signed> signs=sign_of_expr(c, e);
-    if(signs.size()==0)
+    if(signs.empty())
     {
       // ''c'' is not contained in ''e''
       atomic_exprs.insert(std::pair<exprt, signed>(c, 0));
