@@ -714,9 +714,10 @@ std::set<exprt> collect_mcdc_controlling_nested(
     
     // dual-loop structure to eliminate complex 
     // non-atomic-conditional terms
-    while(true) 
+    bool changed=true;
+    while(changed) 
     {
-      bool changed=false;
+      changed=false;
       // the 2nd loop
       for(auto &x : s1)
       {
@@ -770,9 +771,9 @@ std::set<exprt> collect_mcdc_controlling_nested(
         if(!changed) s2.insert(x);
       }
       // update ''s1'' and check if change happens
-      s1=s2;
-      if(!changed) {break;}
+      s1.swap(s2);
       s2.clear();
+      if(!changed) {break;}
     }
 
     // The expansions of each ''src'' should be added into
@@ -1174,10 +1175,11 @@ void minimize_mcdc_controlling(
     conditions.insert(new_conditions.begin(), new_conditions.end());
   }
 
-  while(true)
+  bool ctrl_update=true;
+  while(ctrl_update)
   {
+    ctrl_update=false;
     std::set<exprt> new_controlling;
-    bool ctrl_update=false;
     /**
      * Iteratively, we test that after removing an item ''x''
      * from the ''controlling'', can a complete mcdc coverage 
@@ -1231,7 +1233,7 @@ void minimize_mcdc_controlling(
     // Update ''controlling'' or break the while loop
     if(ctrl_update)
     {
-      controlling=new_controlling;
+      controlling.swap(new_controlling);
     }
     else break;
   }
