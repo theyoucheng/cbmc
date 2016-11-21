@@ -225,7 +225,7 @@ Function: non_ordered_predicate_expansion
 
  Outputs:
 
- Purpose: a non-ordered predicate contains <=, !=, >=
+ Purpose: A non-ordered predicate contains <=, !=, >=
 
 \*******************************************************************/
 
@@ -286,7 +286,7 @@ Function: ordered_negation
 
  Outputs:
 
- Purpose:
+ Purpose: 
 
 \*******************************************************************/
 
@@ -414,7 +414,7 @@ Function: non_ordered_expr_expansion
 
  Outputs:
 
- Purpose:
+ Purpose: To expand all non ordered predicates within an expr
 
 \*******************************************************************/
 
