@@ -286,7 +286,7 @@ Function: ordered_negation
 
  Outputs:
 
- Purpose: 
+ Purpose:
 
 \*******************************************************************/
 
