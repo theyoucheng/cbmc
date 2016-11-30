@@ -14,8 +14,10 @@ Date: May 2016
 #include <util/prefix.h>
 #include <util/i2string.h>
 #include <util/expr_util.h>
+#include <util/ieee_float.h>
 
 #include "cover.h"
+#include <iostream>
 
 class basic_blockst
 {
@@ -1222,6 +1224,10 @@ Function: autosac_atomic_expand
 
 std::set<exprt> autosac_atomic_expand(const exprt &src)
 {
+  int integer_tolerance_level_a=1;
+  int integer_tolerance_level_b=-1;
+  float float_tolerance_level_a=0.99;
+  float float_tolerance_level_b=1.01;
   /**
    * This is a customized approach to "expand" exprs 
    **/
@@ -1229,7 +1235,6 @@ std::set<exprt> autosac_atomic_expand(const exprt &src)
 
   if(src.id()==ID_le)
   {
-    //the expansion of "<=" should be "<" and "=="
     exprt e1(ID_lt);
     e1.type().id(src.type().id());
     e1.operands().push_back(src.op0());
@@ -1241,6 +1246,84 @@ std::set<exprt> autosac_atomic_expand(const exprt &src)
     e2.operands().push_back(src.op0());
     e2.operands().push_back(src.op1());
     result.insert(e2);
+
+    // tolerance level
+    auto &type=src.op0().type().id();
+    if(type==ID_signedbv or type==ID_unsignedbv)
+    {
+      // +1
+      exprt e3(ID_equal);
+      e3.type().id(src.type().id());
+      e3.operands().push_back(src.op0());
+
+      exprt tole(ID_plus, src.op0().type());
+      tole.operands().push_back(src.op1());
+      constant_exprt p1(i2string(1), src.op0().type());
+      tole.operands().push_back(p1);
+
+      e3.operands().push_back(tole);
+      result.insert(e3);
+   
+      // -1
+      exprt e4(ID_equal);
+      e4.type().id(src.type().id());
+      e4.operands().push_back(src.op0());
+
+      exprt tole2(ID_minus, src.op0().type());
+      tole2.operands().push_back(src.op1());
+      constant_exprt m1(i2string(1), src.op0().type());
+      tole2.operands().push_back(m1);
+
+      e4.operands().push_back(tole2);
+      result.insert(e4);
+    }
+    else if(type==ID_floatbv)
+    {
+      {
+      // 0.99
+      ieee_floatt f1;
+      f1.from_float(0.99);
+      ieee_float_spect dest_spec;
+      floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
+      dest_spec.from_type(fbv_type);
+      f1.change_spec(dest_spec);
+      exprt p1=f1.to_expr();
+
+      exprt e3(ID_equal);
+      e3.type().id(src.type().id());
+      e3.operands().push_back(src.op0());
+
+      exprt tole3(ID_mult, src.op0().type());
+      tole3.operands().push_back(src.op1());
+      tole3.operands().push_back(p1);
+      e3.operands().push_back(tole3);
+
+      result.insert(e3);
+      }
+   
+      {
+      // 1.01
+      ieee_floatt f1;
+      f1.from_float(1.01);
+      ieee_float_spect dest_spec;
+      floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
+      dest_spec.from_type(fbv_type);
+      f1.change_spec(dest_spec);
+      exprt p1=f1.to_expr();
+
+      exprt e3(ID_equal);
+      e3.type().id(src.type().id());
+      e3.operands().push_back(src.op0());
+
+      exprt tole3(ID_mult, src.op0().type());
+      tole3.operands().push_back(src.op1());
+      tole3.operands().push_back(p1);
+      e3.operands().push_back(tole3);
+
+      result.insert(e3);
+      }
+   
+    }
 
     return result;
   }
