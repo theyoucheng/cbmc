@@ -21,6 +21,7 @@ Author: Peter Schrammel
 
 #include "fault_localization.h"
 #include "counterexample_beautification.h"
+#include <iostream>
 
 /*******************************************************************\
 
@@ -60,7 +61,7 @@ Function: fault_localizationt::collect_guards
 
 void fault_localizationt::collect_guards(lpointst &lpoints)
 {
-  int index=0;
+  //int index=0;
   for(symex_target_equationt::SSA_stepst::const_iterator
       it=bmc.equation.SSA_steps.begin();
       it!=bmc.equation.SSA_steps.end(); it++)
@@ -72,10 +73,11 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
       if(!it->guard_literal.is_constant())
       {
         lpoints[it->guard_literal].target=it->source.pc;
+        status() << "guard literal: " << it->guard_literal << eom << eom;
         lpoints[it->guard_literal].score=0;
       }
     }
-
+/**
     if(it->is_goto()&&!it->cond_expr.is_true())
     {
       status() << "(control block) "
@@ -83,7 +85,7 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
                << ", position: " << it->source.pc->source_location
                << eom;
     }
-
+**/
     // reached failed assertion?
     if(it==failed)
       break;
@@ -111,7 +113,9 @@ fault_localizationt::get_failed_property()
     if(it->is_assert() &&
        bmc.prop_conv.l_get(it->guard_literal).is_true() &&
        bmc.prop_conv.l_get(it->cond_literal).is_false())
+    {
       return it;
+    }
   
   assert(false);
   return bmc.equation.SSA_steps.end();
@@ -138,14 +142,18 @@ bool fault_localizationt::check(const lpointst &lpoints,
   for(const auto &l : lpoints)
   {
     if(v_it->is_true())
+    {
       assumptions.push_back(l.first);
+      //std::cout << l.first << std::endl;
+    }
     else if(v_it->is_false())
       assumptions.push_back(!l.first);
     ++v_it;
   }
 
   // lock the failed assertion
-  assumptions.push_back(!failed->cond_literal);
+  //assumptions.push_back(!failed->cond_literal);
+
 
   bmc.prop_conv.set_assumptions(assumptions);
 
@@ -212,6 +220,76 @@ void fault_localizationt::localize_linear(lpointst &lpoints)
   }
 }
 
+
+std::vector<std::vector<int> > truth_table(const int n)
+{
+  std::vector<std::vector<int> > output(n, std::vector<int>(1 << n));
+  unsigned num_to_fill = 1U << (n - 1);
+  for(unsigned col = 0; col < n; ++col, num_to_fill >>= 1U)
+  {
+    for(unsigned row = num_to_fill; row < (1U << n); row += (num_to_fill * 2))
+    {
+      std::fill_n(&output[col][row], num_to_fill, 1);
+    }
+  }
+
+  // These loops just print out the results, nothing more.
+/**  for(unsigned x = 0; x < (1 << n); ++x)
+  {
+    for(unsigned y = 0; y < n; ++y)
+    {
+      std::cout << output[y][x] << " ";
+    }
+    std::cout << std::endl;
+  }
+**/
+  return output;
+}
+
+
+
+void fault_localizationt::construct_complete_matrix_coverage(lpointst &lpoints)
+{
+
+  const unsigned n = lpoints.size();
+  std::vector<std::vector<int> > ttable=truth_table(n);
+  std::vector<bool> res_v;
+  for(std::size_t i=0; i<(1<<n); ++i)
+  {
+	lpoints_valuet v;
+	v.resize(lpoints.size());
+    for(std::size_t j=0; j<n; ++j)
+    {
+      if(ttable[j][i]==1) v[j]=tvt(tvt::tv_enumt::TV_TRUE);
+      else v[j]=tvt(tvt::tv_enumt::TV_FALSE);
+    }
+    bool res=check(lpoints,v);
+    res_v.push_back(res);
+  }
+
+  // for demonstration, we simply print out the matrix coverage table
+  status() << "\nCoverage Matrix for failed property: "
+		   << failed->source.pc->source_location
+		   << ", " << failed->source.pc->source_location.get_property_id()
+		   << eom;
+  // print the headline
+  status() << "    ";
+  for(std::size_t j=0; j<n; ++j)
+    status() << "C" << j+1 << " ";
+  status() << "E" << eom;
+
+  for(std::size_t i=0; i<(1<<n); ++i)
+  {
+	status() << "t" << i+1 << "  ";
+    for(std::size_t j=0; j<n; ++j)
+    {
+      status() << ttable[j][i] << "  ";
+    }
+    status() << !res_v[i] << eom;
+  }
+
+}
+
 /*******************************************************************\
 
 Function: fault_localizationt::run
@@ -228,6 +306,11 @@ void fault_localizationt::run(irep_idt goal_id)
 {
  // find failed property
   failed=get_failed_property();
+  status() << "failed : " << failed->cond_literal << ", " << failed->guard_literal
+		   << ", " << failed->source.pc->source_location
+		   << ", " << failed->source.pc->source_location.get_property_id()
+		   << goal_id
+		   << "\n\n";
   assert(failed!=bmc.equation.SSA_steps.end());
 
   if(goal_id==ID_nil)
@@ -244,7 +327,9 @@ void fault_localizationt::run(irep_idt goal_id)
 
   // pick localization method
   //  if(options.get_option("localize-faults-method")=="TBD")
-  localize_linear(lpoints);
+  //localize_linear(lpoints);
+  construct_complete_matrix_coverage(lpoints);
+
 
   //clear assumptions
   bvt assumptions;
@@ -423,6 +508,7 @@ void fault_localizationt::goal_covered(
     for(auto &c : g.second.instances)
     {
       literalt cond=c->cond_literal;
+
       
       if(solver.l_get(cond).is_false())
       {
@@ -434,6 +520,7 @@ void fault_localizationt::goal_covered(
 
         //localize faults
         run(g.first);
+        status() << "run localizing faults: " << g.first << eom;
 
         break;
       }
