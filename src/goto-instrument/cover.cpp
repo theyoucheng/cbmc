@@ -106,7 +106,7 @@ Function: is_condition
 
 \*******************************************************************/
 
-bool is_condition(const exprt &src)
+static bool is_condition(const exprt &src)
 {
   if(src.type().id()!=ID_bool) return false;
 
@@ -130,7 +130,9 @@ Function: collect_conditions_rec
 
 \*******************************************************************/
 
-void collect_conditions_rec(const exprt &src, std::set<exprt> &dest)
+static void collect_conditions_rec(
+  const exprt &src,
+  std::set<exprt> &dest)
 {
   if(src.id()==ID_address_of)
   {
@@ -156,7 +158,7 @@ Function: collect_conditions
 
 \*******************************************************************/
 
-std::set<exprt> collect_conditions(const exprt &src)
+static std::set<exprt> collect_conditions(const exprt &src)
 {
   std::set<exprt> result;
   collect_conditions_rec(src, result);
@@ -175,7 +177,8 @@ Function: collect_conditions
 
 \*******************************************************************/
 
-std::set<exprt> collect_conditions(const goto_programt::const_targett t)
+static std::set<exprt> collect_conditions(
+  const goto_programt::const_targett t)
 {
   switch(t->type)
   {
@@ -205,7 +208,9 @@ Function: collect_operands
 
 \*******************************************************************/
 
-void collect_operands(const exprt &src, std::vector<exprt> &dest)
+static void collect_operands(
+  const exprt &src,
+  std::vector<exprt> &dest)
 {
   for(const exprt &op : src.operands())
   {
@@ -228,7 +233,8 @@ Function: non_ordered_predicate_expansion
 
 \*******************************************************************/
 
-std::set<exprt> non_ordered_predicate_expansion(const exprt &src)
+static std::set<exprt> non_ordered_predicate_expansion(
+  const exprt &src)
 {
   std::set<exprt> result;
   // the expansion of "<=" is "<" and "=="
@@ -289,7 +295,7 @@ Function: ordered_negation
 
 \*******************************************************************/
 
-std::set<exprt> ordered_negation(const exprt &src)
+static std::set<exprt> ordered_negation(const exprt &src)
 {
   std::set<exprt> result;
   // the negation of "==" is "<" and ">"
@@ -362,7 +368,7 @@ Function: is_arithmetic_predicate
 
 \*******************************************************************/
 
-bool is_arithmetic_predicate(const exprt &src)
+static bool is_arithmetic_predicate(const exprt &src)
 {
   return (src.id()==ID_lt
           || src.id()==ID_le
@@ -385,7 +391,7 @@ Function: replacement_and_conjunction
 
 \*******************************************************************/
 
-std::set<exprt> replacement_and_conjunction(
+static std::set<exprt> replacement_and_conjunction(
   const std::set<exprt> &replacement_exprs,
   const std::vector<exprt> &operands,
   const std::size_t i)
@@ -417,7 +423,7 @@ Function: non_ordered_expr_expansion
 
 \*******************************************************************/
 
-std::set<exprt> non_ordered_expr_expansion(const exprt &src)
+static std::set<exprt> non_ordered_expr_expansion(const exprt &src)
 {
   std::set<exprt> result;
 
@@ -488,7 +494,7 @@ Function: decision_expansion
 
 \*******************************************************************/
 
-std::set<exprt> decision_expansion(const exprt &dec)
+static std::set<exprt> decision_expansion(const exprt &dec)
 {
   std::set<exprt> ctrl;
   // dec itself may be a non-ordered predicate
@@ -522,7 +528,7 @@ Function: collect_mcdc_controlling_rec
 
 \*******************************************************************/
 
-void collect_mcdc_controlling_rec(
+static void collect_mcdc_controlling_rec(
   const exprt &src,
   const std::vector<exprt> &conditions,
   std::set<exprt> &result)
@@ -643,7 +649,7 @@ Function: collect_mcdc_controlling
 
 \*******************************************************************/
 
-std::set<exprt> collect_mcdc_controlling(
+static std::set<exprt> collect_mcdc_controlling(
   const std::set<exprt> &decisions)
 {
   std::set<exprt> result;
@@ -669,7 +675,7 @@ Function: collect_mcdc_controlling_nested
 
 \*******************************************************************/
 
-std::set<exprt> collect_mcdc_controlling_nested(
+static std::set<exprt> collect_mcdc_controlling_nested(
   const std::set<exprt> &decisions)
 {
   // To obtain the 1st-level controlling conditions
@@ -774,7 +780,7 @@ Function: sign_of_expr
 
 \*******************************************************************/
 
-std::set<signed> sign_of_expr(const exprt &e, const exprt &E)
+static std::set<signed> sign_of_expr(const exprt &e, const exprt &E)
 {
   std::set<signed> signs;
 
@@ -841,7 +847,7 @@ Function: remove_repetition
 
 \*******************************************************************/
 
-void remove_repetition(std::set<exprt> &exprs)
+static void remove_repetition(std::set<exprt> &exprs)
 {
   // to obtain the set of atomic conditions
   std::set<exprt> conditions;
@@ -936,7 +942,7 @@ Function: eval_expr
           the atomic expr values
 
 \*******************************************************************/
-bool eval_expr(
+static bool eval_expr(
   const std::map<exprt, signed> &atomic_exprs, 
   const exprt &src)
 {
@@ -994,7 +1000,7 @@ Function: values_of_atomic_exprs
 
 \*******************************************************************/
 
-std::map<exprt, signed> values_of_atomic_exprs(
+static std::map<exprt, signed> values_of_atomic_exprs(
   const exprt &e,
   const std::set<exprt> &conditions)
 {
@@ -1033,7 +1039,7 @@ Function: is_mcdc_pair
 
 \*******************************************************************/
 
-bool is_mcdc_pair(
+static bool is_mcdc_pair(
   const exprt &e1,
   const exprt &e2,
   const exprt &c,
@@ -1102,7 +1108,7 @@ Function: has_mcdc_pair
 
 \*******************************************************************/
 
-bool has_mcdc_pair(
+static bool has_mcdc_pair(
   const exprt &c,
   const std::set<exprt> &expr_set,
   const std::set<exprt> &conditions,
@@ -1139,7 +1145,7 @@ Function: minimize_mcdc_controlling
 
 \*******************************************************************/
 
-void minimize_mcdc_controlling(
+static void minimize_mcdc_controlling(
   std::set<exprt> &controlling,
   const exprt &decision)
 {
@@ -1227,7 +1233,7 @@ Function: collect_decisions_rec
 
 \*******************************************************************/
 
-void collect_decisions_rec(const exprt &src, std::set<exprt> &dest)
+static void collect_decisions_rec(const exprt &src, std::set<exprt> &dest)
 {
   if(src.id()==ID_address_of)
   {
@@ -1268,7 +1274,7 @@ Function: collect_decisions
 
 \*******************************************************************/
 
-std::set<exprt> collect_decisions(const exprt &src)
+static std::set<exprt> collect_decisions(const exprt &src)
 {
   std::set<exprt> result;
   collect_decisions_rec(src, result);
@@ -1287,7 +1293,8 @@ Function: collect_decisions
 
 \*******************************************************************/
 
-std::set<exprt> collect_decisions(const goto_programt::const_targett t)
+static std::set<exprt> collect_decisions(
+  const goto_programt::const_targett t)
 {
   switch(t->type)
   {
