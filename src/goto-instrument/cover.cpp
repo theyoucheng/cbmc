@@ -399,12 +399,9 @@ static std::set<exprt> replacement_and_conjunction(
   std::set<exprt> result;
   for(auto &y : replacement_exprs)
   {
-    std::vector<exprt> others;
-    for(std::size_t j=0; j<operands.size(); j++)
-      if(i!=j)
-        others.push_back(operands[j]);
-
-    others.push_back(y);
+    assert(operands.size()>i);
+    std::vector<exprt> others(operands);
+    others[i]=y;
     exprt c=conjunction(others);
     result.insert(c);
   }
