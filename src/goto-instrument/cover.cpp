@@ -644,6 +644,7 @@ static std::set<exprt> collect_mcdc_controlling(
   {
     collect_mcdc_controlling_rec(d, { }, result);
   }
+
   return result;
 }
 
