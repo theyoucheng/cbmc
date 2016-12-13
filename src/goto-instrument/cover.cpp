@@ -1222,6 +1222,88 @@ Function: autosac_atomic_expand
 
 \*******************************************************************/
 
+static std::set<exprt> bv_with_tolerance(const exprt& src)
+{
+  std::set<exprt> result;
+  auto &type=src.op0().type().id();
+  if(type==ID_signedbv or type==ID_unsignedbv)
+  {
+    // +1
+    exprt e3(ID_equal);
+    e3.type().id(src.type().id());
+    e3.operands().push_back(src.op0());
+
+    exprt tole(ID_plus, src.op0().type());
+    tole.operands().push_back(src.op1());
+    constant_exprt p1(i2string(1), src.op0().type());
+    tole.operands().push_back(p1);
+
+    e3.operands().push_back(tole);
+    result.insert(e3);
+  
+    // -1
+    exprt e4(ID_equal);
+    e4.type().id(src.type().id());
+    e4.operands().push_back(src.op0());
+
+    exprt tole2(ID_minus, src.op0().type());
+    tole2.operands().push_back(src.op1());
+    constant_exprt m1(i2string(1), src.op0().type());
+    tole2.operands().push_back(m1);
+
+    e4.operands().push_back(tole2);
+    result.insert(e4);
+  }
+  else if(type==ID_floatbv)
+  {
+    {
+    // 0.99
+    ieee_floatt f1;
+    f1.from_float(0.99);
+    ieee_float_spect dest_spec;
+    floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
+    dest_spec.from_type(fbv_type);
+    f1.change_spec(dest_spec);
+    exprt p1=f1.to_expr();
+
+    exprt e3(ID_equal);
+    e3.type().id(src.type().id());
+    e3.operands().push_back(src.op0());
+
+    exprt tole3(ID_mult, src.op0().type());
+    tole3.operands().push_back(src.op1());
+    tole3.operands().push_back(p1);
+    e3.operands().push_back(tole3);
+
+    result.insert(e3);
+    }
+  
+    {
+    // 1.01
+    ieee_floatt f1;
+    f1.from_float(1.01);
+    ieee_float_spect dest_spec;
+    floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
+    dest_spec.from_type(fbv_type);
+    f1.change_spec(dest_spec);
+    exprt p1=f1.to_expr();
+
+    exprt e3(ID_equal);
+    e3.type().id(src.type().id());
+    e3.operands().push_back(src.op0());
+
+    exprt tole3(ID_mult, src.op0().type());
+    tole3.operands().push_back(src.op1());
+    tole3.operands().push_back(p1);
+    e3.operands().push_back(tole3);
+
+    result.insert(e3);
+    }
+  
+  }
+  return result;
+}
+
 std::set<exprt> autosac_atomic_expand(const exprt &src)
 {
   int integer_tolerance_level_a=1;
@@ -1247,83 +1329,86 @@ std::set<exprt> autosac_atomic_expand(const exprt &src)
     e2.operands().push_back(src.op1());
     result.insert(e2);
 
+    auto res=bv_with_tolerance(src);
+    result.insert(res.begin(), res.end());
+
     // tolerance level
-    auto &type=src.op0().type().id();
-    if(type==ID_signedbv or type==ID_unsignedbv)
-    {
-      // +1
-      exprt e3(ID_equal);
-      e3.type().id(src.type().id());
-      e3.operands().push_back(src.op0());
+    //auto &type=src.op0().type().id();
+    //if(type==ID_signedbv or type==ID_unsignedbv)
+    //{
+    //  // +1
+    //  exprt e3(ID_equal);
+    //  e3.type().id(src.type().id());
+    //  e3.operands().push_back(src.op0());
 
-      exprt tole(ID_plus, src.op0().type());
-      tole.operands().push_back(src.op1());
-      constant_exprt p1(i2string(1), src.op0().type());
-      tole.operands().push_back(p1);
+    //  exprt tole(ID_plus, src.op0().type());
+    //  tole.operands().push_back(src.op1());
+    //  constant_exprt p1(i2string(1), src.op0().type());
+    //  tole.operands().push_back(p1);
 
-      e3.operands().push_back(tole);
-      result.insert(e3);
+    //  e3.operands().push_back(tole);
+    //  result.insert(e3);
    
-      // -1
-      exprt e4(ID_equal);
-      e4.type().id(src.type().id());
-      e4.operands().push_back(src.op0());
+    //  // -1
+    //  exprt e4(ID_equal);
+    //  e4.type().id(src.type().id());
+    //  e4.operands().push_back(src.op0());
 
-      exprt tole2(ID_minus, src.op0().type());
-      tole2.operands().push_back(src.op1());
-      constant_exprt m1(i2string(1), src.op0().type());
-      tole2.operands().push_back(m1);
+    //  exprt tole2(ID_minus, src.op0().type());
+    //  tole2.operands().push_back(src.op1());
+    //  constant_exprt m1(i2string(1), src.op0().type());
+    //  tole2.operands().push_back(m1);
 
-      e4.operands().push_back(tole2);
-      result.insert(e4);
-    }
-    else if(type==ID_floatbv)
-    {
-      {
-      // 0.99
-      ieee_floatt f1;
-      f1.from_float(0.99);
-      ieee_float_spect dest_spec;
-      floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
-      dest_spec.from_type(fbv_type);
-      f1.change_spec(dest_spec);
-      exprt p1=f1.to_expr();
+    //  e4.operands().push_back(tole2);
+    //  result.insert(e4);
+    //}
+    //else if(type==ID_floatbv)
+    //{
+    //  {
+    //  // 0.99
+    //  ieee_floatt f1;
+    //  f1.from_float(0.99);
+    //  ieee_float_spect dest_spec;
+    //  floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
+    //  dest_spec.from_type(fbv_type);
+    //  f1.change_spec(dest_spec);
+    //  exprt p1=f1.to_expr();
 
-      exprt e3(ID_equal);
-      e3.type().id(src.type().id());
-      e3.operands().push_back(src.op0());
+    //  exprt e3(ID_equal);
+    //  e3.type().id(src.type().id());
+    //  e3.operands().push_back(src.op0());
 
-      exprt tole3(ID_mult, src.op0().type());
-      tole3.operands().push_back(src.op1());
-      tole3.operands().push_back(p1);
-      e3.operands().push_back(tole3);
+    //  exprt tole3(ID_mult, src.op0().type());
+    //  tole3.operands().push_back(src.op1());
+    //  tole3.operands().push_back(p1);
+    //  e3.operands().push_back(tole3);
 
-      result.insert(e3);
-      }
+    //  result.insert(e3);
+    //  }
    
-      {
-      // 1.01
-      ieee_floatt f1;
-      f1.from_float(1.01);
-      ieee_float_spect dest_spec;
-      floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
-      dest_spec.from_type(fbv_type);
-      f1.change_spec(dest_spec);
-      exprt p1=f1.to_expr();
+    //  {
+    //  // 1.01
+    //  ieee_floatt f1;
+    //  f1.from_float(1.01);
+    //  ieee_float_spect dest_spec;
+    //  floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
+    //  dest_spec.from_type(fbv_type);
+    //  f1.change_spec(dest_spec);
+    //  exprt p1=f1.to_expr();
 
-      exprt e3(ID_equal);
-      e3.type().id(src.type().id());
-      e3.operands().push_back(src.op0());
+    //  exprt e3(ID_equal);
+    //  e3.type().id(src.type().id());
+    //  e3.operands().push_back(src.op0());
 
-      exprt tole3(ID_mult, src.op0().type());
-      tole3.operands().push_back(src.op1());
-      tole3.operands().push_back(p1);
-      e3.operands().push_back(tole3);
+    //  exprt tole3(ID_mult, src.op0().type());
+    //  tole3.operands().push_back(src.op1());
+    //  tole3.operands().push_back(p1);
+    //  e3.operands().push_back(tole3);
 
-      result.insert(e3);
-      }
+    //  result.insert(e3);
+    //  }
    
-    }
+    //}
 
     return result;
   }
@@ -1341,6 +1426,9 @@ std::set<exprt> autosac_atomic_expand(const exprt &src)
     e2.operands().push_back(src.op0());
     e2.operands().push_back(src.op1());
     result.insert(e2);
+
+    auto res=bv_with_tolerance(src);
+    result.insert(res.begin(), res.end());
 
     return result;
   }
