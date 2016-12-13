@@ -422,61 +422,50 @@ Function: non_ordered_expr_expansion
 
 static std::set<exprt> non_ordered_expr_expansion(const exprt &src)
 {
+  if(src.id()==ID_not&&is_arithmetic_predicate(src.op0()))
+  {
+    return ordered_negation(src.op0());
+  }
+
   std::set<exprt> result;
-
-  std::set<exprt> s1, s2;
-
-  if(src.id()!=ID_not||!is_arithmetic_predicate(src.op0()))
-    s1.insert(src);
-  else
-  {
-    auto res=ordered_negation(src.op0());
-    s1.insert(res.begin(), res.end());
-  }
-
+  std::vector<exprt> operands;;
+  collect_operands(src, operands);
   // expand negations and non-ordered predicates
-  bool changed=true;
-  while(changed)
+  for(std::size_t i=0; i<operands.size(); ++i)
   {
-    changed=false;
-    for(auto &x: s1)
+    // an 'op' can be expanded if 1) it is a 'not' or 2) it
+    // is a predicate with '<=', '>=' or '!='
+    std::set<exprt> expanded_op;
+    if(operands[i].id()==ID_not)
     {
-      std::vector<exprt> operands;
-      collect_operands(x, operands);
-      for(std::size_t i=0; i<operands.size(); i++)
+      const exprt &no=operands[i].op0();
+      if(is_arithmetic_predicate(no))
       {
-        std::set<exprt> res;
-        if(operands[i].id()==ID_not)
-        {
-          exprt no=operands[i].op0();
-          if(is_arithmetic_predicate(no))
-          {
-            res=ordered_negation(no);
-            if(!res.empty()) changed=true;
-          }
-        }
-        else
-        {
-          if(operands[i].id()==ID_le
-             || operands[i].id()==ID_ge
-             || operands[i].id()==ID_notequal)
-          {
-            res=non_ordered_predicate_expansion(operands[i]);
-            if(!res.empty()) changed=true;
-          }
-        }
-        std::set<exprt> co=replacement_and_conjunction(res, operands, i);
-        s2.insert(co.begin(), co.end());
-        if(!res.empty()) break;
+        expanded_op=ordered_negation(no);
       }
-      if(!changed) s2.insert(x);
     }
-    if(!changed) break;
-    s1.swap(s2);
-    s2.clear();
+    else
+    {
+      if(operands[i].id()==ID_le
+         || operands[i].id()==ID_ge
+         || operands[i].id()==ID_notequal)
+      {
+        expanded_op=non_ordered_predicate_expansion(operands[i]);
+      }
+    }
+    if(expanded_op.empty()) continue;
+    auto re=replacement_and_conjunction(expanded_op, operands, i);
+    for(auto &x: re)
+    {
+      auto rec_result=non_ordered_expr_expansion(x);
+      if(!rec_result.empty())
+        result.insert(rec_result.begin(), rec_result.end());
+    }
+    // The loop can terminate as long as one 'op' has been expanded,
+    // since the recursive call will handle other expansions.
+    return result;
   }
-
-  return s1;
+  return {src};
 }
 
 /*******************************************************************\
@@ -686,7 +675,7 @@ static std::set<exprt> collect_mcdc_controlling_nested(
     std::set<exprt> s1, s2;
     /**
      * The final controlling conditions resulted from ''src''
-     * will be stored in ''s1''; ''s2'' is usd to hold the
+     * will be stored in ''s1''; ''s2'' is used to hold the
      * temporary expansion.
      **/
     s1.insert(src);
