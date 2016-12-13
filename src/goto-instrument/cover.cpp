@@ -489,12 +489,12 @@ static std::set<exprt> decision_expansion(const exprt &dec)
   if(is_arithmetic_predicate(d))
   {
     auto res=non_ordered_predicate_expansion(d);
-    if(not res.empty())
+    if(!res.empty())
       ctrl.insert(res.begin(), res.end());
     else ctrl.insert(d);
     d.make_not();
     res=non_ordered_predicate_expansion(d);
-    if(not res.empty())
+    if(!res.empty())
       ctrl.insert(res.begin(), res.end());
     else ctrl.insert(d);
   }
