@@ -520,7 +520,8 @@ static void collect_mcdc_controlling_rec(
   std::set<exprt> &result)
 {
   // src is conjunction (ID_and) or disjunction (ID_or)
-  if(src.id()==ID_and || src.id()==ID_or)
+  if(src.id()==ID_and ||
+     src.id()==ID_or)
   {
     std::vector<exprt> operands;
     collect_operands(src, operands);
