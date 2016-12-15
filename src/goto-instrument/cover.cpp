@@ -458,8 +458,7 @@ static std::set<exprt> non_ordered_expr_expansion(const exprt &src)
     for(auto &x: re)
     {
       auto rec_result=non_ordered_expr_expansion(x);
-      if(!rec_result.empty())
-        result.insert(rec_result.begin(), rec_result.end());
+      result.insert(rec_result.begin(), rec_result.end());
     }
     // The loop can terminate as long as one 'op' has been expanded,
     // since the recursive call will handle other expansions.
@@ -488,15 +487,11 @@ static std::set<exprt> decision_expansion(const exprt &dec)
   if(d.id()==ID_not) d=d.op0();
   if(is_arithmetic_predicate(d))
   {
-    auto res=non_ordered_predicate_expansion(d);
-    if(!res.empty())
-      ctrl.insert(res.begin(), res.end());
-    else ctrl.insert(d);
+    auto res=non_ordered_expr_expansion(d);
+    ctrl.insert(res.begin(), res.end());
     d.make_not();
-    res=non_ordered_predicate_expansion(d);
-    if(!res.empty())
-      ctrl.insert(res.begin(), res.end());
-    else ctrl.insert(d);
+    res=non_ordered_expr_expansion(d);
+    ctrl.insert(res.begin(), res.end());
   }
   return ctrl;
 }
