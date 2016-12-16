@@ -29,8 +29,8 @@ public:
     const optionst &_options)
     :
     bmc_all_propertiest(_goto_functions, _bmc.prop_conv, _bmc),
-    goto_functions(_goto_functions), 
-    bmc(_bmc), 
+    goto_functions(_goto_functions),
+    bmc(_bmc),
     options(_options)
   {
     set_message_handler(bmc.get_message_handler());
@@ -71,9 +71,32 @@ protected:
   bool check(const lpointst &lpoints, const lpoints_valuet& value);
   void update_scores(lpointst &lpoints,
                      const lpoints_valuet& value);
+  bool all_false(const lpoints_valuet& v);
+  bool all_true(const lpoints_valuet& v);
+  bool equal(const lpoints_valuet& v1, const lpoints_valuet& v2);
+  std::vector<lpoints_valuet> f_values, p_values, s_values;
+  lpoints_valuet f_value, p_value;
 
   // localization method: flip each point
   void localize_linear(lpointst &lpoints);
+
+  // probabilistic fault localization
+  void pfl(lpointst &lpoints);
+  bool check(const lpointst &lpoints,
+  			 const literalt &property,
+  			 const lpoints_valuet& exclusive_v,
+  			 const lpoints_valuet& inlusive_v,
+			 lpoints_valuet &res);
+  bool mc(const lpointst &lpoints,
+    	  const literalt &property,
+    	  const std::vector<lpoints_valuet>& ex,
+  		  lpoints_valuet &res);
+  bool mc(const lpointst &lpoints,
+    	  const literalt &property,
+    	  const lpoints_valuet & inc,
+  		  lpoints_valuet &res);
+  void common(const std::vector<lpoints_valuet> &vs, lpoints_valuet& v);
+
 
   // localization method: TBD
   //void localize_TBD(
@@ -90,10 +113,10 @@ protected:
   virtual void report(const cover_goalst &cover_goals);
 
   //override bmc_all_propertiest
-  virtual void do_before_solving() 
+  virtual void do_before_solving()
   {
     freeze_guards();
   }
 };
 
-#endif
+#endif // CPROVER_CBMC_FAULT_LOCALIZATION_H
