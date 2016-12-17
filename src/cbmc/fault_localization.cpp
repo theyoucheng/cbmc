@@ -71,17 +71,18 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
        it->assignment_type==symex_targett::STATE &&
        !it->ignore)
     {
-       /** status() << "===> " << from_expr(it->guard) << ", " << from_expr(it->cond_expr.op0()) << eom;
+       // status() << "===> " << from_expr(it->guard) << ", " << from_expr(it->cond_expr.op0()) << eom;
         std::string lhs=from_expr(it->cond_expr.op0()).c_str();
         if (has_prefix(lhs, "__CPROVER_fault")) continue;
-**/
-    	status() << "===> " << from_expr(it->guard) << ", " <<it->source.pc->source_location << eom;
+
+    	//status() << "===> " << from_expr(it->guard) << ", " <<it->source.pc->source_location << eom;
       //if(!it->guard_literal.is_constant())
       {
     	//if(it->guard_literal.sign()) continue;
         lpoints[it->guard_literal].target=it->source.pc;
         lpoints[it->guard_literal].score=0;
       }
+      status() << it->source.pc->source_location << eom;
     }
 
     // reached failed assertion?
@@ -845,6 +846,7 @@ void fault_localizationt::goal_covered(
   }
 
   if(f_values.empty()) return;
+
   //status() << eom << "The set of failing traces (F)" << eom;
   for(auto &v: f_values)
   {
