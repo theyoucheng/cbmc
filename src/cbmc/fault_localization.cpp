@@ -23,6 +23,9 @@ Author: Peter Schrammel
 #include "fault_localization.h"
 #include "counterexample_beautification.h"
 #include <util/prefix.h>
+#include <string>
+
+
 
 
 /*******************************************************************\
@@ -67,25 +70,29 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
       it=bmc.equation.SSA_steps.begin();
       it!=bmc.equation.SSA_steps.end(); it++)
   {
+
     if(it->is_assignment() &&
        it->assignment_type==symex_targett::STATE &&
        !it->ignore)
     {
-       // status() << "===> " << from_expr(it->guard) << ", " << from_expr(it->cond_expr.op0()) << eom;
         std::string lhs=from_expr(it->cond_expr.op0()).c_str();
         if (has_prefix(lhs, "__CPROVER_fault")) continue;
 
-    	//status() << "===> " << from_expr(it->guard) << ", " <<it->source.pc->source_location << eom;
       //if(!it->guard_literal.is_constant())
       {
-    	//if(it->guard_literal.sign()) continue;
         lpoints[it->guard_literal].target=it->source.pc;
+        int lnum=atoi(it->source.pc->source_location.get_line().c_str());
+        lnum--;
+        lpoints[it->guard_literal].info=std::to_string(lnum);
+
+        //lpoints[it->guard_literal].info=it->source.pc->source_location.get_line().c_str();
+
+
         lpoints[it->guard_literal].score=0;
       }
       status() << it->source.pc->source_location << eom;
     }
 
-    // reached failed assertion?
     if(it==failed)
       break;
   }
@@ -226,7 +233,7 @@ Function: fault_localizationt::pfl
  Purpose:
 
 \*******************************************************************/
-
+/**
 bool fault_localizationt::all_false(const lpoints_valuet& v)
 {
   for(auto &x: v)
@@ -280,7 +287,7 @@ void fault_localizationt::pfl(lpointst &lpoints)
   }
 
 }
-
+**/
 void fault_localizationt::common(const std::vector<lpoints_valuet> &vs, lpoints_valuet& res)
 {
 	status() << "inside common: " << eom;
@@ -424,7 +431,6 @@ bool fault_localizationt::mc(const lpointst &lpoints,
   	++v_it;
   }
 
-
   assumptions.push_back(property);
 
 
@@ -449,7 +455,7 @@ bool fault_localizationt::mc(const lpointst &lpoints,
 
 }
 
-
+/**
 bool fault_localizationt::check(const lpointst &lpoints,
 			 const literalt &property,
 			 const lpoints_valuet& exclusive_v,
@@ -517,7 +523,7 @@ bool fault_localizationt::check(const lpointst &lpoints,
 
   return false;
 }
-
+**/
 
 /*******************************************************************\
 
@@ -551,8 +557,8 @@ void fault_localizationt::run(irep_idt goal_id)
 
   // pick localization method
   //  if(options.get_option("localize-faults-method")=="TBD")
-  //localize_linear(lpoints);
-  pfl(lpoints);
+  localize_linear(lpoints);
+  //pfl(lpoints);
 
   //clear assumptions
   bvt assumptions;
@@ -578,6 +584,10 @@ void fault_localizationt::report(irep_idt goal_id)
 
   lpointst &lpoints = lpoints_map[goal_id];
 
+  std::string info=goal_map[goal_id].description;
+  //status() << "info: " << info << eom;
+  if(has_prefix(info, "__CPROVER_fault passing traces")) return;
+
   if(lpoints.empty())
   {
     status() << "["+id2string(goal_id)+"]: \n"
@@ -590,13 +600,22 @@ void fault_localizationt::report(irep_idt goal_id)
   lpointt &max=lpoints.begin()->second;
   for(auto &l : lpoints)
   {
+
     debug() << l.second.target->source_location
             << "\n  score: " << l.second.score << eom;
     if(max.score<l.second.score)
       max=l.second;
   }
-  status() << "["+id2string(goal_id)+"]: \n"
-                   << "  " << max.target->source_location
+  info=info.replace(0, 37, "");
+  std::string info2=id2string(goal_id);
+  std::size_t pos=info2.find("assertion.");
+  info2=info2.substr(0, pos+9);
+  std::string info3=max.target->source_location.as_string();
+  std::size_t pos3=info3.find("line ");
+  info3=info3.replace(0, pos3, "");
+  //status() << "["+id2string(goal_id)+"]: \n"
+  status() << "[" + info2 +  " at line "+ info +"]: \n"
+                   << "  " << info3 //max.target->source_location
                    << eom;
 }
 
@@ -762,28 +781,38 @@ void fault_localizationt::goal_covered(
           return;
         status() << eom << "source location: " << failed->source.pc->source_location << eom << eom;
 
-        // pfl
-        if(f_value.empty() or p_value.empty())
-        {
-  	      f_value.resize(lpoints.size());
-  	      p_value.resize(lpoints.size());
-  	      for(size_t i=0; i<lpoints.size(); ++i)
-  	      {
-  	        f_value[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
-  	        p_value[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
-  	      }
-        }
-
         /**
          * 1. the failing trace (F) must be built first
          * 2. then the passing trace (P)
          * 3. finally it is S
          *
          */
+        if(f_values.empty())
+        {
+           assert(has_prefix(goal_map[goal_id].description, "__CPROVER_fault failing traces"));
+           status() << "<<<Generating failing traces>>>" << eom;
+           status() << goal_map[goal_id].description << eom;
 
-        if(!f_values.empty())
+           status() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
+           while(true)
+           {
+             lpoints_valuet res;
+        	 if(mc(lpoints, failed->guard_literal, f_values, res))
+        	 {
+               f_values.push_back(res);
+        	 }
+        	 else break;
+           }
+           bvt assumptions;
+           bmc.prop_conv.set_assumptions(assumptions);
+        }
+        else //if(!f_values.empty())
         {
           status() << "<<<Generating passing traces>>>" << eom;
+          status() << goal_map[goal_id].description << eom;
+
+          assert(has_prefix(goal_map[goal_id].description, "__CPROVER_fault passing traces"));
+          //status() << "<<<Generating passing traces>>>" << eom;
           status() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
           while(true)
           {
@@ -824,49 +853,40 @@ void fault_localizationt::goal_covered(
        	    	s_values.push_back(res);
           }
 
+
+
         }
-        else {
-          status() << "<<<Generating failing traces>>>" << eom;
-          status() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
-          while(true)
-          {
-       		lpoints_valuet res;
-       	    //if(check(lpoints, failed->guard_literal, f_value, lpoints_valuet(), res))
-       	    if(mc(lpoints, failed->guard_literal, f_values, res))
-       	    {
-              f_values.push_back(res);
-       	    }
-       	    else break;
-          }
-          bvt assumptions;
-          bmc.prop_conv.set_assumptions(assumptions);
-        }
+        status() << "\nThe coverage matrix" << eom;
+                  for(auto &l: lpoints)
+                  {
+                	  status() << l.second.info << " ";
+                  }
+                  status() << eom;
+                  for(auto &v: f_values)
+                  {
+                    for(auto &x: v)
+                      status() << x.is_true() << " ";
+                    status () << "-" << eom;
+                  }
+                  //status() << eom << "The set of passing traces (P)" << eom;
+                  for(auto &v: p_values)
+                  {
+                    for(auto &x: v)
+                      status() << x.is_true() << " ";
+                    status () << "+" << eom;
+                  }
+                  //status() << eom << "The S set" << eom;
+                  for(auto &v: s_values)
+                  {
+                    for(auto &x: v)
+                      status() << x.is_true() << " ";
+                    status () << "+" << eom;
+                  }
+                  status () << eom;
+                  f_values.clear(); p_values.clear(); s_values.clear();
+
       }
     }
-  }
-
-  if(f_values.empty()) return;
-
-  //status() << eom << "The set of failing traces (F)" << eom;
-  for(auto &v: f_values)
-  {
-    for(auto &x: v)
-      status() << x.is_true() << " ";
-    status () << "-" << eom;
-  }
-  //status() << eom << "The set of passing traces (P)" << eom;
-  for(auto &v: p_values)
-  {
-    for(auto &x: v)
-      status() << x.is_true() << " ";
-    status () << "+" << eom;
-  }
-  //status() << eom << "The S set" << eom;
-  for(auto &v: s_values)
-  {
-    for(auto &x: v)
-      status() << x.is_true() << " ";
-    status () << "+" << eom;
   }
 }
 
