@@ -789,9 +789,10 @@ void fault_localizationt::goal_covered(
          */
         if(f_values.empty())
         {
+            status() << "<<<Generating failing traces>>>" << eom;
+            status() << goal_map[goal_id].description << eom;
            assert(has_prefix(goal_map[goal_id].description, "__CPROVER_fault failing traces"));
-           status() << "<<<Generating failing traces>>>" << eom;
-           status() << goal_map[goal_id].description << eom;
+
 
            status() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
            while(true)
@@ -857,33 +858,33 @@ void fault_localizationt::goal_covered(
 
         }
         status() << "\nThe coverage matrix" << eom;
-                  for(auto &l: lpoints)
-                  {
-                	  status() << l.second.info << " ";
-                  }
-                  status() << eom;
-                  for(auto &v: f_values)
-                  {
-                    for(auto &x: v)
-                      status() << x.is_true() << " ";
-                    status () << "-" << eom;
-                  }
-                  //status() << eom << "The set of passing traces (P)" << eom;
-                  for(auto &v: p_values)
-                  {
-                    for(auto &x: v)
-                      status() << x.is_true() << " ";
-                    status () << "+" << eom;
-                  }
-                  //status() << eom << "The S set" << eom;
-                  for(auto &v: s_values)
-                  {
-                    for(auto &x: v)
-                      status() << x.is_true() << " ";
-                    status () << "+" << eom;
-                  }
-                  status () << eom;
-                  f_values.clear(); p_values.clear(); s_values.clear();
+        for(auto &l: lpoints)
+        {
+           status() << l.second.info << " ";
+        }
+        status() << eom;
+        for(auto &v: f_values)
+        {
+          for(auto &x: v)
+            status() << x.is_true() << " ";
+          status () << "-" << eom;
+        }
+        //status() << eom << "The set of passing traces (P)" << eom;
+        for(auto &v: p_values)
+        {
+          for(auto &x: v)
+            status() << x.is_true() << " ";
+          status () << "+" << eom;
+        }
+        //status() << eom << "The S set" << eom;
+        for(auto &v: s_values)
+        {
+          for(auto &x: v)
+            status() << x.is_true() << " ";
+          status () << "+" << eom;
+        }
+        status () << eom;
+        // f_values.clear(); p_values.clear(); s_values.clear();
 
       }
     }
