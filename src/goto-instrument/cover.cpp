@@ -1886,6 +1886,7 @@ std::vector<std::string> autosac_in_type_strs;
         	{
         		autosac_vect.push_back({});
         		autosac_vect.push_back(autosac_vect.front());
+                autosac_words.push_back(autosac_in_type_strs[0]);
         	}
         	else
         	{
