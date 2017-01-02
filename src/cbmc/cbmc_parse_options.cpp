@@ -982,15 +982,14 @@ bool cbmc_parse_optionst::process_goto_program(
           
       status() << "Instrumenting coverage goals" << eom;
       double toler=0;
+      bool autosac_strong_in_type=false;
       if(cmdline.isset("boundary"))
       {
         toler=atof(cmdline.get_value("boundary").c_str());
-        //status() << eom << eom 
-        //         << "boundary value tolerance "
-        //         << toler //cmdline.get_value("boundary")
-        //         << eom << eom;
       }
-      instrument_cover_goals(symbol_table, goto_functions, c, toler);
+      if(cmdline.isset("autosac-strong-in-type"))
+          autosac_strong_in_type=true;
+      instrument_cover_goals(symbol_table, goto_functions, c, toler, autosac_strong_in_type);
       goto_functions.update();
     }
 

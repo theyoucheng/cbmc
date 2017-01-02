@@ -20,6 +20,7 @@ Date: May 2016
 #include <iostream>
 
 static double bv_toler=0;
+static bool strong_in_type=false;
 
 
 class basic_blockst
@@ -1571,7 +1572,7 @@ bool is_autosac_function(const codet& code)
   return has_prefix(func_name, "__AUTOSAC");
 }
 
-bool is_autosac_in_type(const codet& code)
+bool is_autosac_in_type_function(const codet& code)
 {
   const code_function_callt &code_function_call=
     to_code_function_call(code);
@@ -1619,8 +1620,8 @@ void instrument_cover_goals(
 {
 std::vector<std::set<exprt> > autosac_vect;
 std::vector<std::string > autosac_words;
-std::vector<exprt> autosac_in_type;
-std::string in_type_str="";
+std::vector<exprt> autosac_in_types;
+std::string autosac_in_type_str="";
 
   const namespacet ns(symbol_table);
   basic_blockst basic_blocks(goto_program);
@@ -1837,6 +1838,7 @@ std::string in_type_str="";
         const std::set<exprt> conditions1=collect_conditions(i_it); //0
         const std::set<exprt> decisions1=collect_decisions(i_it);  //1
 
+
         std::vector<std::set<exprt> > cond_dec;
         std::vector<std::string > words;
         if(autosac_func_call and not autosac_barrier)
@@ -1845,18 +1847,38 @@ std::string in_type_str="";
            * AUTOSAC assertions are inserted only when 
            * meeting a barrier.
            */
-          autosac_vect.push_back(conditions1);
-          autosac_vect.push_back(decisions1);
-          autosac_words.push_back(autosac_description(i_it->code));
           std::string desc=autosac_description(i_it->code);
-          for(auto &sx: autosac_words)
-            if(sx=="") sx=desc;
+          if((not strong_in_type) or (not is_autosac_in_type_function(i_it->code)))
+          {
+            autosac_vect.push_back(conditions1);
+            autosac_vect.push_back(decisions1);
+            autosac_words.push_back(autosac_description(i_it->code));
+            //for(auto &sx: autosac_words)
+            //  if(sx=="") sx=desc;
+          }
+          else //if(strong_in_type and is_autosac_in_type_function(i_it->code))
+          {
+            autosac_in_types.push_back(*decisions1.begin());
+            if(!(autosac_in_type_str==""))
+              autosac_in_type_str+=";";
+            autosac_in_type_str+=desc;
+          }
           //cond_dec.push_back(conditions1);
           //cond_dec.push_back(decisions1);
           //words.push_back(autosac_description(i_it->code));
         }
         else if(autosac_func_call and autosac_barrier)
         {
+
+          if(strong_in_type)
+          {
+            autosac_vect.push_back({conjunction(autosac_in_types)});
+            autosac_words.push_back(autosac_in_type_str);
+            autosac_in_type_str="";
+            autosac_in_types.clear();
+          }
+
+
           cond_dec=autosac_vect;
           words=autosac_words;
           autosac_vect.clear();
@@ -1867,17 +1889,26 @@ std::string in_type_str="";
           //cond_dec.push_back(conditions1);
           //cond_dec.push_back(decisions1);
           //words.push_back("");
-          autosac_vect.push_back(conditions1);
-          autosac_vect.push_back(decisions1);
-          autosac_words.push_back("");
+          if(not (conditions1.size()==0 and decisions1.size()==0))
+          {
+            autosac_vect.push_back(conditions1);
+            autosac_vect.push_back(decisions1);
+            autosac_words.push_back("");
+          }
         }
         
         
         //if(not autosac_func_call)        
         for(int xx=0; xx < cond_dec.size(); xx+=2)
         {
-          const std::set<exprt> conditions=cond_dec.at(xx);
-          const std::set<exprt> decisions=cond_dec.at(xx+1);
+          std::set<exprt> conditions, decisions;
+          if(xx+1<cond_dec.size()) 
+          {
+            conditions=cond_dec.at(xx);
+            decisions=cond_dec.at(xx+1);
+          }
+          else decisions=cond_dec.at(xx);
+          
         
           std::set<exprt> both;
           std::set_union(conditions.begin(), conditions.end(),
@@ -1995,9 +2026,12 @@ void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_functionst &goto_functions,
   coverage_criteriont criterion,
-  const double toler)
+  const double toler,
+  const bool autosac_strong_in_type)
 {
   bv_toler=toler;
+  strong_in_type=autosac_strong_in_type;
+
   Forall_goto_functions(f_it, goto_functions)
   {
     if(f_it->first==ID__start ||
