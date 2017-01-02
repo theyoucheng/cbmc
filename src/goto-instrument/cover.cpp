@@ -21,6 +21,7 @@ Date: May 2016
 
 static double bv_toler=0;
 static bool strong_in_type=false;
+static bool weakly_strong_in_type=false;
 
 
 class basic_blockst
@@ -1622,6 +1623,7 @@ std::vector<std::set<exprt> > autosac_vect;
 std::vector<std::string > autosac_words;
 std::vector<exprt> autosac_in_types;
 std::string autosac_in_type_str="";
+std::vector<std::string> autosac_in_type_strs;
 
   const namespacet ns(symbol_table);
   basic_blockst basic_blocks(goto_program);
@@ -1848,36 +1850,49 @@ std::string autosac_in_type_str="";
            * meeting a barrier.
            */
           std::string desc=autosac_description(i_it->code);
-          if((not strong_in_type) or (not is_autosac_in_type_function(i_it->code)))
+          if((not (strong_in_type or weakly_strong_in_type)) or (not is_autosac_in_type_function(i_it->code)))
           {
             autosac_vect.push_back(conditions1);
             autosac_vect.push_back(decisions1);
             autosac_words.push_back(autosac_description(i_it->code));
-            //for(auto &sx: autosac_words)
-            //  if(sx=="") sx=desc;
           }
-          else //if(strong_in_type and is_autosac_in_type_function(i_it->code))
+          else if(weakly_strong_in_type)
+          {
+            autosac_in_types.push_back(*decisions1.begin());
+            autosac_in_type_strs.push_back(desc);
+          }
+          else
           {
             autosac_in_types.push_back(*decisions1.begin());
             if(!(autosac_in_type_str==""))
               autosac_in_type_str+=";";
             autosac_in_type_str+=desc;
           }
-          //cond_dec.push_back(conditions1);
-          //cond_dec.push_back(decisions1);
-          //words.push_back(autosac_description(i_it->code));
         }
         else if(autosac_func_call and autosac_barrier)
         {
 
           if(strong_in_type)
           {
+            autosac_vect.push_back({});
             autosac_vect.push_back({conjunction(autosac_in_types)});
             autosac_words.push_back(autosac_in_type_str);
             autosac_in_type_str="";
             autosac_in_types.clear();
           }
-
+          else if(weakly_strong_in_type)
+          {
+            for(std::size_t ii=0; ii<autosac_in_types.size(); ii++)
+              for(std::size_t jj=ii+1; jj<autosac_in_types.size(); jj++)
+              {
+                std::vector<exprt> ve={autosac_in_types[ii], autosac_in_types[jj]};
+                autosac_vect.push_back({});
+                autosac_vect.push_back({conjunction(ve)});
+                autosac_words.push_back(autosac_in_type_strs[ii]+";"+autosac_in_type_strs[jj]);
+              }
+            autosac_in_types.clear();
+            autosac_in_type_strs.clear();
+          }
 
           cond_dec=autosac_vect;
           words=autosac_words;
@@ -1902,12 +1917,12 @@ std::string autosac_in_type_str="";
         for(int xx=0; xx < cond_dec.size(); xx+=2)
         {
           std::set<exprt> conditions, decisions;
-          if(xx+1<cond_dec.size()) 
-          {
+          //if(xx+1<cond_dec.size()) 
+          //{
             conditions=cond_dec.at(xx);
             decisions=cond_dec.at(xx+1);
-          }
-          else decisions=cond_dec.at(xx);
+          //}
+          //else decisions=cond_dec.at(xx);
           
         
           std::set<exprt> both;
@@ -2027,10 +2042,13 @@ void instrument_cover_goals(
   goto_functionst &goto_functions,
   coverage_criteriont criterion,
   const double toler,
-  const bool autosac_strong_in_type)
+  const bool autosac_strong_in_type,
+  const bool autosac_weakly_strong_in_type)
 {
+  assert(!(autosac_strong_in_type and autosac_weakly_strong_in_type));
   bv_toler=toler;
   strong_in_type=autosac_strong_in_type;
+  weakly_strong_in_type=autosac_weakly_strong_in_type;
 
   Forall_goto_functions(f_it, goto_functions)
   {
