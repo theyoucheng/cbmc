@@ -1246,7 +1246,7 @@ static std::set<exprt> bv_with_tolerance(const exprt& src)
 
     exprt tole(ID_plus, src.op0().type());
     tole.operands().push_back(src.op1());
-    constant_exprt p1(i2string(1), src.op0().type());
+    exprt p1= gen_one(src.op0().type());
     tole.operands().push_back(p1);
 
     e3.operands().push_back(tole);
@@ -1259,7 +1259,7 @@ static std::set<exprt> bv_with_tolerance(const exprt& src)
 
     exprt tole2(ID_minus, src.op0().type());
     tole2.operands().push_back(src.op1());
-    constant_exprt m1(i2string(1), src.op0().type());
+    exprt m1= gen_one(src.op0().type());
     tole2.operands().push_back(m1);
 
     e4.operands().push_back(tole2);
