@@ -981,7 +981,16 @@ bool cbmc_parse_optionst::process_goto_program(
       }
           
       status() << "Instrumenting coverage goals" << eom;
-      instrument_cover_goals(symbol_table, goto_functions, c);
+      double toler=0;
+      if(cmdline.isset("boundary"))
+      {
+        toler=atof(cmdline.get_value("boundary").c_str());
+        //status() << eom << eom 
+        //         << "boundary value tolerance "
+        //         << toler //cmdline.get_value("boundary")
+        //         << eom << eom;
+      }
+      instrument_cover_goals(symbol_table, goto_functions, c, toler);
       goto_functions.update();
     }
 
