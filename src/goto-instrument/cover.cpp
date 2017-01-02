@@ -1882,14 +1882,22 @@ std::vector<std::string> autosac_in_type_strs;
           }
           else if(weakly_strong_in_type)
           {
-            for(std::size_t ii=0; ii<autosac_in_types.size(); ii++)
-              for(std::size_t jj=ii+1; jj<autosac_in_types.size(); jj++)
-              {
-                std::vector<exprt> ve={autosac_in_types[ii], autosac_in_types[jj]};
-                autosac_vect.push_back({});
-                autosac_vect.push_back({conjunction(ve)});
-                autosac_words.push_back(autosac_in_type_strs[ii]+";"+autosac_in_type_strs[jj]);
-              }
+        	if(autosac_in_types.size()==1)
+        	{
+        		autosac_vect.push_back({});
+        		autosac_vect.push_back(autosac_vect.front());
+        	}
+        	else
+        	{
+              for(std::size_t ii=0; ii<autosac_in_types.size(); ii++)
+                for(std::size_t jj=ii+1; jj<autosac_in_types.size(); jj++)
+                {
+                  std::vector<exprt> ve={autosac_in_types[ii], autosac_in_types[jj]};
+                  autosac_vect.push_back({});
+                  autosac_vect.push_back({conjunction(ve)});
+                  autosac_words.push_back(autosac_in_type_strs[ii]+";"+autosac_in_type_strs[jj]);
+                }
+        	}
             autosac_in_types.clear();
             autosac_in_type_strs.clear();
           }
