@@ -34,6 +34,12 @@ public:
     options(_options)
   {
     set_message_handler(bmc.get_message_handler());
+    if(options.get_option("localize-faults-trace-limit")!="")
+    {
+    	trace_limit=atoi(options.get_option("localize-faults-trace-limit").c_str());
+    }
+    else trace_limit=-1;
+    status() << eom << "<<<<< trace limit: " << trace_limit << eom << eom;
   }
 
   safety_checkert::resultt operator()();
@@ -72,28 +78,26 @@ protected:
   bool check(const lpointst &lpoints, const lpoints_valuet& value);
   void update_scores(lpointst &lpoints,
                      const lpoints_valuet& value);
-  //bool all_false(const lpoints_valuet& v);
-  //bool all_true(const lpoints_valuet& v);
-  //bool equal(const lpoints_valuet& v1, const lpoints_valuet& v2);
-  //lpoints_valuet f_value, p_value;
+
 
   // localization method: flip each point
   void localize_linear(lpointst &lpoints);
 
-  // probabilistic fault localization
-  //void pfl(lpointst &lpoints);
-  /**
-  bool check(const lpointst &lpoints,
-  			 const literalt &property,
-  			 const lpoints_valuet& exclusive_v,
-  			 const lpoints_valuet& inlusive_v,
-			 lpoints_valuet &res);
-			 **/
+
   std::vector<lpoints_valuet> f_values, p_values, s_values;
+  std::vector<lpoints_valuet> f_extra_values, p_extra_values;
+  int trace_limit;
+  std::vector<lpoints_valuet> F_values, P_values;
+
 
   bool mc(const lpointst &lpoints,
     	  const literalt &property,
     	  const std::vector<lpoints_valuet>& ex,
+  		  lpoints_valuet &res);
+  bool mc2(const lpointst &lpoints,
+    	  const literalt &property,
+    	  const std::vector<lpoints_valuet>& ex1,
+    	  const std::vector<lpoints_valuet>& ex2,
   		  lpoints_valuet &res);
   bool mc(const lpointst &lpoints,
     	  const literalt &property,

@@ -312,6 +312,83 @@ void fault_localizationt::common(const std::vector<lpoints_valuet> &vs, lpoints_
   status () << eom;
 }
 
+bool fault_localizationt::mc2(const lpointst &lpoints,
+  	  const literalt &property,
+  	  const std::vector<lpoints_valuet>& ex1,
+  	  const std::vector<lpoints_valuet>& ex2,
+	  lpoints_valuet &res)
+{
+  bvt assumptions;
+
+  //existing traces must be excluded
+  for(auto &v: ex1)
+  {
+	std::vector<literalt> bv;
+    lpoints_valuet::const_iterator v_it=v.begin();
+	for(const auto &l : lpoints)
+	{
+	  if(v_it->is_true())
+	    bv.push_back(l.first);
+	  else if(v_it->is_false())
+	 	bv.push_back(!l.first);
+	  else assert(0);
+	  ++v_it;
+    }
+	//existing test vector should not be excluded
+	if(!bv.empty())
+	{
+      literalt existing;
+      bmc.prop_conv.land(bv, existing);
+      assumptions.push_back(!existing);
+	}
+  }
+  for(auto &v: ex2)
+  {
+	std::vector<literalt> bv;
+    lpoints_valuet::const_iterator v_it=v.begin();
+	for(const auto &l : lpoints)
+	{
+	  if(v_it->is_true())
+	    bv.push_back(l.first);
+	  else if(v_it->is_false())
+	 	bv.push_back(!l.first);
+	  else assert(0);
+	  ++v_it;
+    }
+	//existing test vector should not be excluded
+	if(!bv.empty())
+	{
+      literalt existing;
+      bmc.prop_conv.land(bv, existing);
+      assumptions.push_back(!existing);
+	}
+  }
+
+
+  assumptions.push_back(property);
+
+
+  bmc.prop_conv.set_assumptions(assumptions);
+
+
+  //Running the check
+  if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
+  {
+    res.reserve(lpoints.size());
+ 	//lpoints_valuet::iterator v_it=res.begin();
+ 	for(const auto &l : lpoints)
+ 	{
+ 	  if(bmc.prop_conv.l_get(l.first).is_true())
+ 		  res.push_back(tvt(tvt::tv_enumt::TV_TRUE));
+ 	  else res.push_back(tvt(tvt::tv_enumt::TV_FALSE));
+ 	}
+     return true;
+   }
+
+   return false;
+
+}
+
 bool fault_localizationt::mc(const lpointst &lpoints,
   	  const literalt &property,
   	  const std::vector<lpoints_valuet>& ex,
@@ -797,6 +874,8 @@ void fault_localizationt::goal_covered(
            status() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
            while(true)
            {
+        	 bvt assumptions;
+        	 bmc.prop_conv.set_assumptions(assumptions);
              lpoints_valuet res;
         	 if(mc(lpoints, failed->guard_literal, f_values, res))
         	 {
@@ -804,8 +883,28 @@ void fault_localizationt::goal_covered(
         	 }
         	 else break;
            }
+          // bvt assumptions;
+          // bmc.prop_conv.set_assumptions(assumptions);
+
+           // extra failing traces
+           int c=f_values.size();
+           while(c++<trace_limit)
+           {
+        	 status() << "<<<<< c is " << c << eom;
+             bvt assumptions;
+             bmc.prop_conv.set_assumptions(assumptions);
+             lpoints_valuet res;
+        	 if(mc2(lpoints, failed->guard_literal, f_values, f_extra_values, res))
+        	 {
+               f_extra_values.push_back(res);
+        	 }
+        	 else break;
+           }
+
+
            bvt assumptions;
            bmc.prop_conv.set_assumptions(assumptions);
+
         }
         else //if(!f_values.empty())
         {
@@ -818,7 +917,6 @@ void fault_localizationt::goal_covered(
           while(true)
           {
        		lpoints_valuet res;
-       	    //if(check(lpoints, failed->guard_literal, p_value, lpoints_valuet(), res))
        		if(mc(lpoints, failed->guard_literal, p_values, res))
        	    {
               p_values.push_back(res);
@@ -854,21 +952,71 @@ void fault_localizationt::goal_covered(
        	    	s_values.push_back(res);
           }
 
+          // extra passing traces
+          int c=p_values.size()+s_values.size();
 
+          std::vector<lpoints_valuet> ps;
+          ps.insert(ps.end(), p_values.begin(), p_values.end());
+          ps.insert(ps.end(), s_values.begin(), s_values.end());
+
+          while(c++<trace_limit)
+          {
+
+            lpoints_valuet res;
+       	    if(mc2(lpoints, failed->guard_literal, ps, p_extra_values, res))
+       	    {
+              p_extra_values.push_back(res);
+       	    }
+       	    else break;
+
+          }
 
         }
+
+
         status() << "\nThe coverage matrix" << eom;
+
+        if(F_values.empty())
+        {
+          F_values.insert(F_values.end(), f_values.begin(), f_values.end());
+          F_values.insert(F_values.end(), f_extra_values.begin(), f_extra_values.end());
+        }
+        P_values.insert(P_values.end(), p_values.begin(), p_values.end());
+        P_values.insert(P_values.end(), s_values.begin(), s_values.end());
+        P_values.insert(P_values.end(), p_extra_values.begin(), p_extra_values.end());
+
+
+
         for(auto &l: lpoints)
         {
            status() << l.second.info << " ";
         }
         status() << eom;
+        for(auto &v: F_values)
+        {
+          for(auto &x: v)
+            status() << x.is_true() << " ";
+          status () << "-" << eom;
+        }
+        for(auto &v: P_values)
+        {
+          for(auto &x: v)
+            status() << x.is_true() << " ";
+          status () << "+" << eom;
+        }
+/**
         for(auto &v: f_values)
         {
           for(auto &x: v)
             status() << x.is_true() << " ";
           status () << "-" << eom;
         }
+        for(auto &v: f_extra_values)
+        {
+          for(auto &x: v)
+            status() << x.is_true() << " ";
+          status () << "-" << eom;
+        }/**
         //status() << eom << "The set of passing traces (P)" << eom;
         for(auto &v: p_values)
         {
@@ -883,6 +1031,12 @@ void fault_localizationt::goal_covered(
             status() << x.is_true() << " ";
           status () << "+" << eom;
         }
+        for(auto &v: p_extra_values)
+        {
+          for(auto &x: v)
+            status() << x.is_true() << " ";
+          status () << "+" << eom;
+        }**/
         status () << eom;
         // f_values.clear(); p_values.clear(); s_values.clear();
 
