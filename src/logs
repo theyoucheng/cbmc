@@ -1,0 +1,288 @@
+Binary file ansi-c/ansi-c.a matches
+ansi-c/ansi_c_internal_additions.cpp:119:    "void __CPROVER_assert(__CPROVER_bool assertion, const char *description);\n"
+Binary file ansi-c/ansi_c_internal_additions.o matches
+ansi-c/cprover_library.inc:622:  "  __CPROVER_assert(__CPROVER_is_zero_string(optstring),\n"
+ansi-c/cprover_library.inc:641:  "  __CPROVER_assert(__CPROVER_is_zero_string(cp), \"inet_addr zero-termination of argument\");\n"
+ansi-c/cprover_library.inc:658:  "  __CPROVER_assert(__CPROVER_is_zero_string(cp), \"inet_aton zero-termination of name argument\");\n"
+ansi-c/cprover_library.inc:674:  "  __CPROVER_assert(__CPROVER_is_zero_string(cp), \"inet_network zero-termination of name argument\");\n"
+ansi-c/cprover_library.inc:2097:  "  __CPROVER_assert(__CPROVER_is_zero_string(name), \"gethostbyname zero-termination of name argument\");\n"
+ansi-c/cprover_library.inc:2229:  "    __CPROVER_assert(__CPROVER_DYNAMIC_OBJECT(ptr),\n"
+ansi-c/cprover_library.inc:2231:  "    __CPROVER_assert(__CPROVER_POINTER_OFFSET(ptr)==0,\n"
+ansi-c/cprover_library.inc:2235:  "    __CPROVER_assert(__CPROVER_deallocated!=ptr, \"double delete\");\n"
+ansi-c/cprover_library.inc:2238:  "    __CPROVER_assert(__CPROVER_malloc_object!=ptr ||\n"
+ansi-c/cprover_library.inc:2260:  "    __CPROVER_assert(__CPROVER_DYNAMIC_OBJECT(ptr),\n"
+ansi-c/cprover_library.inc:2262:  "    __CPROVER_assert(__CPROVER_POINTER_OFFSET(ptr)==0,\n"
+ansi-c/cprover_library.inc:2266:  "    __CPROVER_assert(__CPROVER_deallocated!=ptr, \"double delete\");\n"
+ansi-c/cprover_library.inc:2269:  "    __CPROVER_assert(__CPROVER_malloc_object!=ptr ||\n"
+ansi-c/cprover_library.inc:2365:  "  __CPROVER_assert(__CPROVER_get_must(&thread, \"pthread-id\"),\n"
+ansi-c/cprover_library.inc:2396:  "  __CPROVER_assert(\n"
+ansi-c/cprover_library.inc:2443:  "  __CPROVER_assert(__CPROVER_get_must(mutex, \"mutex-init\"),\n"
+ansi-c/cprover_library.inc:2446:  "  __CPROVER_assert(!__CPROVER_get_may(mutex, \"mutex-destroyed\"),\n"
+ansi-c/cprover_library.inc:2449:  "  __CPROVER_assert(__CPROVER_get_must(mutex, \"mutex-recursive\") ||\n"
+ansi-c/cprover_library.inc:2456:  "  __CPROVER_assert(*((__CPROVER_mutex_t *)mutex)!=-1,\n"
+ansi-c/cprover_library.inc:2497:  "  __CPROVER_assert(__CPROVER_get_must(mutex, \"mutex-init\"),\n"
+ansi-c/cprover_library.inc:2500:  "  __CPROVER_assert(*((__CPROVER_mutex_t *)mutex)!=-1,\n"
+ansi-c/cprover_library.inc:2548:  "  __CPROVER_assert(__CPROVER_get_must(mutex, \"mutex-init\"),\n"
+ansi-c/cprover_library.inc:2551:  "  __CPROVER_assert(__CPROVER_get_must(mutex, \"mutex-locked\"),\n"
+ansi-c/cprover_library.inc:2554:  "  __CPROVER_assert(!__CPROVER_get_may(mutex, \"mutex-destroyed\"),\n"
+ansi-c/cprover_library.inc:2565:  "  __CPROVER_assert(*((__CPROVER_mutex_t *)mutex)==1,\n"
+ansi-c/cprover_library.inc:2598:  "  __CPROVER_assert(__CPROVER_get_must(mutex, \"mutex-init\"),\n"
+ansi-c/cprover_library.inc:2601:  "  __CPROVER_assert(!__CPROVER_get_may(mutex, \"mutex-locked\"),\n"
+ansi-c/cprover_library.inc:2604:  "  __CPROVER_assert(!__CPROVER_get_may(mutex, \"mutex-destroyed\"),\n"
+ansi-c/cprover_library.inc:2611:  "  __CPROVER_assert(*((__CPROVER_mutex_t *)mutex)==0,\n"
+ansi-c/cprover_library.inc:2663:  "  __CPROVER_assert(__CPROVER_get_must(&thread, \"pthread-id\"),\n"
+ansi-c/cprover_library.inc:2701:  "  __CPROVER_assert(__CPROVER_get_must(&thread, \"pthread-id\"),\n"
+ansi-c/cprover_library.inc:2726:  "  __CPROVER_assert(*((signed char *)lock)==0,\n"
+ansi-c/cprover_library.inc:2750:  "  __CPROVER_assert(__CPROVER_get_must(p, \"rwlock_destroyed\"),\n"
+ansi-c/cprover_library.inc:2782:  "  __CPROVER_assert(*((signed char *)lock)!=-1,\n"
+ansi-c/cprover_library.inc:2840:  "  __CPROVER_assert(*((signed char *)lock)==1,\n"
+ansi-c/cprover_library.inc:2860:  "  __CPROVER_assert(*((signed char *)lock)!=-1,\n"
+ansi-c/cprover_library.inc:2995:  "  __CPROVER_assert(__CPROVER_get_must(mutex, \"mutex-init\"),\n"
+ansi-c/cprover_library.inc:2998:  "  __CPROVER_assert(__CPROVER_get_must(mutex, \"mutex-locked\"),\n"
+ansi-c/cprover_library.inc:3001:  "  __CPROVER_assert(!__CPROVER_get_may(mutex, \"mutex-destroyed\"),\n"
+ansi-c/cprover_library.inc:3147:  "  __CPROVER_assert(__CPROVER_get_must(barrier, \"barrier-init\"),\n"
+ansi-c/cprover_library.inc:3149:  "  __CPROVER_assert(!__CPROVER_get_may(barrier, \"barrier-destroyed\"),\n"
+ansi-c/cprover_library.inc:3177:  "  __CPROVER_assert(__CPROVER_get_must(barrier, \"barrier-init\"),\n"
+ansi-c/cprover_library.inc:3179:  "  __CPROVER_assert(!__CPROVER_get_may(barrier, \"barrier-destroyed\"),\n"
+ansi-c/cprover_library.inc:3220:  "  __CPROVER_assert(__CPROVER_get_must(sem, \"sem-init\"),\n"
+ansi-c/cprover_library.inc:3222:  "  __CPROVER_assert(!__CPROVER_get_may(sem, \"sem-destroyed\"),\n"
+ansi-c/cprover_library.inc:3242:  "  __CPROVER_assert(__CPROVER_get_must(sem, \"sem-init\"),\n"
+ansi-c/cprover_library.inc:3244:  "  __CPROVER_assert(!__CPROVER_get_may(sem, \"sem-destroyed\"),\n"
+ansi-c/cprover_library.inc:3263:  "  __CPROVER_assert(__CPROVER_get_must(sem, \"sem-init\"),\n"
+ansi-c/cprover_library.inc:3265:  "  __CPROVER_assert(!__CPROVER_get_may(sem, \"sem-destroyed\"),\n"
+ansi-c/cprover_library.inc:3284:  "  __CPROVER_assert(__CPROVER_get_must(sem, \"sem-init\"),\n"
+ansi-c/cprover_library.inc:3286:  "  __CPROVER_assert(!__CPROVER_get_may(sem, \"sem-destroyed\"),\n"
+ansi-c/cprover_library.inc:3306:  "  __CPROVER_assert(__CPROVER_get_must(sem, \"sem-init\"),\n"
+ansi-c/cprover_library.inc:3308:  "  __CPROVER_assert(!__CPROVER_get_may(sem, \"sem-destroyed\"),\n"
+ansi-c/cprover_library.inc:3328:  "  __CPROVER_assert(__CPROVER_get_must(sem, \"sem-init\"),\n"
+ansi-c/cprover_library.inc:3330:  "  __CPROVER_assert(!__CPROVER_get_may(sem, \"sem-destroyed\"),\n"
+ansi-c/cprover_library.inc:3349:  "  __CPROVER_assert(__CPROVER_get_must(sem, \"sem-init\"),\n"
+ansi-c/cprover_library.inc:3351:  "  __CPROVER_assert(!__CPROVER_get_may(sem, \"sem-destroyed\"),\n"
+ansi-c/cprover_library.inc:3501:  "  __CPROVER_assert(!__CPROVER_get_must(stream, \"open\") ||\n"
+ansi-c/cprover_library.inc:3513:  "  __CPROVER_assert(__CPROVER_is_zero_string(filename), \"fopen zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:3514:  "  __CPROVER_assert(__CPROVER_is_zero_string(mode), \"fopen zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:3562:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3592:  "  __CPROVER_assert(__CPROVER_is_zero_string(mode),\n"
+ansi-c/cprover_library.inc:3619:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3625:  "  __CPROVER_assert(__CPROVER_buffer_size(str)>=size, \"buffer-overflow in fgets\");\n"
+ansi-c/cprover_library.inc:3661:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3691:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3715:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3739:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3761:  "  __CPROVER_assert(__CPROVER_is_zero_string(s), \"fputs zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:3767:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3791:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3815:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3842:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3865:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3912:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3940:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3963:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:3985:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:4011:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:4035:  "    __CPROVER_assert(__CPROVER_is_zero_string(s), \"perror zero-termination\");\n"
+ansi-c/cprover_library.inc:4140:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:4239:  "  __CPROVER_assert(__CPROVER_get_must(stream, \"open\"),\n"
+ansi-c/cprover_library.inc:4414:  "    __CPROVER_assert(__CPROVER_DYNAMIC_OBJECT(ptr),\n"
+ansi-c/cprover_library.inc:4416:  "    __CPROVER_assert(__CPROVER_POINTER_OFFSET(ptr)==0,\n"
+ansi-c/cprover_library.inc:4421:  "      __CPROVER_assert(0, \"double free\");\n"
+ansi-c/cprover_library.inc:4425:  "    __CPROVER_assert(__CPROVER_malloc_object!=ptr ||\n"
+ansi-c/cprover_library.inc:4463:  "  __CPROVER_assert(__CPROVER_is_zero_string(nptr),\n"
+ansi-c/cprover_library.inc:4587:  "  __CPROVER_assert(__CPROVER_is_zero_string(name),\n"
+ansi-c/cprover_library.inc:4640:  "  __CPROVER_assert(__CPROVER_DYNAMIC_OBJECT(ptr),\n"
+ansi-c/cprover_library.inc:4687:  "  __CPROVER_assert(__CPROVER_is_zero_string(src), \"strcpy zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:4688:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>__CPROVER_zero_string_length(src), \"strcpy buffer overflow\");\n"
+ansi-c/cprover_library.inc:4689:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)==s, \"builtin object size\");\n"
+ansi-c/cprover_library.inc:4716:  "  __CPROVER_assert(__CPROVER_is_zero_string(dst), \"strcat zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:4717:  "  __CPROVER_assert(__CPROVER_is_zero_string(src), \"strcat zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:4718:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)==s, \"builtin object size\");\n"
+ansi-c/cprover_library.inc:4720:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,\n"
+ansi-c/cprover_library.inc:4756:  "  __CPROVER_assert(__CPROVER_is_zero_string(dst), \"strncat zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:4757:  "  __CPROVER_assert(__CPROVER_is_zero_string(src) || __CPROVER_buffer_size(src)>=n, \"strncat zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:4758:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)==s, \"builtin object size\");\n"
+ansi-c/cprover_library.inc:4761:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,\n"
+ansi-c/cprover_library.inc:4794:  "  __CPROVER_assert(__CPROVER_is_zero_string(src), \"strcpy zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:4795:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>__CPROVER_zero_string_length(src), \"strcpy buffer overflow\");\n"
+ansi-c/cprover_library.inc:4828:  "  __CPROVER_assert(__CPROVER_is_zero_string(src), \"strncpy zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:4829:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>=n, \"strncpy buffer overflow\");\n"
+ansi-c/cprover_library.inc:4862:  "  __CPROVER_assert(__CPROVER_is_zero_string(src), \"strncpy zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:4863:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>=n, \"strncpy buffer overflow\");\n"
+ansi-c/cprover_library.inc:4864:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)==object_size, \"builtin object size\");\n"
+ansi-c/cprover_library.inc:4901:  "  __CPROVER_assert(__CPROVER_is_zero_string(dst), \"strcat zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:4902:  "  __CPROVER_assert(__CPROVER_is_zero_string(src), \"strcat zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:4904:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,\n"
+ansi-c/cprover_library.inc:4946:  "  __CPROVER_assert(__CPROVER_is_zero_string(dst), \"strncat zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:4947:  "  __CPROVER_assert(__CPROVER_is_zero_string(src) || __CPROVER_buffer_size(src)>=n, \"strncat zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:4950:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,\n"
+ansi-c/cprover_library.inc:4984:  "  __CPROVER_assert(__CPROVER_is_zero_string(s1), \"strcmp zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:4985:  "  __CPROVER_assert(__CPROVER_is_zero_string(s2), \"strcmp zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:5028:  "  __CPROVER_assert(__CPROVER_is_zero_string(s1), \"strcasecmp zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:5029:  "  __CPROVER_assert(__CPROVER_is_zero_string(s2), \"strcasecmp zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:5074:  "  __CPROVER_assert(__CPROVER_is_zero_string(s1) || __CPROVER_buffer_size(s1)>=n, \"strncmp zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:5075:  "  __CPROVER_assert(__CPROVER_is_zero_string(s2) || __CPROVER_buffer_size(s2)>=n, \"strncmp zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:5116:  "  __CPROVER_assert(__CPROVER_is_zero_string(s1), \"strncasecmp zero-termination of 1st argument\");\n"
+ansi-c/cprover_library.inc:5117:  "  __CPROVER_assert(__CPROVER_is_zero_string(s2), \"strncasecmp zero-termination of 2nd argument\");\n"
+ansi-c/cprover_library.inc:5160:  "  __CPROVER_assert(__CPROVER_is_zero_string(s), \"strlen zero-termination\");\n"
+ansi-c/cprover_library.inc:5215:  "  __CPROVER_assert(__CPROVER_buffer_size(src)>=n, \"memcpy buffer overflow\");\n"
+ansi-c/cprover_library.inc:5216:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>=n, \"memcpy buffer overflow\");\n"
+ansi-c/cprover_library.inc:5241:  "  __CPROVER_assert(__CPROVER_buffer_size(src)>=n, \"memcpy buffer overflow\");\n"
+ansi-c/cprover_library.inc:5242:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)>=n, \"memcpy buffer overflow\");\n"
+ansi-c/cprover_library.inc:5243:  "  __CPROVER_assert(__CPROVER_buffer_size(dst)==s, \"builtin object size\");\n"
+ansi-c/cprover_library.inc:5276:  "  __CPROVER_assert(__CPROVER_buffer_size(s)>=n, \"memset buffer overflow\");\n"
+ansi-c/cprover_library.inc:5305:  "  __CPROVER_assert(__CPROVER_buffer_size(s)>=n, \"memset buffer overflow\");\n"
+ansi-c/cprover_library.inc:5306:  "  __CPROVER_assert(__CPROVER_buffer_size(s)==size, \"builtin object size\");\n"
+ansi-c/cprover_library.inc:5343:  "  __CPROVER_assert(__CPROVER_buffer_size(src)>=n, \"memmove buffer overflow\");\n"
+ansi-c/cprover_library.inc:5382:  "  __CPROVER_assert(__CPROVER_buffer_size(s1)>=n, \"memcmp buffer overflow of 1st argument\");\n"
+ansi-c/cprover_library.inc:5383:  "  __CPROVER_assert(__CPROVER_buffer_size(s2)>=n, \"memcmp buffer overflow of 2nd argument\");\n"
+ansi-c/cprover_library.inc:5411:  "  __CPROVER_assert(__CPROVER_is_zero_string(src), \"strchr zero-termination of string argument\");\n"
+ansi-c/cprover_library.inc:5441:  "  __CPROVER_assert(__CPROVER_is_zero_string(src), \"strrchr zero-termination of string argument\");\n"
+ansi-c/cprover_library.inc:6001:  "  __CPROVER_assert(__CPROVER_is_zero_string(s), \"unlink zero-termination\");\n"
+Binary file ansi-c/cprover_library.o matches
+Binary file ansi-c/library/.cprover.h.swp matches
+ansi-c/library/cprover.h:10:void __CPROVER_assert(__CPROVER_bool assertion, const char *description);
+ansi-c/library/getopt.c:17:  __CPROVER_assert(__CPROVER_is_zero_string(optstring),
+ansi-c/library/inet.c:10:  __CPROVER_assert(__CPROVER_is_zero_string(cp), "inet_addr zero-termination of argument");
+ansi-c/library/inet.c:25:  __CPROVER_assert(__CPROVER_is_zero_string(cp), "inet_aton zero-termination of name argument");
+ansi-c/library/inet.c:39:  __CPROVER_assert(__CPROVER_is_zero_string(cp), "inet_network zero-termination of name argument");
+ansi-c/library/jsa.h:160:#define __CPROVER_jsa_assert(c, str) __CPROVER_assert(c, str)
+ansi-c/library/netdb.c:10:  __CPROVER_assert(__CPROVER_is_zero_string(name), "gethostbyname zero-termination of name argument");
+ansi-c/library/new.c:74:    __CPROVER_assert(__CPROVER_DYNAMIC_OBJECT(ptr),
+ansi-c/library/new.c:76:    __CPROVER_assert(__CPROVER_POINTER_OFFSET(ptr)==0,
+ansi-c/library/new.c:80:    __CPROVER_assert(__CPROVER_deallocated!=ptr, "double delete");
+ansi-c/library/new.c:83:    __CPROVER_assert(__CPROVER_malloc_object!=ptr ||
+ansi-c/library/new.c:103:    __CPROVER_assert(__CPROVER_DYNAMIC_OBJECT(ptr),
+ansi-c/library/new.c:105:    __CPROVER_assert(__CPROVER_POINTER_OFFSET(ptr)==0,
+ansi-c/library/new.c:109:    __CPROVER_assert(__CPROVER_deallocated!=ptr, "double delete");
+ansi-c/library/new.c:112:    __CPROVER_assert(__CPROVER_malloc_object!=ptr ||
+ansi-c/library/pthread_lib.c:37:  __CPROVER_assert(__CPROVER_get_must(&thread, "pthread-id"),
+ansi-c/library/pthread_lib.c:66:  __CPROVER_assert(
+ansi-c/library/pthread_lib.c:111:  __CPROVER_assert(__CPROVER_get_must(mutex, "mutex-init"),
+ansi-c/library/pthread_lib.c:114:  __CPROVER_assert(!__CPROVER_get_may(mutex, "mutex-destroyed"),
+ansi-c/library/pthread_lib.c:117:  __CPROVER_assert(__CPROVER_get_must(mutex, "mutex-recursive") ||
+ansi-c/library/pthread_lib.c:124:  __CPROVER_assert(*((__CPROVER_mutex_t *)mutex)!=-1,
+ansi-c/library/pthread_lib.c:163:  __CPROVER_assert(__CPROVER_get_must(mutex, "mutex-init"),
+ansi-c/library/pthread_lib.c:166:  __CPROVER_assert(*((__CPROVER_mutex_t *)mutex)!=-1,
+ansi-c/library/pthread_lib.c:212:  __CPROVER_assert(__CPROVER_get_must(mutex, "mutex-init"),
+ansi-c/library/pthread_lib.c:215:  __CPROVER_assert(__CPROVER_get_must(mutex, "mutex-locked"),
+ansi-c/library/pthread_lib.c:218:  __CPROVER_assert(!__CPROVER_get_may(mutex, "mutex-destroyed"),
+ansi-c/library/pthread_lib.c:229:  __CPROVER_assert(*((__CPROVER_mutex_t *)mutex)==1,
+ansi-c/library/pthread_lib.c:260:  __CPROVER_assert(__CPROVER_get_must(mutex, "mutex-init"),
+ansi-c/library/pthread_lib.c:263:  __CPROVER_assert(!__CPROVER_get_may(mutex, "mutex-locked"),
+ansi-c/library/pthread_lib.c:266:  __CPROVER_assert(!__CPROVER_get_may(mutex, "mutex-destroyed"),
+ansi-c/library/pthread_lib.c:273:  __CPROVER_assert(*((__CPROVER_mutex_t *)mutex)==0,
+ansi-c/library/pthread_lib.c:321:  __CPROVER_assert(__CPROVER_get_must(&thread, "pthread-id"),
+ansi-c/library/pthread_lib.c:357:  __CPROVER_assert(__CPROVER_get_must(&thread, "pthread-id"),
+ansi-c/library/pthread_lib.c:380:  __CPROVER_assert(*((signed char *)lock)==0,
+ansi-c/library/pthread_lib.c:402:  __CPROVER_assert(__CPROVER_get_must(p, "rwlock_destroyed"),
+ansi-c/library/pthread_lib.c:432:  __CPROVER_assert(*((signed char *)lock)!=-1,
+ansi-c/library/pthread_lib.c:484:  __CPROVER_assert(*((signed char *)lock)==1,
+ansi-c/library/pthread_lib.c:502:  __CPROVER_assert(*((signed char *)lock)!=-1,
+ansi-c/library/pthread_lib.c:627:  __CPROVER_assert(__CPROVER_get_must(mutex, "mutex-init"),
+ansi-c/library/pthread_lib.c:630:  __CPROVER_assert(__CPROVER_get_must(mutex, "mutex-locked"),
+ansi-c/library/pthread_lib.c:633:  __CPROVER_assert(!__CPROVER_get_may(mutex, "mutex-destroyed"),
+ansi-c/library/pthread_lib.c:769:  __CPROVER_assert(__CPROVER_get_must(barrier, "barrier-init"),
+ansi-c/library/pthread_lib.c:771:  __CPROVER_assert(!__CPROVER_get_may(barrier, "barrier-destroyed"),
+ansi-c/library/pthread_lib.c:797:  __CPROVER_assert(__CPROVER_get_must(barrier, "barrier-init"),
+ansi-c/library/pthread_lib.c:799:  __CPROVER_assert(!__CPROVER_get_may(barrier, "barrier-destroyed"),
+ansi-c/library/semaphore.c:30:  __CPROVER_assert(__CPROVER_get_must(sem, "sem-init"),
+ansi-c/library/semaphore.c:32:  __CPROVER_assert(!__CPROVER_get_may(sem, "sem-destroyed"),
+ansi-c/library/semaphore.c:50:  __CPROVER_assert(__CPROVER_get_must(sem, "sem-init"),
+ansi-c/library/semaphore.c:52:  __CPROVER_assert(!__CPROVER_get_may(sem, "sem-destroyed"),
+ansi-c/library/semaphore.c:69:  __CPROVER_assert(__CPROVER_get_must(sem, "sem-init"),
+ansi-c/library/semaphore.c:71:  __CPROVER_assert(!__CPROVER_get_may(sem, "sem-destroyed"),
+ansi-c/library/semaphore.c:88:  __CPROVER_assert(__CPROVER_get_must(sem, "sem-init"),
+ansi-c/library/semaphore.c:90:  __CPROVER_assert(!__CPROVER_get_may(sem, "sem-destroyed"),
+ansi-c/library/semaphore.c:108:  __CPROVER_assert(__CPROVER_get_must(sem, "sem-init"),
+ansi-c/library/semaphore.c:110:  __CPROVER_assert(!__CPROVER_get_may(sem, "sem-destroyed"),
+ansi-c/library/semaphore.c:128:  __CPROVER_assert(__CPROVER_get_must(sem, "sem-init"),
+ansi-c/library/semaphore.c:130:  __CPROVER_assert(!__CPROVER_get_may(sem, "sem-destroyed"),
+ansi-c/library/semaphore.c:147:  __CPROVER_assert(__CPROVER_get_must(sem, "sem-init"),
+ansi-c/library/semaphore.c:149:  __CPROVER_assert(!__CPROVER_get_may(sem, "sem-destroyed"),
+ansi-c/library/stdio.c:49:  __CPROVER_assert(!__CPROVER_get_must(stream, "open") ||
+ansi-c/library/stdio.c:61:  __CPROVER_assert(__CPROVER_is_zero_string(filename), "fopen zero-termination of 1st argument");
+ansi-c/library/stdio.c:62:  __CPROVER_assert(__CPROVER_is_zero_string(mode), "fopen zero-termination of 2nd argument");
+ansi-c/library/stdio.c:106:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:134:  __CPROVER_assert(__CPROVER_is_zero_string(mode),
+ansi-c/library/stdio.c:159:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:165:  __CPROVER_assert(__CPROVER_buffer_size(str)>=size, "buffer-overflow in fgets");
+ansi-c/library/stdio.c:199:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:227:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:249:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:271:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:291:  __CPROVER_assert(__CPROVER_is_zero_string(s), "fputs zero-termination of 1st argument");
+ansi-c/library/stdio.c:297:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:319:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:341:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:366:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:387:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:430:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:456:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:477:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:497:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:521:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:543:    __CPROVER_assert(__CPROVER_is_zero_string(s), "perror zero-termination");
+ansi-c/library/stdio.c:640:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdio.c:731:  __CPROVER_assert(__CPROVER_get_must(stream, "open"),
+ansi-c/library/stdlib.c:144:    __CPROVER_assert(__CPROVER_DYNAMIC_OBJECT(ptr),
+ansi-c/library/stdlib.c:146:    __CPROVER_assert(__CPROVER_POINTER_OFFSET(ptr)==0,
+ansi-c/library/stdlib.c:151:      __CPROVER_assert(0, "double free");
+ansi-c/library/stdlib.c:155:    __CPROVER_assert(__CPROVER_malloc_object!=ptr ||
+ansi-c/library/stdlib.c:191:  __CPROVER_assert(__CPROVER_is_zero_string(nptr),
+ansi-c/library/stdlib.c:309:  __CPROVER_assert(__CPROVER_is_zero_string(name),
+ansi-c/library/stdlib.c:360:  __CPROVER_assert(__CPROVER_DYNAMIC_OBJECT(ptr),
+ansi-c/library/string.c:7:  __CPROVER_assert(__CPROVER_is_zero_string(src), "strcpy zero-termination of 2nd argument");
+ansi-c/library/string.c:8:  __CPROVER_assert(__CPROVER_buffer_size(dst)>__CPROVER_zero_string_length(src), "strcpy buffer overflow");
+ansi-c/library/string.c:9:  __CPROVER_assert(__CPROVER_buffer_size(dst)==s, "builtin object size");
+ansi-c/library/string.c:34:  __CPROVER_assert(__CPROVER_is_zero_string(dst), "strcat zero-termination of 1st argument");
+ansi-c/library/string.c:35:  __CPROVER_assert(__CPROVER_is_zero_string(src), "strcat zero-termination of 2nd argument");
+ansi-c/library/string.c:36:  __CPROVER_assert(__CPROVER_buffer_size(dst)==s, "builtin object size");
+ansi-c/library/string.c:38:  __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,
+ansi-c/library/string.c:72:  __CPROVER_assert(__CPROVER_is_zero_string(dst), "strncat zero-termination of 1st argument");
+ansi-c/library/string.c:73:  __CPROVER_assert(__CPROVER_is_zero_string(src) || __CPROVER_buffer_size(src)>=n, "strncat zero-termination of 2nd argument");
+ansi-c/library/string.c:74:  __CPROVER_assert(__CPROVER_buffer_size(dst)==s, "builtin object size");
+ansi-c/library/string.c:77:  __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,
+ansi-c/library/string.c:108:  __CPROVER_assert(__CPROVER_is_zero_string(src), "strcpy zero-termination of 2nd argument");
+ansi-c/library/string.c:109:  __CPROVER_assert(__CPROVER_buffer_size(dst)>__CPROVER_zero_string_length(src), "strcpy buffer overflow");
+ansi-c/library/string.c:140:  __CPROVER_assert(__CPROVER_is_zero_string(src), "strncpy zero-termination of 2nd argument");
+ansi-c/library/string.c:141:  __CPROVER_assert(__CPROVER_buffer_size(dst)>=n, "strncpy buffer overflow");
+ansi-c/library/string.c:172:  __CPROVER_assert(__CPROVER_is_zero_string(src), "strncpy zero-termination of 2nd argument");
+ansi-c/library/string.c:173:  __CPROVER_assert(__CPROVER_buffer_size(dst)>=n, "strncpy buffer overflow");
+ansi-c/library/string.c:174:  __CPROVER_assert(__CPROVER_buffer_size(dst)==object_size, "builtin object size");
+ansi-c/library/string.c:209:  __CPROVER_assert(__CPROVER_is_zero_string(dst), "strcat zero-termination of 1st argument");
+ansi-c/library/string.c:210:  __CPROVER_assert(__CPROVER_is_zero_string(src), "strcat zero-termination of 2nd argument");
+ansi-c/library/string.c:212:  __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,
+ansi-c/library/string.c:252:  __CPROVER_assert(__CPROVER_is_zero_string(dst), "strncat zero-termination of 1st argument");
+ansi-c/library/string.c:253:  __CPROVER_assert(__CPROVER_is_zero_string(src) || __CPROVER_buffer_size(src)>=n, "strncat zero-termination of 2nd argument");
+ansi-c/library/string.c:256:  __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,
+ansi-c/library/string.c:288:  __CPROVER_assert(__CPROVER_is_zero_string(s1), "strcmp zero-termination of 1st argument");
+ansi-c/library/string.c:289:  __CPROVER_assert(__CPROVER_is_zero_string(s2), "strcmp zero-termination of 2nd argument");
+ansi-c/library/string.c:330:  __CPROVER_assert(__CPROVER_is_zero_string(s1), "strcasecmp zero-termination of 1st argument");
+ansi-c/library/string.c:331:  __CPROVER_assert(__CPROVER_is_zero_string(s2), "strcasecmp zero-termination of 2nd argument");
+ansi-c/library/string.c:374:  __CPROVER_assert(__CPROVER_is_zero_string(s1) || __CPROVER_buffer_size(s1)>=n, "strncmp zero-termination of 1st argument");
+ansi-c/library/string.c:375:  __CPROVER_assert(__CPROVER_is_zero_string(s2) || __CPROVER_buffer_size(s2)>=n, "strncmp zero-termination of 2nd argument");
+ansi-c/library/string.c:414:  __CPROVER_assert(__CPROVER_is_zero_string(s1), "strncasecmp zero-termination of 1st argument");
+ansi-c/library/string.c:415:  __CPROVER_assert(__CPROVER_is_zero_string(s2), "strncasecmp zero-termination of 2nd argument");
+ansi-c/library/string.c:456:  __CPROVER_assert(__CPROVER_is_zero_string(s), "strlen zero-termination");
+ansi-c/library/string.c:507:  __CPROVER_assert(__CPROVER_buffer_size(src)>=n, "memcpy buffer overflow");
+ansi-c/library/string.c:508:  __CPROVER_assert(__CPROVER_buffer_size(dst)>=n, "memcpy buffer overflow");
+ansi-c/library/string.c:531:  __CPROVER_assert(__CPROVER_buffer_size(src)>=n, "memcpy buffer overflow");
+ansi-c/library/string.c:532:  __CPROVER_assert(__CPROVER_buffer_size(dst)>=n, "memcpy buffer overflow");
+ansi-c/library/string.c:533:  __CPROVER_assert(__CPROVER_buffer_size(dst)==s, "builtin object size");
+ansi-c/library/string.c:564:  __CPROVER_assert(__CPROVER_buffer_size(s)>=n, "memset buffer overflow");
+ansi-c/library/string.c:591:  __CPROVER_assert(__CPROVER_buffer_size(s)>=n, "memset buffer overflow");
+ansi-c/library/string.c:592:  __CPROVER_assert(__CPROVER_buffer_size(s)==size, "builtin object size");
+ansi-c/library/string.c:627:  __CPROVER_assert(__CPROVER_buffer_size(src)>=n, "memmove buffer overflow");
+ansi-c/library/string.c:664:  __CPROVER_assert(__CPROVER_buffer_size(s1)>=n, "memcmp buffer overflow of 1st argument");
+ansi-c/library/string.c:665:  __CPROVER_assert(__CPROVER_buffer_size(s2)>=n, "memcmp buffer overflow of 2nd argument");
+ansi-c/library/string.c:691:  __CPROVER_assert(__CPROVER_is_zero_string(src), "strchr zero-termination of string argument");
+ansi-c/library/string.c:719:  __CPROVER_assert(__CPROVER_is_zero_string(src), "strrchr zero-termination of string argument");
+ansi-c/library/unistd.c:31:  __CPROVER_assert(__CPROVER_is_zero_string(s), "unlink zero-termination");
+Binary file cbmc/cbmc matches
+Binary file cpp/cpp.a matches
+cpp/cpp_internal_additions.cpp:91:  out << "extern \"C\" void __CPROVER_assert("
+Binary file cpp/cpp_internal_additions.o matches
+Binary file goto-analyzer/goto-analyzer matches
+Binary file goto-cc/goto-cc matches
+Binary file goto-diff/goto-diff matches
+Binary file goto-instrument/goto-instrument matches
+Binary file symex/symex matches

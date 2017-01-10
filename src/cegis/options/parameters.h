@@ -7,10 +7,11 @@
 
  \*******************************************************************/
 
-#ifndef CEGIS_INVARIANT_PARAMETERS_H_
-#define CEGIS_INVARIANT_PARAMETERS_H_
+#ifndef CPROVER_CEGIS_OPTIONS_PARAMETERS_H
+#define CPROVER_CEGIS_OPTIONS_PARAMETERS_H
 
 #define CEGIS_GENETIC "cegis-genetic"
+#define CEGIS_GENETIC_ONLY "cegis-genetic-only"
 #define CEGIS_MAX_SIZE "cegis-max-size"
 #define CEGIS_SEED "cegis-seed"
 #define CEGIS_STATISTICS "cegis-statistics"
@@ -27,4 +28,4 @@
 #define CEGIS_REFACTOR "cegis-refactor"
 #define CEGIS_NULL_OBJECT_REFACTOR "cegis-refactor-null-object"
 
-#endif /* CEGIS_INVARIANT_PARAMETERS_H_ */
+#endif // CPROVER_CEGIS_OPTIONS_PARAMETERS_H

@@ -1,0 +1,577 @@
+diff --git a/src/cbmc/fault_localization.cpp b/src/cbmc/fault_localization.cpp
+index 1554efa..cd02f36 100644
+--- a/src/cbmc/fault_localization.cpp
++++ b/src/cbmc/fault_localization.cpp
+@@ -16,6 +16,7 @@ Author: Peter Schrammel
+ 
+ #include <solvers/prop/minimize.h>
+ #include <solvers/prop/literal_expr.h>
++#include <solvers/prop/prop.h>
+ 
+ #include <goto-symex/build_goto_trace.h>
+ 
+@@ -138,6 +139,8 @@ bool fault_localizationt::check(const lpointst &lpoints,
+   // lock the failed assertion
+   assumptions.push_back(!failed->cond_literal);
+ 
++  //status() << "the guard literal: " << failed->guard_literal << ", sign: " << failed->guard_literal.sign() << eom;
++
+   bmc.prop_conv.set_assumptions(assumptions);
+ 
+   if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
+@@ -205,6 +208,310 @@ void fault_localizationt::localize_linear(lpointst &lpoints)
+ 
+ /*******************************************************************\
+ 
++Function: fault_localizationt::pfl
++
++  Inputs:
++
++ Outputs:
++
++ Purpose:
++
++\*******************************************************************/
++
++bool fault_localizationt::all_false(const lpoints_valuet& v)
++{
++  for(auto &x: v)
++    if(!x.is_false()) return false;
++  return true;
++}
++
++bool fault_localizationt::all_true(const lpoints_valuet& v)
++{
++  for(auto &x: v)
++    if(!x.is_true()) return false;
++  return true;
++}
++
++bool fault_localizationt::equal(const lpoints_valuet& v1, const lpoints_valuet& v2)
++{
++  if(v1.size()!=v2.size()) return 0;
++  for(std::size_t i=0; i<v1.size(); i++)
++	  if(!(v1[i]==v2[i])) return false;
++  return true;
++}
++
++void fault_localizationt::pfl(lpointst &lpoints)
++{
++  std::vector<lpoints_valuet> f_values, p_values, s_values;
++  lpoints_valuet f_value, p_value;
++  f_value.resize(lpoints.size());
++  p_value.resize(lpoints.size());
++  for(size_t i=0; i<lpoints.size(); ++i)
++  {
++    f_value[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
++    p_value[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
++  }
++  // to find failing traces
++  while(true)
++  {
++	lpoints_valuet res;
++    if(check(lpoints, failed->guard_literal, f_value, lpoints_valuet(), res))
++    {
++    	f_values.push_back(res);
++    	if(all_false(res) && all_true(f_value)) break;
++    	// update the 'f_value' vector
++    	for(std::size_t i=0; i<res.size(); ++i)
++    	{
++    	  if(res[i].get_value()==tvt::tv_enumt::TV_TRUE)
++    	  	f_value[i]=tvt(tvt::tv_enumt::TV_TRUE);
++    	  status() << res[i] << eom;
++    	}
++    }
++    else break;
++  }
++
++}
++
++void fault_localizationt::common(const std::vector<lpoints_valuet> &vs, lpoints_valuet& res)
++{
++	status() << "inside common: " << eom;
++	 for(auto &v: vs)
++	  {
++	    for(auto &x: v)
++	      status() << x.is_true() << " ";
++	    status () << eom;
++	  }
++
++  if(vs.empty()) return;
++  for(std::size_t i=0; i<res.size(); ++i)
++  {
++	bool co=true;
++    for(auto &v: vs)
++      if(!v[i].is_true()) {co=false; break;}
++    if(co) res[i]=tvt(tvt::tv_enumt::TV_TRUE);
++  }
++  status() << "result: " << eom;
++  for(auto &x: res)
++    status() << x.is_true() << " ";
++  status () << eom;
++}
++
++bool fault_localizationt::mc(const lpointst &lpoints,
++  	  const literalt &property,
++  	  const std::vector<lpoints_valuet>& ex,
++		  lpoints_valuet &res)
++{
++  bvt assumptions;
++
++  //existing traces must be excluded
++  for(auto &v: ex)
++  {
++	std::vector<literalt> bv;
++    lpoints_valuet::const_iterator v_it=v.begin();
++	for(const auto &l : lpoints)
++	{
++	  if(v_it->is_true())
++	    bv.push_back(l.first);
++	  else if(v_it->is_false())
++	 	bv.push_back(!l.first);
++	  else assert(0);
++	  ++v_it;
++    }
++	//existing test vector should not be excluded
++	if(!bv.empty())
++	{
++      literalt existing;
++      bmc.prop_conv.land(bv, existing);
++      assumptions.push_back(!existing);
++	}
++  }
++
++  // 2. to construct the set of common components
++  lpoints_valuet co;
++  co.resize(lpoints.size());
++  for(size_t i=0; i<lpoints.size(); ++i)
++  {
++    co[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
++  }
++  common(ex, co);
++  std::vector<literalt> bv;
++  lpoints_valuet::const_iterator v_it=co.begin();
++  for(const auto &l : lpoints)
++  {
++    if(v_it->is_true())
++      bv.push_back(l.first);
++  	++v_it;
++  }
++  //existing test vector should not be excluded
++  if(!bv.empty())
++  {
++    literalt existing;
++    bmc.prop_conv.land(bv, existing);
++    assumptions.push_back(!existing);
++  }
++
++  assumptions.push_back(property);
++
++  //status() << "the guard literal: " << failed->guard_literal << ", sign: " << failed->guard_literal.sign() << ", property: " << property << eom;
++
++  bmc.prop_conv.set_assumptions(assumptions);
++
++
++  //Running the check
++  if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
++  {
++    res.reserve(lpoints.size());
++ 	//lpoints_valuet::iterator v_it=res.begin();
++ 	for(const auto &l : lpoints)
++ 	{
++ 	  if(bmc.prop_conv.l_get(l.first).is_true())
++ 		  res.push_back(tvt(tvt::tv_enumt::TV_TRUE));
++ 	  else res.push_back(tvt(tvt::tv_enumt::TV_FALSE));
++ 	}
++     return true;
++   }
++
++   return false;
++
++}
++
++
++bool fault_localizationt::mc(const lpointst &lpoints,
++  	  const literalt &property,
++  	  const lpoints_valuet &inc,
++		  lpoints_valuet &res)
++{
++  bvt assumptions;
++
++  //P traces must be excluded
++  for(auto &v: p_values)
++  {
++	std::vector<literalt> bv;
++    lpoints_valuet::const_iterator v_it=v.begin();
++	for(const auto &l : lpoints)
++	{
++	  if(v_it->is_true())
++	    bv.push_back(l.first);
++	  else if(v_it->is_false())
++	 	bv.push_back(!l.first);
++	  else assert(0);
++	  ++v_it;
++    }
++	//existing test vector should not be excluded
++	if(!bv.empty())
++	{
++      literalt existing;
++      bmc.prop_conv.land(bv, existing);
++      assumptions.push_back(!existing);
++	}
++  }
++
++  // 2. to include the single component vector
++  lpoints_valuet::const_iterator v_it=inc.begin();
++  for(const auto &l : lpoints)
++  {
++    if(v_it->is_true())
++      assumptions.push_back(l.first);
++  	++v_it;
++  }
++
++
++  assumptions.push_back(property);
++
++
++  bmc.prop_conv.set_assumptions(assumptions);
++
++
++  //Running the check
++  if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
++  {
++    res.reserve(lpoints.size());
++ 	//lpoints_valuet::iterator v_it=res.begin();
++ 	for(const auto &l : lpoints)
++ 	{
++ 	  if(bmc.prop_conv.l_get(l.first).is_true())
++ 		  res.push_back(tvt(tvt::tv_enumt::TV_TRUE));
++ 	  else res.push_back(tvt(tvt::tv_enumt::TV_FALSE));
++ 	}
++     return true;
++   }
++
++   return false;
++
++}
++
++
++bool fault_localizationt::check(const lpointst &lpoints,
++			 const literalt &property,
++			 const lpoints_valuet& exclusive_v,
++			 const lpoints_valuet& inclusive_v,
++			 lpoints_valuet &res)
++{
++
++  bvt assumptions;
++  std::vector<literalt> bv;
++  if(!exclusive_v.empty())
++  {
++    lpoints_valuet::const_iterator v_it=exclusive_v.begin();
++    for(const auto &l : lpoints)
++    {
++      if(v_it->is_true())
++      {
++    	bv.push_back(l.first);
++      }
++      ++v_it;
++    }
++  }
++
++  if(!bv.empty())
++  {
++    literalt every;
++    bmc.prop_conv.land(bv, every);
++    assumptions.push_back(!every);
++    status() << "not every: " << !every << eom;
++  }
++
++
++  if(!inclusive_v.empty())
++  {
++    lpoints_valuet::const_iterator v_it=inclusive_v.begin();
++    for(const auto &l : lpoints)
++    {
++      if(v_it->is_true())
++      {
++        assumptions.push_back(l.first);
++      }
++      ++v_it;
++    }
++  }
++
++
++  // lock the failed assertion
++  assumptions.push_back(property);
++
++  status() << "the guard literal: " << failed->guard_literal << ", sign: " << failed->guard_literal.sign() << ", property: " << property << eom;
++
++  bmc.prop_conv.set_assumptions(assumptions);
++
++  if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
++  {
++	res.reserve(lpoints.size());
++	//lpoints_valuet::iterator v_it=res.begin();
++	for(const auto &l : lpoints)
++	{
++	  if(bmc.prop_conv.l_get(l.first).is_true())
++		  res.push_back(tvt(tvt::tv_enumt::TV_TRUE));
++	  else res.push_back(tvt(tvt::tv_enumt::TV_FALSE));
++	}
++    return true;
++  }
++
++  return false;
++}
++
++
++/*******************************************************************\
++
+ Function: fault_localizationt::run
+ 
+   Inputs:
+@@ -235,7 +542,8 @@ void fault_localizationt::run(irep_idt goal_id)
+ 
+   // pick localization method
+   //  if(options.get_option("localize-faults-method")=="TBD")
+-  localize_linear(lpoints);
++  //localize_linear(lpoints);
++  pfl(lpoints);
+ 
+   //clear assumptions
+   bvt assumptions;
+@@ -405,6 +713,7 @@ Function: fault_localizationt::goal_covered
+ void fault_localizationt::goal_covered(
+   const cover_goalst::goalt &)
+ {
++
+   for(auto &g : goal_map)
+   {
+     // failed already?
+@@ -417,19 +726,134 @@ void fault_localizationt::goal_covered(
+ 
+       if(solver.l_get(cond).is_false())
+       {
++
+         g.second.status=goalt::statust::FAILURE;
+         symex_target_equationt::SSA_stepst::iterator next=c;
+         next++; // include the assertion
+         build_goto_trace(bmc.equation, next, solver, bmc.ns,
+                          g.second.goto_trace);
+ 
+-        //localize faults
+-        run(g.first);
+ 
+-        break;
++          //localize faults
++        failed=get_failed_property();
++        assert(failed!=bmc.equation.SSA_steps.end());
++        irep_idt goal_id=g.first;
++        if(goal_id==ID_nil)
++          goal_id=failed->source.pc->source_location.get_property_id();
++        lpointst &lpoints = lpoints_map[goal_id];
++
++        // collect lpoints
++        collect_guards(lpoints);
++
++        if(lpoints.empty())
++          return;
++        status() << eom << "source location: " << failed->source.pc->source_location << eom << eom;
++
++        // pfl
++        if(f_value.empty() or p_value.empty())
++        {
++  	      f_value.resize(lpoints.size());
++  	      p_value.resize(lpoints.size());
++  	      for(size_t i=0; i<lpoints.size(); ++i)
++  	      {
++  	        f_value[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
++  	        p_value[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
++  	      }
++        }
++
++        /**
++         * 1. the failing trace (F) must be built first
++         * 2. then the passing trace (P)
++         * 3. finally it is S
++         *
++         */
++
++        if(!f_values.empty())
++        {
++          status() << "<<<Generating passing traces>>>" << eom;
++          status() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
++          while(true)
++          {
++       		lpoints_valuet res;
++       	    //if(check(lpoints, failed->guard_literal, p_value, lpoints_valuet(), res))
++       		if(mc(lpoints, failed->guard_literal, p_values, res))
++       	    {
++              p_values.push_back(res);
++       	    }
++       	    else break;
++          }
++          bvt assumptions;
++          bmc.prop_conv.set_assumptions(assumptions);
++
++          status() << "<<<Generating S>>>" << eom;
++          lpoints_valuet cf, cp;
++  	      cf.resize(lpoints.size());
++  	      cp.resize(lpoints.size());
++  	      for(size_t i=0; i<lpoints.size(); ++i)
++  	      {
++  	        cf[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
++  	        cp[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
++  	      }
++  	      common(f_values, cf);
++  	      common(p_values, cp);
++          for(std::size_t i=0; i<lpoints.size(); ++i)
++          {
++        	if(!(cf[i].is_true() && !cp[i].is_true()))
++        	  continue;
++            lpoints_valuet v=cf;
++            for(std::size_t j=0; j<lpoints.size(); ++j)
++            {
++              if(i!=j) v[j]=tvt(tvt::tv_enumt::TV_UNKNOWN);
++            }
++
++       		lpoints_valuet res;
++       	    if(mc(lpoints, failed->guard_literal, v, res))
++       	    	s_values.push_back(res);
++          }
++
++        }
++        else {
++          status() << "<<<Generating failing traces>>>" << eom;
++          status() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
++          while(true)
++          {
++       		lpoints_valuet res;
++       	    //if(check(lpoints, failed->guard_literal, f_value, lpoints_valuet(), res))
++       	    if(mc(lpoints, failed->guard_literal, f_values, res))
++       	    {
++              f_values.push_back(res);
++       	    }
++       	    else break;
++          }
++          bvt assumptions;
++          bmc.prop_conv.set_assumptions(assumptions);
++        }
+       }
+     }
+   }
++
++  if(f_values.empty()) return;
++  status() << eom << "The set of failing traces (F)" << eom;
++  for(auto &v: f_values)
++  {
++    for(auto &x: v)
++      status() << x << " ";
++    status () << eom;
++  }
++  status() << eom << "The set of passing traces (P)" << eom;
++  for(auto &v: p_values)
++  {
++    for(auto &x: v)
++      status() << x << " ";
++    status () << eom;
++  }
++  status() << eom << "The S set" << eom;
++  for(auto &v: s_values)
++  {
++    for(auto &x: v)
++      status() << x << " ";
++    status () << eom;
++  }
+ }
+ 
+ /*******************************************************************\
+diff --git a/src/cbmc/fault_localization.h b/src/cbmc/fault_localization.h
+index 661883e..487bf7c 100644
+--- a/src/cbmc/fault_localization.h
++++ b/src/cbmc/fault_localization.h
+@@ -71,10 +71,33 @@ protected:
+   bool check(const lpointst &lpoints, const lpoints_valuet& value);
+   void update_scores(lpointst &lpoints,
+                      const lpoints_valuet& value);
++  bool all_false(const lpoints_valuet& v);
++  bool all_true(const lpoints_valuet& v);
++  bool equal(const lpoints_valuet& v1, const lpoints_valuet& v2);
++  std::vector<lpoints_valuet> f_values, p_values, s_values;
++  lpoints_valuet f_value, p_value;
+ 
+   // localization method: flip each point
+   void localize_linear(lpointst &lpoints);
+ 
++  // probabilistic fault localization
++  void pfl(lpointst &lpoints);
++  bool check(const lpointst &lpoints,
++  			 const literalt &property,
++  			 const lpoints_valuet& exclusive_v,
++  			 const lpoints_valuet& inlusive_v,
++			 lpoints_valuet &res);
++  bool mc(const lpointst &lpoints,
++    	  const literalt &property,
++    	  const std::vector<lpoints_valuet>& ex,
++  		  lpoints_valuet &res);
++  bool mc(const lpointst &lpoints,
++    	  const literalt &property,
++    	  const lpoints_valuet & inc,
++  		  lpoints_valuet &res);
++  void common(const std::vector<lpoints_valuet> &vs, lpoints_valuet& v);
++
++
+   // localization method: TBD
+   //void localize_TBD(
+   //  prop_convt &prop_conv);
+diff --git a/src/solvers/prop/prop_conv.h b/src/solvers/prop/prop_conv.h
+index 76b496b..a176e7e 100644
+--- a/src/solvers/prop/prop_conv.h
++++ b/src/solvers/prop/prop_conv.h
+@@ -55,6 +55,8 @@ public:
+   // returns true if an assumption is in the final conflict
+   virtual bool is_in_conflict(literalt l) const;
+   virtual bool has_is_in_conflict() const { return false; }
++  virtual void land(const std::vector<literalt> &bv, literalt &res) const {}
++
+ };
+ 
+ //
+@@ -111,6 +113,10 @@ public:
+   const cachet &get_cache() const { return cache; }
+   const symbolst &get_symbols() const { return symbols; }
+ 
++  propt get_propt() const {return prop;}
++  virtual void land(const std::vector<literalt> &bv, literalt &res) const override {res=prop.land(bv);}
++
++
+ protected:
+   virtual void post_process();
+ 
+diff --git a/src/solvers/sat/satcheck_minisat2.cpp b/src/solvers/sat/satcheck_minisat2.cpp
+index 743bee6..954aa17 100644
+--- a/src/solvers/sat/satcheck_minisat2.cpp
++++ b/src/solvers/sat/satcheck_minisat2.cpp
+@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
+ 
+ #include <minisat/core/Solver.h>
+ #include <minisat/simp/SimpSolver.h>
++#include <iostream>
+ 
+ #ifndef HAVE_MINISAT2
+ #error "Expected HAVE_MINISAT2"
+@@ -380,11 +381,13 @@ Function: satcheck_minisat2_baset::set_assumptions
+ template<typename T>
+ void satcheck_minisat2_baset<T>::set_assumptions(const bvt &bv)
+ {
++  //std::cout << "set assumptions\n";
+   assumptions=bv;
+-
++//return;
+   forall_literals(it, assumptions)
+     if(it->is_true())
+     {
++      //std::cout  << "is true ??????\n\n";
+       assumptions.clear();
+       break;
+     }

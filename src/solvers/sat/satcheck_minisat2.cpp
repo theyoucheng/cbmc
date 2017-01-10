@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <minisat/core/Solver.h>
 #include <minisat/simp/SimpSolver.h>
+#include <iostream>
 
 #ifndef HAVE_MINISAT2
 #error "Expected HAVE_MINISAT2"
@@ -78,7 +79,7 @@ tvt satcheck_minisat2_baset<T>::l_get(literalt a) const
     result=tvt(false);
   else
     return tvt::unknown();
-  
+
   if(a.sign()) result=!result;
 
   return result;
@@ -181,7 +182,7 @@ void satcheck_minisat2_baset<T>::lcnf(const bvt &bv)
     else if(!it->is_false())
       assert(it->var_no()<(unsigned)solver->nVars());
   }
-    
+
   Minisat::vec<Minisat::Lit> c;
 
   convert(bv, c);
@@ -209,18 +210,19 @@ Function: satcheck_minisat2_baset::prop_solve
 template<typename T>
 propt::resultt satcheck_minisat2_baset<T>::prop_solve()
 {
+  std::cout << "******minisat2::prop_solve() " << std::endl; 
   assert(status!=ERROR);
-  
+
   {
     messaget::status() <<
       (no_variables()-1) << " variables, " <<
       solver->nClauses() << " clauses" << eom;
   }
-  
+
   try
   {
     add_variables();
-    
+
     if(!solver->okay())
     {
       messaget::status() <<
@@ -230,11 +232,11 @@ propt::resultt satcheck_minisat2_baset<T>::prop_solve()
     {
       // if assumptions contains false, we need this to be UNSAT
       bool has_false=false;
-      
+
       forall_literals(it, assumptions)
         if(it->is_false())
           has_false=true;
-
+std::cout << "******has false is " << has_false << std::endl;
       if(has_false)
       {
         messaget::status() <<
@@ -242,12 +244,16 @@ propt::resultt satcheck_minisat2_baset<T>::prop_solve()
       }
       else
       {
+  		std::cout << "*****assumptions size: " << assumptions.size() << std::endl;
+
         Minisat::vec<Minisat::Lit> solver_assumptions;
         convert(assumptions, solver_assumptions);
-        
+  		std::cout << "*****solver assumptions size: " << solver_assumptions.size() << std::endl;
+
+
         if(solver->solve(solver_assumptions))
         {
-          messaget::status() << 
+          messaget::status() <<
             "SAT checker: instance is SATISFIABLE" << eom;
           assert(solver->model.size()!=0);
           status=SAT;
@@ -380,11 +386,13 @@ Function: satcheck_minisat2_baset::set_assumptions
 template<typename T>
 void satcheck_minisat2_baset<T>::set_assumptions(const bvt &bv)
 {
+  //std::cout << "set assumptions\n";
   assumptions=bv;
-  
+//return;
   forall_literals(it, assumptions)
     if(it->is_true())
     {
+      //std::cout  << "is true ??????\n\n";
       assumptions.clear();
       break;
     }
@@ -463,4 +471,3 @@ bool satcheck_minisat_simplifiert::is_eliminated(literalt a) const
 
   return solver->isEliminated(a.var_no());
 }
-

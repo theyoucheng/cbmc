@@ -7,10 +7,12 @@
 
 \*******************************************************************/
 
-#ifndef CEGIS_REFACTOR_INSTRUCTIONSET_EXECUTE_CEGIS_PROGRAM_H_
-#define CEGIS_REFACTOR_INSTRUCTIONSET_EXECUTE_CEGIS_PROGRAM_H_
+#ifndef CPROVER_CEGIS_REFACTOR_INSTRUCTIONSET_EXECUTE_CEGIS_PROGRAM_H
+#define CPROVER_CEGIS_REFACTOR_INSTRUCTIONSET_EXECUTE_CEGIS_PROGRAM_H
 
 #include <goto-programs/goto_program.h>
+
+#define CEGIS_REFACTOR_PROG_SUFFIX "_prog"
 
 /**
  * @brief
@@ -140,4 +142,4 @@ goto_programt::targett instrument_cegis_operand(
     size_t index,
     const irep_idt &var_name);
 
-#endif /* CEGIS_REFACTOR_INSTRUCTIONSET_EXECUTE_CEGIS_PROGRAM_H_ */
+#endif // CPROVER_CEGIS_REFACTOR_INSTRUCTIONSET_EXECUTE_CEGIS_PROGRAM_H
