@@ -461,6 +461,50 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
 /*******************************************************************\
 
+Function: cbmc_parse_optionst::options_exclusive
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: check conflicts between options: not allowed together
+
+\*******************************************************************/
+
+bool cbmc_parse_optionst::options_exclusive(const char *opt1, const char *opt2)
+{
+  if(cmdline.isset(opt1) && cmdline.isset(opt2))
+  {
+    error() << "--" << opt1 << " cannot be used with --" << opt2 << eom;
+    return true;
+  }
+  return false;
+}
+
+/*******************************************************************\
+
+Function: cbmc_parse_optionst::options_inclusive
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: check conflicts between options: opt1 only if opt2
+
+\*******************************************************************/
+
+bool cbmc_parse_optionst::options_inclusive(const char *opt1, const char *opt2)
+{
+  if(cmdline.isset(opt1) && !cmdline.isset(opt2))
+  {
+    error() << "--" << opt1 << " can only be used with --" << opt2 << eom;
+    return true;
+  }
+  return false;
+}
+
+/*******************************************************************\
+
 Function: cbmc_parse_optionst::doit
 
   Inputs:
@@ -505,6 +549,13 @@ int cbmc_parse_optionst::doit()
     error() << "This version of CBMC has no support for "
                " hardware modules. Please use hw-cbmc." << eom;
     return 1; // should contemplate EX_USAGE from sysexits.h
+  }
+
+  if(options_exclusive("incremental", "unwind") ||
+     options_exclusive("incremental", "incremental-check") ||
+     options_inclusive("earliest-loop-exit", "incremental"))
+  {
+    return 1;
   }
 
   register_languages();
