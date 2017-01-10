@@ -17,6 +17,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "prop.h"
 #include "prop_conv.h"
 #include "literal_expr.h"
+#include <goto-instrument/cover.h>
 
 //#define DEBUG
 
@@ -144,7 +145,7 @@ literalt prop_conv_solvert::get_literal(const irep_idt &identifier)
 
   // produce new variable
   literalt literal=prop.new_variable();
-  
+
   // set the name of the new variable
   prop.set_variable_name(literal, id2string(identifier));
 
@@ -184,7 +185,7 @@ bool prop_conv_solvert::get_bool(const exprt &expr, tvt &value) const
   {
     symbolst::const_iterator result=
       symbols.find(to_symbol_expr(expr).get_identifier());
-      
+
     if(result==symbols.end()) return true;
 
     value=prop.l_get(result->second);
@@ -256,9 +257,9 @@ Function: prop_conv_solvert::convert
 
 literalt prop_conv_solvert::convert(const exprt &expr)
 {
-  if(!use_cache || 
+  if(!use_cache ||
      expr.id()==ID_symbol ||
-     expr.id()==ID_constant) 
+     expr.id()==ID_constant)
   {
     literalt literal=convert_bool(expr);
     if(freeze_all && !literal.is_constant()) prop.set_frozen(literal);
@@ -390,7 +391,7 @@ literalt prop_conv_solvert::convert_bool(const exprt &expr)
         return prop.land(bv);
       else if(expr.id()==ID_nand)
         return !prop.land(bv);
-      else if(expr.id()==ID_xor) 
+      else if(expr.id()==ID_xor)
         return prop.lxor(bv);
     }
   }
@@ -476,7 +477,7 @@ bool prop_conv_solvert::set_equality_to_true(const equal_exprt &expr)
 
     if(result.second)
       return false; // ok, inserted!
-      
+
     // nah, already there
   }
 
@@ -504,7 +505,7 @@ void prop_conv_solvert::set_to(const exprt &expr, bool value)
     msg+=expr.pretty();
     throw msg;
   }
-  
+
   bool boolean=true;
 
   forall_operands(it, expr)
@@ -533,7 +534,10 @@ void prop_conv_solvert::set_to(const exprt &expr, bool value)
         if(expr.id()==ID_and)
         {
           forall_operands(it, expr)
+          {
             set_to_true(*it);
+            //status() << from_expr(*it) << eom;
+          }
 
           return;
         }
@@ -541,7 +545,7 @@ void prop_conv_solvert::set_to(const exprt &expr, bool value)
         {
           // Special case for a CNF-clause,
           // i.e., a constraint that's a disjunction.
-          
+
           if(expr.operands().size()>0)
           {
             bvt bv;
@@ -645,12 +649,13 @@ Function: prop_conv_solvert::solve
 
 decision_proceduret::resultt prop_conv_solvert::dec_solve()
 {
+  status() << "dec_solve()" << eom;
   // post-processing isn't incremental yet
   if(!post_processing_done)
   {
     print(8, "Post-processing");
     post_process();
-    post_processing_done=true; 
+    post_processing_done=true;
   }
 
   print(7, "Solving with "+prop.solver_text());
@@ -693,9 +698,9 @@ exprt prop_conv_solvert::get(const exprt &expr) const
      case tvt::tv_enumt::TV_UNKNOWN: return false_exprt(); // default
     }
   }
-  
+
   exprt tmp=expr;
-  
+
   Forall_operands(it, tmp)
   {
     exprt tmp_op=get(*it);

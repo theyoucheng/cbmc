@@ -29,4 +29,10 @@ void build_goto_trace(
   const namespacet &ns,
   goto_tracet &goto_trace);
 
-#endif
+void build_goto_trace2(
+  symex_target_equationt &target,
+  symex_target_equationt::SSA_stepst::const_iterator stop,
+  const prop_convt &prop_conv,
+  const namespacet &ns,
+  goto_tracet &goto_trace);
+#endif // CPROVER_GOTO_SYMEX_BUILD_GOTO_TRACE_H
