@@ -346,8 +346,8 @@ void bmct::slice()
       }
     }
   }
-  statistics() << "Generated " << symex.total_vccs
-               << " VCC(s), " << symex.remaining_vccs
+  statistics() << "Generated " << symex().total_vccs
+               << " VCC(s), " << symex().remaining_vccs
                << " remaining after simplification" << eom;
 }
 
@@ -510,12 +510,12 @@ safety_checkert::resultt bmct::initialize()
     return ERROR;
   }
 
-  symex.set_message_handler(get_message_handler());
-  symex.options=options;
+  symex().set_message_handler(get_message_handler());
+  symex().options=options;
 
   status() << "Starting Bounded Model Checking" << eom;
 
-  symex.last_source_location.make_nil();
+  symex().last_source_location.make_nil();
 
   // get unwinding info
   setup_unwind();
@@ -540,7 +540,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
   try
   {
     // perform symbolic execution
-    symex(goto_functions);
+    symex()(goto_functions);
 
     // add a partial ordering, if required
     if(equation.has_threads())
@@ -575,8 +575,8 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
   slice();
 
   {
-    statistics() << "Generated " << symex.total_vccs
-                 << " VCC(s), " << symex.remaining_vccs
+    statistics() << "Generated " << symex().total_vccs
+                 << " VCC(s), " << symex().remaining_vccs
                  << " remaining after simplification" << eom;
   }
 
@@ -604,7 +604,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 
   // any properties to check at all?
   if(!options.get_bool_option("program-only") &&
-     symex.remaining_vccs==0)
+     symex().remaining_vccs==0)
   {
     report_success();
     output_graphml(SAFE, goto_functions);
@@ -729,12 +729,12 @@ void bmct::setup_unwind()
       long uw=unsafe_string2int(val.substr(val.rfind(":")+1));
 
       if(thread_nr_set)
-        symex.set_unwind_thread_loop_limit(thread_nr, id, uw);
+        symex().set_unwind_thread_loop_limit(thread_nr, id, uw);
       else
-        symex.set_unwind_loop_limit(id, uw);
+        symex().set_unwind_loop_limit(id, uw);
     }
   }
 
   if(options.get_option("unwind")!="")
-    symex.set_unwind_limit(options.get_unsigned_int_option("unwind"));
+    symex().set_unwind_limit(options.get_unsigned_int_option("unwind"));
 }
