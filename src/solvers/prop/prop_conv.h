@@ -113,7 +113,7 @@ public:
   const cachet &get_cache() const { return cache; }
   const symbolst &get_symbols() const { return symbols; }
 
-  propt get_propt() const {return prop;}
+  //get_propt get_propt() const {return prop;}
   virtual void land(const std::vector<literalt> &bv, literalt &res) const override {res=prop.land(bv);}
 
 
