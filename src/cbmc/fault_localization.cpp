@@ -870,10 +870,6 @@ void fault_localizationt::goal_covered(
   const cover_goalst::goalt &)
 {
 
- lpointst big_lpoints;
- bool big=true;
-
-
   for(auto &g : goal_map)
   {
     // failed already?
@@ -921,8 +917,6 @@ void fault_localizationt::goal_covered(
          */
         if(f_values.empty())
         {
-        	big_lpoints=lpoints;
-
             status() << "<<<Generating failing traces>>>" << eom;
             status() << goal_map[goal_id].description << eom;
            assert(has_prefix(goal_map[goal_id].description, "__CPROVER_fault failing traces"));
@@ -965,7 +959,6 @@ void fault_localizationt::goal_covered(
         }
         else //if(!f_values.empty())
         {
-          big=false;
           status() << "<<<Generating passing traces>>>" << eom;
           status() << goal_map[goal_id].description << eom;
 
@@ -1109,63 +1102,8 @@ void fault_localizationt::goal_covered(
         // f_values.clear(); p_values.clear(); s_values.clear();
 
       }
-
     }
   }
-
-  if(big)
-        {
-      	  status() << "<-------------else---------->\n\n";
-      	  // no passing traces
-            lpointst &lpoints = big_lpoints;
-            collect_guards(lpoints);
-            status() << "the collection of guards: " << lpoints.size() << eom;
-            for(auto &l: lpoints)
-            	status() << l.first << " ";
-            status() << eom << eom;
-      	  status() << "\nThe coverage matrix" << eom;
-
-      	          if(F_values.empty())
-      	          {
-      	            F_values.insert(F_values.end(), f_values.begin(), f_values.end());
-      	            F_values.insert(F_values.end(), f_extra_values.begin(), f_extra_values.end());
-      	          }
-      	          P_values.insert(P_values.end(), p_values.begin(), p_values.end());
-      	          P_values.insert(P_values.end(), s_values.begin(), s_values.end());
-      	          P_values.insert(P_values.end(), p_extra_values.begin(), p_extra_values.end());
-
-
-      	          if(!F_values.empty()) // and !P_values.empty())
-      	          {
-      	          	  clean_traces(lpoints);
-      	              compute_spectra(cleaned_lpoints);
-      	              measure_sb(cleaned_lpoints);
-      	              compute_ppv(cleaned_lpoints);
-      	              pfl(cleaned_lpoints);
-      	          }
-
-                    status() << "before generating matrix\n";
-      	          for(auto &l: lpoints)
-      	          {
-      	             status() << l.second.info << " ";
-      	          }
-      	          status() << eom;
-      	          for(auto &v: F_values)
-      	          {
-      	            for(auto &x: v)
-      	              status() << x.is_true() << " ";
-      	            status () << "-" << eom;
-      	          }
-      	          for(auto &v: P_values)
-      	          {
-      	            for(auto &x: v)
-      	              status() << x.is_true() << " ";
-      	            status () << "+" << eom;
-      	          }
-      	          status() << eom;
-        }
-
-
 }
 
 /*******************************************************************\
