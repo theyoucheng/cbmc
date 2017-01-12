@@ -66,15 +66,15 @@ Function: fault_localizationt::collect_guards
 
 void fault_localizationt::collect_guards(lpointst &lpoints)
 {
-  int curr_block_start=-1;
+  //int curr_block_start=-1;
+  std::vector<int> block_starts;
   std::vector<int> opens;
   for(symex_target_equationt::SSA_stepst::const_iterator
       it=bmc.equation.SSA_steps.begin();
       it!=bmc.equation.SSA_steps.end(); it++)
   {
-
-	if(it->is_goto())
-		curr_block_start=atoi(it->source.pc->source_location.get_line().c_str())-1;
+	//if(it->is_goto()) curr_block_start=atoi(it->source.pc->source_location.get_line().c_str()); //-1;
+	//if(it->is_goto()) block_starts.push_back(atoi(it->source.pc->source_location.get_line().c_str()));
 
 
     if(it->is_assignment() &&
@@ -84,23 +84,47 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
         std::string lhs=from_expr(it->cond_expr.op0()).c_str();
         if (has_prefix(lhs, "__CPROVER_fault")) continue;
 
+       if(it->guard_literal.is_constant())
+       {
+    	   std::string lhs=from_expr(it->cond_expr.op0()).c_str();
+    	   if (!has_prefix(lhs, "__CPROVER_dummy")) continue;
+       }
+
+
       //if(!it->guard_literal.is_constant())
       {
         lpoints[it->guard_literal].target=it->source.pc;
         int lnum=atoi(it->source.pc->source_location.get_line().c_str());
-        lnum--;
-        if(lnum==curr_block_start or curr_block_start<0)
-            lpoints[it->guard_literal].info="line " + std::to_string(lnum);
+        //lnum--;
+        if(it->guard_literal.is_constant()) //lnum==curr_block_start or curr_block_start<0)
+            lpoints[it->guard_literal].info="[" + std::to_string(lnum-1) + "-" + std::to_string(lnum-1) + "]";
         else
-         lpoints[it->guard_literal].info="line from " + std::to_string(curr_block_start)+" to "+std::to_string(lnum);
+        {
+          int block_start=lnum, block_end=lnum;
+          for(symex_target_equationt::SSA_stepst::const_iterator
+        	      jt=bmc.equation.SSA_steps.begin();
+        	      jt!=bmc.equation.SSA_steps.end(); jt++)
+          {
+        	if(jt->guard_literal==it->guard_literal)
+        	{
+        	  int tmp=atoi(jt->source.pc->source_location.get_line().c_str());
+        	  if(tmp<block_start) block_start=tmp;
+        	  if(tmp>block_end and !jt->is_goto()) block_end=tmp;
+        	  //block_start=tmp; break;
+        	}
+          }
+          lpoints[it->guard_literal].info="[" + std::to_string(block_start-1)+"-"+std::to_string(block_end-1) + "]";
+        }
+         //lpoints[it->guard_literal].info="[" + std::to_string(curr_block_start-1)+"-"+std::to_string(lnum-1) + "]";
 
-        curr_block_start=lnum+1;
+        //curr_block_start=lnum+1;
         //lpoints[it->guard_literal].info=it->source.pc->source_location.get_line().c_str();
 
 
         lpoints[it->guard_literal].score=0;
+        status() << "collecting guards: " << lnum+1 << " ---> " << it->guard_literal << eom << eom;
       }
-      status() << it->source.pc->source_location << eom;
+      //status() << it->source.pc->source_location << eom;
     }
 
     if(it==failed)
@@ -708,14 +732,14 @@ void fault_localizationt::report(irep_idt goal_id)
   status() << "According to single bug optimal fault localization:\n";
   for(int i=0; i<sb_lpoints.size(); i++)
   {
-	if(i==10) break;
+	//if(i==10) break;
     status() << sb_lpoints[i].info << ", function " << sb_lpoints[i].target->function << ": " << sb_lpoints[i].score << eom;
   }
   status() << eom;
   status() << "According to PFL:\n";
   for(int i=0; i<pfl_lpoints.size(); i++)
   {
-    if(i==10) break;
+    //if(i==10) break;
     status() << pfl_lpoints[i].info << ", function " << pfl_lpoints[i].target->function << ": " << pfl_lpoints[i].score << eom;
   }
 
