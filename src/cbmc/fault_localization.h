@@ -60,7 +60,7 @@ protected:
   struct lpointt {
     goto_programt::const_targett target;
     std::string info;
-    unsigned score;
+    double score;
   };
   typedef std::map<literalt, lpointt> lpointst;
   typedef std::map<irep_idt, lpointst> lpoints_mapt;
@@ -88,6 +88,24 @@ protected:
   std::vector<lpoints_valuet> f_extra_values, p_extra_values;
   int trace_limit;
   std::vector<lpoints_valuet> F_values, P_values;
+
+
+  std::vector<int> ef, ep, nf, np;
+  void compute_spectra(const lpointst& lpoints);
+
+  lpointst cleaned_lpoints;
+  void clean_traces(const lpointst &lpoints);
+
+
+  // sb: single bug optimal
+  std::vector<lpointt> sb_lpoints;
+  void measure_sb(const lpointst& lpoints);
+  // PFL
+  std::vector<double> ppv;
+  void compute_ppv(const lpointst &lpoints);
+  std::vector<lpointt> pfl_lpoints;
+  void pfl(const lpointst& lpoints);
+
 
 
   bool mc(const lpointst &lpoints,

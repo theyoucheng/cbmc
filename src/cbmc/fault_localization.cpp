@@ -66,10 +66,16 @@ Function: fault_localizationt::collect_guards
 
 void fault_localizationt::collect_guards(lpointst &lpoints)
 {
+  int curr_block_start=-1;
+  std::vector<int> opens;
   for(symex_target_equationt::SSA_stepst::const_iterator
       it=bmc.equation.SSA_steps.begin();
       it!=bmc.equation.SSA_steps.end(); it++)
   {
+
+	if(it->is_goto())
+		curr_block_start=atoi(it->source.pc->source_location.get_line().c_str())-1;
+
 
     if(it->is_assignment() &&
        it->assignment_type==symex_targett::STATE &&
@@ -83,8 +89,12 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
         lpoints[it->guard_literal].target=it->source.pc;
         int lnum=atoi(it->source.pc->source_location.get_line().c_str());
         lnum--;
-        lpoints[it->guard_literal].info=std::to_string(lnum);
+        if(lnum==curr_block_start or curr_block_start<0)
+            lpoints[it->guard_literal].info="line " + std::to_string(lnum);
+        else
+         lpoints[it->guard_literal].info="line from " + std::to_string(curr_block_start)+" to "+std::to_string(lnum);
 
+        curr_block_start=lnum+1;
         //lpoints[it->guard_literal].info=it->source.pc->source_location.get_line().c_str();
 
 
@@ -683,6 +693,7 @@ void fault_localizationt::report(irep_idt goal_id)
     if(max.score<l.second.score)
       max=l.second;
   }
+
   info=info.replace(0, 37, "");
   std::string info2=id2string(goal_id);
   std::size_t pos=info2.find("assertion.");
@@ -692,8 +703,24 @@ void fault_localizationt::report(irep_idt goal_id)
   info3=info3.replace(0, pos3, "");
   //status() << "["+id2string(goal_id)+"]: \n"
   status() << "[" + info2 +  " at line "+ info +"]: \n"
-                   << "  " << info3 //max.target->source_location
+                   //<< "  " << info3 //max.target->source_location
                    << eom;
+  status() << "According to single bug optimal fault localization:\n";
+  for(int i=0; i<sb_lpoints.size(); i++)
+  {
+	if(i==10) break;
+    status() << sb_lpoints[i].info << ", function " << sb_lpoints[i].target->function << ": " << sb_lpoints[i].score << eom;
+  }
+  status() << eom;
+  status() << "According to PFL:\n";
+  for(int i=0; i<pfl_lpoints.size(); i++)
+  {
+    if(i==10) break;
+    status() << pfl_lpoints[i].info << ", function " << pfl_lpoints[i].target->function << ": " << pfl_lpoints[i].score << eom;
+  }
+
+  status() << eom;
+
 }
 
 /*******************************************************************\
@@ -986,6 +1013,15 @@ void fault_localizationt::goal_covered(
         P_values.insert(P_values.end(), p_extra_values.begin(), p_extra_values.end());
 
 
+        if(!F_values.empty() and !P_values.empty())
+        {
+        	clean_traces(lpoints);
+            compute_spectra(cleaned_lpoints);
+            measure_sb(cleaned_lpoints);
+            compute_ppv(cleaned_lpoints);
+            pfl(cleaned_lpoints);
+        }
+
 
         for(auto &l: lpoints)
         {
@@ -1004,6 +1040,7 @@ void fault_localizationt::goal_covered(
             status() << x.is_true() << " ";
           status () << "+" << eom;
         }
+
 /**
         for(auto &v: f_values)
         {
@@ -1081,3 +1118,189 @@ void fault_localizationt::report(
     break;
   }
 }
+
+
+
+
+void fault_localizationt::compute_spectra(const lpointst& lpoints)
+{
+  // ther number of blocks
+  int num=lpoints.size();
+
+  for(int i=0; i<num; ++i)
+  {
+	ef.push_back(0);
+	ep.push_back(0);
+	nf.push_back(0);
+	np.push_back(0);
+
+	for(auto &pv: F_values)
+	{
+	  if(pv[i].is_true()) ef[i]++;
+	  else nf[i]++;
+	}
+
+	for(auto &pv: P_values)
+	{
+	  if(pv[i].is_true()) ep[i]++;
+	  else np[i]++;
+	}
+  }
+}
+
+void fault_localizationt::measure_sb(const lpointst& lpoints)
+{
+
+  status() << "ef: \n";
+  for(auto &x: ef)
+	status() << x << ", ";
+  status() << "\n";
+  status() << "nf: \n";
+  for(auto &x: nf)
+	status() << x << ", ";
+  status() << "\n";
+  status() << "ep: \n";
+  for(auto &x: ep)
+	status() << x << ", ";
+  status() << "\n";
+  status() << "np: \n";
+  for(auto &x: np)
+	status() << x << ", ";
+  status() << "\n";
+
+
+  for(auto&x : lpoints)
+  {
+    sb_lpoints.push_back(x.second);
+  }
+
+  for(int i=0; i<lpoints.size(); i++)
+  {
+    double score=ef[i]-(ep[i]/(ep[i]+np[i]+1.0));
+    sb_lpoints[i].score=score;
+  }
+  sort(sb_lpoints.begin(),
+	   sb_lpoints.end(),
+	   [](const lpointt& a, const lpointt& b)
+	   {return a.score>b.score;});
+}
+
+void fault_localizationt::compute_ppv(const lpointst& lpoints)
+{
+  // ther number of blocks
+  int num=lpoints.size();
+  for(int i=0; i<num; ++i)
+  {
+    for(int i=0; i<ef.size(); ++i)
+    {
+    	double score=0;
+    	if(ef[i]>0)
+    		score=(ef[i]/(ef[i]+ep[i]+0.0));
+    	ppv.push_back(score);
+    }
+  }
+}
+
+void fault_localizationt::pfl(const lpointst& lpoints)
+{
+  for(auto&x : lpoints)
+  {
+    pfl_lpoints.push_back(x.second);
+  }
+  std::vector<double> P(pfl_lpoints.size(), 0);
+
+  for(int i=0; i<F_values.size(); i++)
+  {
+    double den=0;
+    for(int c=0; c<F_values[i].size()-1; c++)
+    {
+      if(F_values[i][c].is_true())
+    	  den += ppv[c];
+    }
+    for(int c=0; c<F_values[i].size()-1; c++)
+    {
+        if(F_values[i][c].is_true())
+          P[c] = ((P[c]+(ppv[c]/den))-(P[c]*(ppv[c]/den)));
+    }
+  }
+  for(int i=0; i<lpoints.size(); i++)
+	  pfl_lpoints[i].score=P[i];
+  sort(pfl_lpoints.begin(),
+	   pfl_lpoints.end(),
+	   [](const lpointt& a, const lpointt& b)
+	   {return a.score>b.score;});
+}
+
+
+void fault_localizationt::clean_traces(const lpointst &lpoints)
+{
+
+ // cleaned_lpoints=lpoints;
+ // return;
+
+  int i=-1;
+  for(auto &v: lpoints)
+  {
+	i++;
+	//if(i==lpoints.size()-1) continue;
+	bool all_false=true;
+    for(auto &x: F_values)
+    {
+      if(x[i].is_true()) {all_false=false; break;}
+    }
+	bool all_true=true;
+    for(auto &x: P_values)
+    {
+      if(x[i].is_false()) {all_true=false; break;}
+    }
+    //if(i==lpoints.size()-1 or not (all_false or all_true))
+    //if(i!=lpoints.size()-1 and
+    //if (i!=lpoints.size()-1 and (all_false or all_true))
+    //if ((all_false or all_true))
+    if(all_false)
+    {
+        for(auto &x: F_values)
+       	  x[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
+         for(auto &x: P_values)
+          x[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
+    }
+    else
+    {
+      cleaned_lpoints[v.first]=v.second;
+    }
+
+  }
+
+  for(auto &v: F_values)
+  {
+    auto it=v.begin();
+    while(it!=v.end())
+    {
+      if(it->is_unknown())
+    	  it=v.erase(it);
+      else it++;
+    }
+  }
+
+  for(auto &v: P_values)
+  {
+    auto it=v.begin();
+    while(it!=v.end())
+    {
+      if(it->is_unknown())
+    	  it=v.erase(it);
+      else it++;
+    }
+  }
+
+
+}
+
+
+
+
+
+
+
+
+
