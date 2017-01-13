@@ -88,6 +88,8 @@ protected:
   std::vector<lpoints_valuet> f_extra_values, p_extra_values;
   int trace_limit;
   std::vector<lpoints_valuet> F_values, P_values;
+  int covered=0;
+  irep_idt failed_goal;
 
 
   std::vector<int> ef, ep, nf, np;

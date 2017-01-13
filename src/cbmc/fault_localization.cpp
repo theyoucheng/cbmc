@@ -24,6 +24,7 @@ Author: Peter Schrammel
 #include "counterexample_beautification.h"
 #include <util/prefix.h>
 #include <string>
+#include <algorithm>
 
 
 
@@ -690,6 +691,45 @@ Function: fault_localizationt::report()
 
 void fault_localizationt::report(irep_idt goal_id)
 {
+	//if(covered==goal_map.size())
+	//{
+	   	if(F_values.size()>0 and P_values.size()==0)
+	   	{
+	      lpointst &lpoints = lpoints_map[failed_goal];
+
+
+	   	          //if(!F_values.empty() and !P_values.empty())
+	   	          {
+	   	          	clean_traces(lpoints);
+	   	              compute_spectra(cleaned_lpoints);
+	   	              measure_sb(cleaned_lpoints);
+	   	              compute_ppv(cleaned_lpoints);
+	   	              pfl(cleaned_lpoints);
+	   	          }
+
+
+	   	          for(auto &l: cleaned_lpoints)
+	   	          {
+	   	             status() << l.second.info << " ";
+	   	          }
+	   	          status() << eom;
+
+	   	          for(auto &v: F_values)
+	   	          {
+	   	            for(auto &x: v)
+	   	              status() << x.is_true() << " ";
+	   	            status () << "-" << eom;
+	   	          }
+	   	          for(auto &v: P_values)
+	   	          {
+	   	            for(auto &x: v)
+	   	              status() << x.is_true() << " ";
+	   	            status () << "+" << eom;
+	   	          }
+
+	     }
+
+
   if(goal_id==ID_nil)
     goal_id=failed->source.pc->source_location.get_property_id();
 
@@ -732,14 +772,14 @@ void fault_localizationt::report(irep_idt goal_id)
   status() << "According to single bug optimal fault localization:\n";
   for(int i=0; i<sb_lpoints.size(); i++)
   {
-	//if(i==10) break;
+	if(i==10) break;
     status() << sb_lpoints[i].info << ", function " << sb_lpoints[i].target->function << ": " << sb_lpoints[i].score << eom;
   }
   status() << eom;
   status() << "According to PFL:\n";
   for(int i=0; i<pfl_lpoints.size(); i++)
   {
-    //if(i==10) break;
+    if(i==10) break;
     status() << pfl_lpoints[i].info << ", function " << pfl_lpoints[i].target->function << ": " << pfl_lpoints[i].score << eom;
   }
 
@@ -869,7 +909,8 @@ Function: fault_localizationt::goal_covered
 void fault_localizationt::goal_covered(
   const cover_goalst::goalt &)
 {
-
+  covered++;
+  status() << "covered is " << covered << ", goal_map size " << goal_map.size() << eom ;
   for(auto &g : goal_map)
   {
     // failed already?
@@ -894,6 +935,7 @@ void fault_localizationt::goal_covered(
         failed=get_failed_property();
         assert(failed!=bmc.equation.SSA_steps.end());
         irep_idt goal_id=g.first;
+        failed_goal=goal_id;
         if(goal_id==ID_nil)
           goal_id=failed->source.pc->source_location.get_property_id();
         lpointst &lpoints = lpoints_map[goal_id];
@@ -1065,45 +1107,15 @@ void fault_localizationt::goal_covered(
           status () << "+" << eom;
         }
 
-/**
-        for(auto &v: f_values)
-        {
-          for(auto &x: v)
-            status() << x.is_true() << " ";
-          status () << "-" << eom;
-        }
-        for(auto &v: f_extra_values)
-        {
-          for(auto &x: v)
-            status() << x.is_true() << " ";
-          status () << "-" << eom;
-        }/**
-        //status() << eom << "The set of passing traces (P)" << eom;
-        for(auto &v: p_values)
-        {
-          for(auto &x: v)
-            status() << x.is_true() << " ";
-          status () << "+" << eom;
-        }
-        //status() << eom << "The S set" << eom;
-        for(auto &v: s_values)
-        {
-          for(auto &x: v)
-            status() << x.is_true() << " ";
-          status () << "+" << eom;
-        }
-        for(auto &v: p_extra_values)
-        {
-          for(auto &x: v)
-            status() << x.is_true() << " ";
-          status () << "+" << eom;
-        }**/
+
         status () << eom;
-        // f_values.clear(); p_values.clear(); s_values.clear();
+        return;
 
       }
+
     }
   }
+
 }
 
 /*******************************************************************\
