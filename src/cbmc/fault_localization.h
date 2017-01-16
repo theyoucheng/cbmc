@@ -98,6 +98,9 @@ protected:
   lpointst cleaned_lpoints;
   void clean_traces(const lpointst &lpoints);
 
+  int locate_first(const lpointt& lp, const lpointst& lps);
+  void merge();
+
 
   // sb: single bug optimal
   std::vector<lpointt> sb_lpoints;

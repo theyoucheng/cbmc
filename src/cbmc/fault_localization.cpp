@@ -114,6 +114,17 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
         	  //block_start=tmp; break;
         	}
           }
+          for(symex_target_equationt::SSA_stepst::const_iterator
+        	      jt=bmc.equation.SSA_steps.begin();
+        	      jt!=bmc.equation.SSA_steps.end(); jt++)
+          {
+        	if(jt->guard_literal!=it->guard_literal)
+        	{
+        	  int tmp=atoi(jt->source.pc->source_location.get_line().c_str());
+        	  if(tmp>block_start && tmp<block_end) block_end=tmp-1;
+        	  //block_start=tmp; break;
+        	}
+          }
           lpoints[it->guard_literal].info="[" + std::to_string(block_start-1)+"-"+std::to_string(block_end-1) + "]";
         }
          //lpoints[it->guard_literal].info="[" + std::to_string(curr_block_start-1)+"-"+std::to_string(lnum-1) + "]";
@@ -123,7 +134,7 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
 
 
         lpoints[it->guard_literal].score=0;
-        status() << "collecting guards: " << lnum+1 << " ---> " << it->guard_literal << eom << eom;
+        //status() << "collecting guards: " << lpoints[it->guard_literal].info << " ---> " << it->guard_literal << eom << eom;
       }
       //status() << it->source.pc->source_location << eom;
     }
@@ -700,7 +711,7 @@ void fault_localizationt::report(irep_idt goal_id)
 
 	   	          //if(!F_values.empty() and !P_values.empty())
 	   	          {
-	   	          	clean_traces(lpoints);
+	   	          	  clean_traces(lpoints);
 	   	              compute_spectra(cleaned_lpoints);
 	   	              measure_sb(cleaned_lpoints);
 	   	              compute_ppv(cleaned_lpoints);
@@ -1089,7 +1100,7 @@ void fault_localizationt::goal_covered(
         }
 
 
-        for(auto &l: lpoints)
+        for(auto &l: cleaned_lpoints)
         {
            status() << l.second.info << " ";
         }
@@ -1271,8 +1282,8 @@ void fault_localizationt::pfl(const lpointst& lpoints)
 void fault_localizationt::clean_traces(const lpointst &lpoints)
 {
 
- // cleaned_lpoints=lpoints;
- // return;
+  //cleaned_lpoints=lpoints;
+  //return;
 
   int i=-1;
   for(auto &v: lpoints)
@@ -1330,11 +1341,79 @@ void fault_localizationt::clean_traces(const lpointst &lpoints)
   }
 
 
+  // this is for merging unwound bodies of the same block
+  merge();
+
+}
+
+void fault_localizationt::merge()
+{
+
+  lpointst lpoints; //=cleaned_lpoints;
+
+  int i=-1;
+  for(auto &v: cleaned_lpoints)
+  {
+	  i++;
+	  int k=locate_first(v.second, cleaned_lpoints);
+	  if(k==i)
+	    lpoints[v.first]=v.second;
+	  else
+	  {
+		  for(auto &v: F_values)
+		  {
+			if(v[i].is_true())
+				v[k]= tvt(tvt::tv_enumt::TV_TRUE);
+	       	 v[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
+		  }
+		  for(auto &v: P_values)
+		  {
+			if(v[i].is_true())
+				v[k]= tvt(tvt::tv_enumt::TV_TRUE);
+	       	v[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
+		  }
+	  }
+  }
+
+  cleaned_lpoints=lpoints;
+  for(auto &v: F_values)
+  {
+    auto it=v.begin();
+    while(it!=v.end())
+    {
+      if(it->is_unknown())
+    	  it=v.erase(it);
+      else it++;
+    }
+  }
+
+  for(auto &v: P_values)
+  {
+    auto it=v.begin();
+    while(it!=v.end())
+    {
+      if(it->is_unknown())
+    	  it=v.erase(it);
+      else it++;
+    }
+  }
+
+
 }
 
 
+int fault_localizationt::locate_first(const lpointt& lp, const lpointst& lps)
+{
+	int i=-1;
+	for(auto &v: lps)
+	{
+	  i++;
+	  //status() << "--> " << v.second.info << ", " << lp.info << ": " << (v.second.info==lp.info) << eom << eom;
+	  if(v.second.info==lp.info) return i;
+	}
 
-
+	return ++i;
+}
 
 
 
