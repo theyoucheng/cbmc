@@ -195,7 +195,10 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
 	  if(cmdline.isset("localize-faults-trace-limit"))
 		  options.set_option("localize-faults-trace-limit",
-				             cmdline.get_value("localize-faults-trace-limit")); //options.set_option("localize-faults-trace-limit", cmdline.get_value("localize-faults-trace-limit));
+				             cmdline.get_value("localize-faults-trace-limit"));
+	  if(cmdline.isset("localize-faults-result-list"))
+	  		  options.set_option("localize-faults-result-list",
+	  				             cmdline.get_value("localize-faults-result-list"));
   }
   if(cmdline.isset("localize-faults-method"))
     options.set_option("localize-faults-method",
@@ -1132,6 +1135,10 @@ void cbmc_parse_optionst::help()
     " --dimacs                     generate CNF in DIMACS format\n"
     " --beautify                   beautify the counterexample (greedy heuristic)\n"
     " --localize-faults            localize faults (experimental)\n"
+	" --localize-faults-trace-limit nr\n"
+	"                              limit on the number of traces analyzed\n"
+	" --localize-faults-result-list nr\n"
+	"                              number of listed fault locations reported\n"
     " --smt1                       use default SMT1 solver (obsolete)\n"
     " --smt2                       use default SMT2 solver (Z3)\n"
     " --boolector                  use Boolector\n"

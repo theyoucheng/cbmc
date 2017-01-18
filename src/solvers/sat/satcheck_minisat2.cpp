@@ -210,7 +210,6 @@ Function: satcheck_minisat2_baset::prop_solve
 template<typename T>
 propt::resultt satcheck_minisat2_baset<T>::prop_solve()
 {
-  std::cout << "******minisat2::prop_solve() " << std::endl; 
   assert(status!=ERROR);
 
   {
@@ -236,7 +235,6 @@ propt::resultt satcheck_minisat2_baset<T>::prop_solve()
       forall_literals(it, assumptions)
         if(it->is_false())
           has_false=true;
-std::cout << "******has false is " << has_false << std::endl;
       if(has_false)
       {
         messaget::status() <<
@@ -244,11 +242,9 @@ std::cout << "******has false is " << has_false << std::endl;
       }
       else
       {
-  		std::cout << "*****assumptions size: " << assumptions.size() << std::endl;
 
         Minisat::vec<Minisat::Lit> solver_assumptions;
         convert(assumptions, solver_assumptions);
-  		std::cout << "*****solver assumptions size: " << solver_assumptions.size() << std::endl;
 
 
         if(solver->solve(solver_assumptions))
@@ -386,13 +382,10 @@ Function: satcheck_minisat2_baset::set_assumptions
 template<typename T>
 void satcheck_minisat2_baset<T>::set_assumptions(const bvt &bv)
 {
-  //std::cout << "set assumptions\n";
   assumptions=bv;
-//return;
   forall_literals(it, assumptions)
     if(it->is_true())
     {
-      //std::cout  << "is true ??????\n\n";
       assumptions.clear();
       break;
     }

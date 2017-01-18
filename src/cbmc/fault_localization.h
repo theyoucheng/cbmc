@@ -39,7 +39,12 @@ public:
     	trace_limit=atoi(options.get_option("localize-faults-trace-limit").c_str());
     }
     else trace_limit=-1;
-    status() << eom << "<<<<< trace limit: " << trace_limit << eom << eom;
+    if(options.get_option("localize-faults-result-list")!="")
+    {
+    	result_list=atoi(options.get_option("localize-faults-result-list").c_str());
+    }
+
+    debug() << eom << "<<<<< trace limit: " << trace_limit << eom << eom;
   }
 
   safety_checkert::resultt operator()();
@@ -87,6 +92,7 @@ protected:
   std::vector<lpoints_valuet> f_values, p_values, s_values;
   std::vector<lpoints_valuet> f_extra_values, p_extra_values;
   int trace_limit;
+  int result_list=10;
   std::vector<lpoints_valuet> F_values, P_values;
   int covered=0;
   irep_idt failed_goal;

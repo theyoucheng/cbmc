@@ -11,6 +11,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/time_stopping.h>
 #include <util/xml.h>
 #include <util/json.h>
+#include <util/prefix.h>
 
 #include <solvers/sat/satcheck.h>
 #include <solvers/prop/literal_expr.h>
@@ -192,6 +193,11 @@ Function: bmc_all_propertiest::report()
 
 void bmc_all_propertiest::report(const cover_goalst &cover_goals)
 {
+  for(const auto & it : goal_map)
+  {
+	if(has_prefix(it.second.description, "__CPROVER_fault passing traces"))
+      return;
+  }
   switch(bmc.ui)
   {
   case ui_message_handlert::PLAIN:

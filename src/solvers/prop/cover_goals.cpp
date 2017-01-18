@@ -46,19 +46,12 @@ void cover_goalst::mark()
   for(const auto & o : observers)
     o->satisfying_assignment();
 
-  for(auto & g : goals)
-  {
-/**	  status() << "==> " << g.condition << eom;
-	  status() << "    " << (g.status==goalt::statust::UNKNOWN) << eom;
-	  status() << "    " << prop_conv.l_get(g.condition).is_true() << eom;
-**/
-  }
+
 
   for(auto & g : goals)
     if(g.status==goalt::statust::UNKNOWN &&
        prop_conv.l_get(g.condition).is_true())
     {
-status() << "mark () " << g.condition << eom;
       g.status=goalt::statust::COVERED;
       _number_covered++;
 
@@ -96,7 +89,6 @@ void cover_goalst::constraint()
     if(g_it->status==goalt::statust::UNKNOWN &&
        !g_it->condition.is_false())
     {
-      status() << "constraints: " << g_it->condition << ", " << (g_it->status==goalt::statust::UNKNOWN) << eom;
       disjuncts.push_back(literal_exprt(g_it->condition));
     }
   }
@@ -208,7 +200,6 @@ decision_proceduret::resultt cover_goalst::operator()()
       return dec_result;
 
     case decision_proceduret::D_SATISFIABLE:
-      status() << "d sat" << eom;
       // mark the goals we got, and notify observers
       mark();
       break;

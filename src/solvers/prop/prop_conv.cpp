@@ -649,7 +649,6 @@ Function: prop_conv_solvert::solve
 
 decision_proceduret::resultt prop_conv_solvert::dec_solve()
 {
-  status() << "dec_solve()" << eom;
   // post-processing isn't incremental yet
   if(!post_processing_done)
   {

@@ -845,7 +845,7 @@ void symex_target_equationt::convert_assertions(
 
       // do the conversion
       it.cond_literal=prop_conv.convert(implication);
-  	std::cout << "++++++++it is assert: " << it.cond_literal << ", " << from_expr(it.cond_expr) << std::endl;
+  	//std::cout << "++++++++it is assert: " << it.cond_literal << ", " << from_expr(it.cond_expr) << std::endl;
 
 
       // store disjunct
