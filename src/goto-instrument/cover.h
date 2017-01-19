@@ -37,5 +37,4 @@ void collect_ite_rec(const exprt &e,
 void collect_ite(const exprt &src, 
                  std::set<exprt> &coll);
 
-
 #endif

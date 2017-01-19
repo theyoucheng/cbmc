@@ -1591,6 +1591,24 @@ bool is_autosac_barrier(const codet& code)
   return from_expr(*it)=="\"preconditions\"" || from_expr(*it)=="\"postconditions\"";
 }
 
+bool is_autosac_postcondition(const codet& code)
+{
+  const code_function_callt &code_function_call=
+	to_code_function_call(code);
+  std::string func_name=to_symbol_expr(
+	code_function_call.function()).get_identifier().c_str();
+  return has_prefix(func_name, "__AUTOSAC_postcondition");
+}
+
+bool function_name_prefix(const codet& code, const std::string& s)
+{
+  const code_function_callt &code_function_call=
+	to_code_function_call(code);
+  std::string func_name=to_symbol_expr(
+	code_function_call.function()).get_identifier().c_str();
+  return has_prefix(func_name, s);
+}
+
 std::string autosac_description(const codet& code)
 {
   const code_function_callt &code_function_call=
@@ -1614,11 +1632,31 @@ Function: instrument_cover_goals
 
 \*******************************************************************/
 
+
+bool is_autosac_expression_function(const goto_programt &goto_program)
+{
+
+  forall_goto_program_instructions(i_it, goto_program)
+  {
+    if(!i_it->is_function_call())	continue;
+    if(function_name_prefix(i_it->code, std::string("__AUTOSAC_expression_function")))
+      return true;
+  }
+  return false;
+}
+
+
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_programt &goto_program,
   coverage_criteriont criterion)
 {
+
+bool is_autosac_expr=false;
+
+std::vector<exprt> expression_functions, expression_bodys;
+
+
 std::vector<std::set<exprt> > autosac_vect;
 std::vector<std::string > autosac_words;
 std::vector<exprt> autosac_in_types;
@@ -1628,7 +1666,6 @@ std::vector<std::string> autosac_in_type_strs;
   const namespacet ns(symbol_table);
   basic_blockst basic_blocks(goto_program);
   std::set<unsigned> blocks_done;
-  
   // ignore if built-in library
   if(!goto_program.instructions.empty() &&
      has_prefix(id2string(goto_program.instructions.front().source_location.get_file()),
@@ -1637,6 +1674,14 @@ std::vector<std::string> autosac_in_type_strs;
   
   Forall_goto_program_instructions(i_it, goto_program)
   {
+
+	if(i_it->is_function_call())
+	  if(function_name_prefix(i_it->code, std::string("__AUTOSAC_expression_function")))
+	  {
+		  is_autosac_expr=true;
+		  continue;
+	  }
+
     switch(criterion)
     {
     case coverage_criteriont::ASSERTION:
@@ -1840,7 +1885,6 @@ std::vector<std::string> autosac_in_type_strs;
         const std::set<exprt> conditions1=collect_conditions(i_it); //0
         const std::set<exprt> decisions1=collect_decisions(i_it);  //1
 
-
         std::vector<std::set<exprt> > cond_dec;
         std::vector<std::string > words;
         if(autosac_func_call and not autosac_barrier)
@@ -1917,7 +1961,17 @@ std::vector<std::string> autosac_in_type_strs;
           {
             autosac_vect.push_back(conditions1);
             autosac_vect.push_back(decisions1);
-            autosac_words.push_back("");
+            if(is_autosac_expr)
+            {
+              autosac_words.push_back(std::string("autosac exprssion function \'") + i_it->function.c_str() + std::string("\': "));
+              cond_dec=autosac_vect;
+              words=autosac_words;
+              autosac_vect.clear();
+              autosac_words.clear();
+            }
+            else
+              autosac_words.push_back("");
+
           }
         }
         
@@ -2064,7 +2118,8 @@ void instrument_cover_goals(
     if(f_it->first==ID__start ||
        f_it->first=="__CPROVER_initialize")
       continue;
-      
+
+    //std::cout << "instrumenting " << f_it->first << "\n\n";
     instrument_cover_goals(symbol_table, f_it->second.body, criterion);
   }
 }
