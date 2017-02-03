@@ -739,10 +739,8 @@ bool eval_expr(
   {
     exprt no_op(src);
     no_op.make_not();
-    std::cout << "\nsrc: " << from_expr(src) << ", no_op: " << from_expr(no_op) << "\n\n";
     if(is_condition(no_op))
     {
-      std::cout << "---> " << atomic_exprs.find(no_op)->second << std::endl;
       return false; //atomic_exprs.find(no_op)->second==-1;
     }
     return !eval_expr(atomic_exprs, no_op);
@@ -1132,9 +1130,14 @@ Function: autosac_atomic_negate
  Purpose: negate an expr (<, <=, ==, >=, >) by the AUTOSAC semantic
 
 \*******************************************************************/
+static std::set<exprt> bv_with_tolerance(const exprt& src);
 
 std::set<exprt> autosac_atomic_negate(const exprt &src)
 {
+
+  if(src.id()==ID_typecast)
+    return autosac_atomic_negate(src.op0());
+
   /**
    * This is a customized approach to "negate" exprs 
    **/
@@ -1156,9 +1159,9 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
     result.insert(e1);
     result.insert(e2);
 
-    return result;
+    //return result;
   }
-  if(src.id()==ID_lt)
+  else if(src.id()==ID_lt)
   {
     //the negation of "<" should be "==" and ">"
     exprt e1(ID_equal);
@@ -1174,9 +1177,9 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
     result.insert(e1);
     result.insert(e2);
 
-    return result;
+    //return result;
   }
-  if(src.id()==ID_le)
+  else if(src.id()==ID_le)
   {
     //the negation of "<=" should be ">"
     exprt e1(ID_gt);
@@ -1186,9 +1189,9 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
 
     result.insert(e1);
 
-    return result;
+    //return result;
   }
-  if(src.id()==ID_ge)
+  else if(src.id()==ID_ge)
   {
     //the negation of ">=" should be "<"
     exprt e1(ID_lt);
@@ -1198,9 +1201,9 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
 
     result.insert(e1);
 
-    return result;
+    //return result;
   }
-  if(src.id()==ID_gt)
+  else if(src.id()==ID_gt)
   {
     //the negation of ">" should be "==" and "<"
     exprt e1(ID_equal);
@@ -1216,7 +1219,7 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
     result.insert(e1);
     result.insert(e2);
 
-    return result;
+    //return result;
   }
   return result;
 }
@@ -1332,7 +1335,8 @@ std::set<exprt> autosac_atomic_expand(const exprt &src)
    **/
   std::set<exprt> result;
 
-  if(src.id()==ID_le)
+  if(src.id()==ID_le
+     or src.id()==ID_lt)
   {
     exprt e1(ID_lt);
     e1.type().id(src.type().id());
@@ -1429,7 +1433,8 @@ std::set<exprt> autosac_atomic_expand(const exprt &src)
 
     return result;
   }
-  if(src.id()==ID_ge)
+  if(src.id()==ID_ge
+    or src.id()==ID_gt)
   {
     //the expansion of ">=" should be ">" and "=="
     exprt e1(ID_gt);
@@ -1480,7 +1485,8 @@ std::set<exprt> autosac_expand(const exprt &src)
       or no.id()==ID_lt 
       or no.id()==ID_le 
       or no.id()==ID_ge 
-      or no.id()==ID_gt)
+      or no.id()==ID_gt
+      or no.id()==ID_typecast)
     {
       auto res=autosac_atomic_negate(no);
       for(auto &x:res)
@@ -1506,7 +1512,8 @@ std::set<exprt> autosac_expand(const exprt &src)
              or no.id()==ID_lt 
              or no.id()==ID_le 
              or no.id()==ID_ge 
-             or no.id()==ID_gt)
+             or no.id()==ID_gt
+             or no.id()==ID_typecast)
           {
             changed=true;
             res=autosac_atomic_negate(no);
@@ -1553,6 +1560,36 @@ std::set<exprt> autosac_expand(const exprt &src)
       break; //return s1;
     s1=s2;
     s2.clear();
+  }
+
+  s2.clear();
+  //while(true) // dual-loop structure to expand autosac atomics
+  {
+    bool changed=false;
+    for(auto &x : s1)
+    {
+      std::vector<exprt> operands;
+      collect_operands(x, operands);
+      for(int i=0; i<operands.size(); i++)
+      {
+        std::set<exprt> res;
+        if(operands[i].id()==ID_lt
+           or operands[i].id()==ID_gt)
+        {
+          changed=true;
+          res=autosac_atomic_expand(operands[i]);
+        }
+
+        std::set<exprt> co=replacement_conjunction(res, operands, i);
+        s2.insert(co.begin(), co.end());
+        //if(res.size() > 0) break;
+      }
+      //if(not changed) s2.insert(x);
+    }
+    //if(not changed)
+    //  break; //return s1;
+    s1=s2;
+    //s2.clear();
   }
 
   return s1;
@@ -2056,6 +2093,11 @@ std::vector<std::string> autosac_in_type_strs;
             for(auto &x: controlling)
             {
               std::set<exprt> res=autosac_expand(x);
+              for (auto &x: res)
+              {
+                auto res2=autosac_atomic_expand(x);
+                res.insert(res2.begin(), res2.end());
+              }
               controlling2.insert(res.begin(), res.end());
             }
             controlling=controlling2;
@@ -2126,7 +2168,6 @@ void instrument_cover_goals(
        f_it->first=="__CPROVER_initialize")
       continue;
 
-    //std::cout << "instrumenting " << f_it->first << "\n\n";
     instrument_cover_goals(symbol_table, f_it->second.body, criterion);
   }
 }
@@ -2230,8 +2271,8 @@ void collect_tenary_rec(
     {
       exprt e_bool(e);
       e_bool.type().id(ID_bool);
-      e_res.insert(e_bool);
-      e_res.insert(not_exprt(e_bool));
+      e_res.insert(conjunction({e_bool}));
+      e_res.insert(not_exprt(conjunction({e_bool})));
     }
 
     if(prior.empty())
@@ -2307,8 +2348,6 @@ void collect_tenary(const exprt &src,
   if(src.id()==ID_if)
   {
     collect_tenary_rec(src, prior, coll);
-    for(auto &x: coll)
- 	   std::cout << "coll: " << from_expr(x) << "\n";
     return;
   }
 
