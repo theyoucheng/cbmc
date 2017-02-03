@@ -739,6 +739,12 @@ bool eval_expr(
   {
     exprt no_op(src);
     no_op.make_not();
+    std::cout << "\nsrc: " << from_expr(src) << ", no_op: " << from_expr(no_op) << "\n\n";
+    if(is_condition(no_op))
+    {
+      std::cout << "---> " << atomic_exprs.find(no_op)->second << std::endl;
+      return false; //atomic_exprs.find(no_op)->second==-1;
+    }
     return !eval_expr(atomic_exprs, no_op);
   }
   else //if(is_condition(src))
@@ -2035,7 +2041,8 @@ std::vector<std::string> autosac_in_type_strs;
                        
             // collect its controls if there exists
             std::set<exprt> ite_controlling;
-            collect_ite(dec, ite_controlling);
+            //collect_ite(dec, ite_controlling);
+            collect_tenary(dec, ite_controlling);
             ctrl.insert(ite_controlling.begin(), ite_controlling.end());
 
             remove_repetition(ctrl);
@@ -2198,3 +2205,134 @@ void collect_ite(const exprt &src,
   }
 
 }
+
+
+/*******************************************************************\
+
+Function: Coverage criterion for tenary operator
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+void collect_tenary_rec(
+  const exprt &e,
+  const std::set<exprt> &prior,
+  std::set<exprt> &res)
+{
+  if(e.id() !=ID_if)
+  {
+    std::set<exprt> e_res=collect_mcdc_controlling_nested({e});
+    if(e_res.empty())
+    {
+      exprt e_bool(e);
+      e_bool.type().id(ID_bool);
+      e_res.insert(e_bool);
+      e_res.insert(not_exprt(e_bool));
+    }
+
+    if(prior.empty())
+      res=e_res;
+    else
+    {
+      for(auto &x: prior)
+        for(auto &y: e_res)
+        res.insert(conjunction({x, y}));
+    }
+
+    return;
+  }
+  // ternary "A?B:C"
+  assert(e.operands().size()==3);
+  const exprt &A=e.op0();
+  const exprt &B=e.op1();
+  const exprt &C=e.op2();
+  // apply MC/DC on A
+  std::set<exprt> Ares=collect_mcdc_controlling_nested({A});
+  if(Ares.empty())
+  {
+    Ares.insert(A);
+    Ares.insert(not_exprt(A));
+  }
+
+  // Ares needs to be separated into Ares+ and Ares-
+  std::set<exprt> Ares_true, Ares_false;
+  std::set<exprt> conditions;
+  for(auto &x: Ares)
+  {
+    std::set<exprt> nu_conds=collect_conditions(x);
+    conditions.insert(nu_conds.begin(), nu_conds.end());
+  }
+
+  for(auto &x: Ares)
+  {
+    std::map<exprt, signed> atomic_exprs=
+      values_of_atomic_exprs(x, conditions);
+    if(eval_expr(atomic_exprs, x))
+      Ares_true.insert(x);
+    else
+      Ares_false.insert(x);
+  }
+
+  std::set<exprt> nu_prior_true, nu_prior_false;
+  // if 'prior' is empty
+  if(prior.empty())
+  {
+    nu_prior_true=Ares_true;
+    nu_prior_false=Ares_false;
+  }
+  else
+  {
+    for(auto &x: prior)
+      for(auto &y: Ares_true)
+        nu_prior_true.insert(conjunction({x,y}));
+
+    for(auto &x: prior)
+      for(auto &y: Ares_false)
+        nu_prior_false.insert(conjunction({x,y}));
+  }
+
+  collect_tenary_rec(B, nu_prior_true, res);
+  collect_tenary_rec(C, nu_prior_false, res);
+
+}
+
+void collect_tenary(const exprt &src,
+                 std::set<exprt> &coll)
+{
+  std::set<exprt> prior;
+  if(src.id()==ID_if)
+  {
+    collect_tenary_rec(src, prior, coll);
+    for(auto &x: coll)
+ 	   std::cout << "coll: " << from_expr(x) << "\n";
+    return;
+  }
+
+  for(auto &op: src.operands())
+  {
+    if(op.id()==ID_if)
+      collect_tenary_rec(op, prior, coll);
+    if(op.id()==ID_typecast)
+      if(op.op0().id()==ID_if)
+        collect_tenary_rec(op.op0(), prior, coll);
+
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
