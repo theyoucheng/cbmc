@@ -46,6 +46,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-instrument/full_slicer.h>
 #include <goto-instrument/nondet_static.h>
 #include <goto-instrument/cover.h>
+#include <goto-instrument/rs_instrumentation.h>
+
 
 #include <pointer-analysis/add_failed_symbols.h>
 
@@ -989,6 +991,11 @@ bool cbmc_parse_optionst::process_goto_program(
       goto_functions.update();
     }
 
+    if(cmdline.isset("with-requirements-specification"))
+    {
+      instrument_requirements_specification(symbol_table, goto_functions);
+    }
+
     // remove skips
     remove_skip(goto_functions);
     goto_functions.update();
@@ -1141,6 +1148,8 @@ void cbmc_parse_optionst::help()
     " --no-assumptions             ignore user assumptions\n"
     " --error-label label          check that label is unreachable\n"
     " --cover CC                   create test-suite with coverage criterion CC\n" // NOLINT(*)
+    " --with-requirements-specification\n"
+    "                              enable verification with requirements specification\n"
     " --mm MM                      memory consistency model for concurrent programs\n" // NOLINT(*)
     "\n"
     "Java Bytecode frontend options:\n"
