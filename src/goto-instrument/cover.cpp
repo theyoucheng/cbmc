@@ -2035,47 +2035,47 @@ std::vector<std::string> autosac_in_type_strs;
           std::set_union(conditions.begin(), conditions.end(),
                          decisions.begin(), decisions.end(),
                          inserter(both, both.end()));
+          both.clear();
         
           const source_locationt source_location=i_it->source_location;
         
-          for(const auto & p : both)
-          {
-            bool is_decision=decisions.find(p)!=decisions.end();
-            bool is_condition=conditions.find(p)!=conditions.end();
-            
-            std::string description=words.at(xx/2)+": "+
-              ((is_decision && is_condition)?"decision/condition":
-              is_decision?"decision":"condition");
-              
-            std::string p_string=from_expr(ns, "", p);
-          
-            std::string comment_t=description+" `"+p_string+"' true";
-            goto_program.insert_before_swap(i_it);
-            //i_it->make_assertion(p);
-            //if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
-            //else 
-            i_it->make_assertion(not_exprt(p));
-            i_it->source_location=source_location;
-            i_it->source_location.set_comment(comment_t);
-            i_it->source_location.set_property_class("coverage");
+          //for(const auto & p : both)
+          //{
+          //  bool is_decision=decisions.find(p)!=decisions.end();
+          //  bool is_condition=conditions.find(p)!=conditions.end();
+          //  
+          //  std::string description=words.at(xx/2)+": "+
+          //    ((is_decision && is_condition)?"decision/condition":
+          //    is_decision?"decision":"condition");
+          //    
+          //  std::string p_string=from_expr(ns, "", p);
+          //
+          //  std::string comment_t=description+" `"+p_string+"' true";
+          //  goto_program.insert_before_swap(i_it);
+          //  //i_it->make_assertion(p);
+          //  //if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
+          //  //else 
+          //  i_it->make_assertion(not_exprt(p));
+          //  i_it->source_location=source_location;
+          //  i_it->source_location.set_comment(comment_t);
+          //  i_it->source_location.set_property_class("coverage");
         
 
-            std::string comment_f=description+" `"+p_string+"' false";
-            goto_program.insert_before_swap(i_it);
-            //i_it->make_assertion(not_exprt(p));
-            //if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
-            //else 
-            i_it->make_assertion(p);
-            i_it->source_location=source_location;
-            i_it->source_location.set_comment(comment_f);
-            i_it->source_location.set_property_class("coverage");
-          }
+          //  std::string comment_f=description+" `"+p_string+"' false";
+          //  goto_program.insert_before_swap(i_it);
+          //  //i_it->make_assertion(not_exprt(p));
+          //  //if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
+          //  //else 
+          //  i_it->make_assertion(p);
+          //  i_it->source_location=source_location;
+          //  i_it->source_location.set_comment(comment_f);
+          //  i_it->source_location.set_property_class("coverage");
+          //}
           
           std::set<exprt> controlling;
           for(auto &dec: decisions)
           {
             std::set<exprt> ctrl=collect_mcdc_controlling_nested({dec});
-                       
             // collect its controls if there exists
             std::set<exprt> ite_controlling;
             //collect_ite(dec, ite_controlling);
@@ -2093,9 +2093,19 @@ std::vector<std::string> autosac_in_type_strs;
             for(auto &x: controlling)
             {
               std::set<exprt> res=autosac_expand(x);
+              if(res.empty()) 
+              {
+               if(x.id()==ID_not) 
+               {
+                 auto tmp_res=autosac_atomic_negate(x.op0());
+                 res.insert(tmp_res.begin(), tmp_res.end());
+               }
+               else res.insert(x);
+              }
               for (auto &x: res)
               {
                 auto res2=autosac_atomic_expand(x);
+                
                 res.insert(res2.begin(), res2.end());
               }
               controlling2.insert(res.begin(), res.end());
@@ -2107,6 +2117,7 @@ std::vector<std::string> autosac_in_type_strs;
         
           for(const auto & p : controlling)
           {
+            
             std::string p_string=from_expr(ns, "", p);
         
             std::string description=
@@ -2271,7 +2282,7 @@ void collect_tenary_rec(
     {
       exprt e_bool(e);
       e_bool.type().id(ID_bool);
-      e_res.insert(conjunction({e_bool}));
+      //e_res.insert(conjunction({e_bool}));
       e_res.insert(not_exprt(conjunction({e_bool})));
     }
 
