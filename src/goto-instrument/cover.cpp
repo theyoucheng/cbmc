@@ -1715,6 +1715,20 @@ void de_specialize(const exprt& e, std::set<exprt>& res_neq0)
     de_specialize(op, res_neq0);
 }
 
+bool get_first_if(const exprt dec, exprt &e_if)
+{
+  if(dec.id()==ID_if)
+  {
+    e_if=dec;
+    return true;
+  }
+  for(auto &op: dec.operands())
+    if(get_first_if(op, e_if))
+      return true;
+  return false;
+}
+
+
 
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
@@ -2106,7 +2120,15 @@ std::vector<std::string> autosac_in_type_strs;
             // collect its controls if there exists
             std::set<exprt> ite_controlling;
             //collect_ite(dec, ite_controlling);
-            collect_tenary(dec, ite_controlling);
+            //if(dec.id()==ID_if)
+            //  collect_tenary(dec, ite_controlling);
+            //else
+            //{
+              exprt e_if;
+              if(get_first_if(dec, e_if))
+              {
+                collect_tenary(e_if, ite_controlling);
+              }
             ctrl.insert(ite_controlling.begin(), ite_controlling.end());
 
             remove_repetition(ctrl);
@@ -2326,7 +2348,8 @@ void collect_tenary_rec(
       exprt e_bool(e);
       e_bool.type().id(ID_bool);
       //e_res.insert(conjunction({e_bool}));
-      e_res.insert(not_exprt(conjunction({e_bool})));
+      if(not e_bool.is_true())
+        e_res.insert(not_exprt(conjunction({e_bool})));
     }
 
     if(prior.empty())
@@ -2334,8 +2357,11 @@ void collect_tenary_rec(
     else
     {
       for(auto &x: prior)
-        for(auto &y: e_res)
-        res.insert(conjunction({x, y}));
+        if(e_res.empty())
+          res.insert(conjunction({x}));
+        else
+          for(auto &y: e_res)
+            res.insert(conjunction({x, y}));
     }
 
     return;
@@ -2371,7 +2397,7 @@ void collect_tenary_rec(
     else
       Ares_false.insert(x);
   }
-
+  
   std::set<exprt> nu_prior_true, nu_prior_false;
   // if 'prior' is empty
   if(prior.empty())
