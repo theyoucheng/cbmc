@@ -1690,9 +1690,8 @@ bool is_autosac_expression_function(const goto_programt &goto_program)
 }
 
 
-void de_specialize(const exprt& e, std::vector<exprt>& res_neq0)
+void de_specialize(const exprt& e, std::set<exprt>& res_neq0)
 {
-   std::cout << "de-specialize " << from_expr(e) << ", " << e.id() << std::endl;
   
   //if(e.id()==ID_unsignedbv
   //  || e.id()==ID_signedbv
@@ -1708,7 +1707,7 @@ void de_specialize(const exprt& e, std::vector<exprt>& res_neq0)
     exprt ee=st.zero_expr();
     exprt zero= gen_zero(e.type());
     e1.operands().push_back(zero);
-    res_neq0.push_back(e1);
+    res_neq0.insert(e1);
     return; 
   }
 
@@ -2145,10 +2144,12 @@ std::vector<std::string> autosac_in_type_strs;
             std::set<exprt> de_spec_ctrl;
             for(auto &c: controlling)
             {
-              std::vector<exprt> vc;
-              de_specialize(c, vc);
-              if(!vc.empty())
+              std::set<exprt> sc;
+              de_specialize(c, sc);
+              if(!sc.empty())
               {
+                std::vector<exprt> vc(sc.begin(), sc.end());
+                vc.insert(vc.begin(), true_exprt());
                 vc.insert(vc.begin(), c);
                 de_spec_ctrl.insert(conjunction(vc));
               }
