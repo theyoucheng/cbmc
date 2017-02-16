@@ -14,6 +14,7 @@ Date: May 2016
 #include <util/prefix.h>
 #include <util/i2string.h>
 #include <util/expr_util.h>
+#include <util/std_types.h>
 #include <util/ieee_float.h>
 
 #include "cover.h"
@@ -1689,6 +1690,33 @@ bool is_autosac_expression_function(const goto_programt &goto_program)
 }
 
 
+void de_specialize(const exprt& e, std::vector<exprt>& res_neq0)
+{
+   std::cout << "de-specialize " << from_expr(e) << ", " << e.id() << std::endl;
+  
+  //if(e.id()==ID_unsignedbv
+  //  || e.id()==ID_signedbv
+  //  || e.id()==ID_floatbv
+  //  || e.id()==ID_floatbv_typecast
+  if(e.id()==ID_symbol)
+  {
+    exprt e1(ID_notequal);
+    e1.type().id(ID_bool);
+    signedbv_typet st;
+    e1.operands().push_back(e);
+
+    exprt ee=st.zero_expr();
+    exprt zero= gen_zero(e.type());
+    e1.operands().push_back(zero);
+    res_neq0.push_back(e1);
+    return; 
+  }
+
+  for(auto &op: e.operands())
+    de_specialize(op, res_neq0);
+}
+
+
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_programt &goto_program,
@@ -2112,6 +2140,20 @@ std::vector<std::string> autosac_in_type_strs;
             }
             controlling=controlling2;
             remove_repetition(controlling);
+
+            // de-specialize test conditions in 'controlling'
+            std::set<exprt> de_spec_ctrl;
+            for(auto &c: controlling)
+            {
+              std::vector<exprt> vc;
+              de_specialize(c, vc);
+              if(!vc.empty())
+              {
+                vc.insert(vc.begin(), c);
+                de_spec_ctrl.insert(conjunction(vc));
+              }
+            }
+            controlling.insert(de_spec_ctrl.begin(), de_spec_ctrl.end());
           }
         
         
