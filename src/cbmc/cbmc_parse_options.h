@@ -39,7 +39,7 @@ class optionst;
   "(dimacs)(refine)(max-node-refinement):(refine-arrays)(refine-arithmetic)(aig)" \
   "(16)(32)(64)(LP64)(ILP64)(LLP64)(ILP32)(LP32)" \
   "(little-endian)(big-endian)" \
-  "(show-goto-functions)(show-loops)(autosac-strong-in-type)(autosac-weakly-strong-in-type)" \
+  "(show-goto-functions)(show-loops)(autosac-strong-in-type)(autosac-weakly-strong-in-type)(autosac-de-special)" \
   "(show-symbol-table)(show-parse-tree)(show-vcc)" \
   "(show-claims)(claim):(show-properties)(show-reachable-properties)(property):" \
   "(stop-on-fail)(trace)" \

@@ -23,6 +23,7 @@ Date: May 2016
 static double bv_toler=0;
 static bool strong_in_type=false;
 static bool weakly_strong_in_type=false;
+static bool de_special=false;
 
 
 class basic_blockst
@@ -387,8 +388,19 @@ std::set<exprt> collect_mcdc_controlling(
       else result.insert(e);
       continue; //return result;
     }
+    //std::set<exprt> res;
     if(d.operands().size() > 1)
       collect_mcdc_controlling_rec(d, { }, result);
+//for(auto &r: res)
+//std::cout << "rec::: " << from_expr(r) << std::endl;
+//std::cout << std::endl;
+//    if(res.empty())
+//    {
+//      res.insert(d);
+//      res.insert(not_exprt(d));
+//    }
+//    result.insert(res.begin(), res.end());
+    
   }
 
   return result;
@@ -1222,12 +1234,20 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
 
     //return result;
   }
+  else if(src.id()==ID_notequal)
+  {
+    //the negation of ">" should be "==" and "<"
+    exprt e1(ID_equal);
+    e1.type().id(src.type().id());
+    e1.operands().push_back(src.op0());
+    e1.operands().push_back(src.op1());
+    result.insert(e1);
+  }
   return result;
 }
 
 /*******************************************************************\
 
-Function: autosac_atomic_expand
 
   Inputs:
 
@@ -1237,7 +1257,8 @@ Function: autosac_atomic_expand
 
 \*******************************************************************/
 
-static std::set<exprt> bv_with_tolerance(const exprt& src)
+static std::set<exprt> bv_with_tolerance(const exprt& src,
+                                         const bool plus=false)
 {
   assert(bv_toler>=-1 && bv_toler<=1);
   if(bv_toler==0) 
@@ -1250,6 +1271,8 @@ static std::set<exprt> bv_with_tolerance(const exprt& src)
   if(type==ID_signedbv or type==ID_unsignedbv)
   {
     // +1
+    if(plus)
+    {
     exprt e3(ID_equal);
     e3.type().id(src.type().id());
     e3.operands().push_back(src.op0());
@@ -1261,8 +1284,10 @@ static std::set<exprt> bv_with_tolerance(const exprt& src)
 
     e3.operands().push_back(tole);
     result.insert(e3);
-  
+    }
     // -1
+    else
+    {
     exprt e4(ID_equal);
     e4.type().id(src.type().id());
     e4.operands().push_back(src.op0());
@@ -1274,10 +1299,11 @@ static std::set<exprt> bv_with_tolerance(const exprt& src)
 
     e4.operands().push_back(tole2);
     result.insert(e4);
+    }
   }
   else if(type==ID_floatbv)
   {
-    {
+    if(not plus){
     // 0.99
     ieee_floatt f1;
     f1.from_float(1-bv_toler);
@@ -1299,7 +1325,7 @@ static std::set<exprt> bv_with_tolerance(const exprt& src)
     result.insert(e3);
     }
   
-    {
+    else {
     // 1.01
     ieee_floatt f1;
     f1.from_float(1+bv_toler);
@@ -1335,102 +1361,45 @@ std::set<exprt> autosac_atomic_expand(const exprt &src)
    * This is a customized approach to "expand" exprs 
    **/
   std::set<exprt> result;
+  if(src.id()==ID_notequal)
+  {
+      exprt e1(ID_lt);
+      e1.type().id(src.type().id());
+      e1.operands().push_back(src.op0());
+      e1.operands().push_back(src.op1());
+      result.insert(e1);
+
+      exprt e2(ID_gt);
+      e2.type().id(src.type().id());
+      e2.operands().push_back(src.op0());
+      e2.operands().push_back(src.op1());
+      result.insert(e2);    
+      return result;
+  }
 
   if(src.id()==ID_le
      or src.id()==ID_lt)
   {
-    exprt e1(ID_lt);
-    e1.type().id(src.type().id());
-    e1.operands().push_back(src.op0());
-    e1.operands().push_back(src.op1());
-    result.insert(e1);
+    if(src.id()==ID_le)
+    {
+      exprt e1(ID_lt);
+      e1.type().id(src.type().id());
+      e1.operands().push_back(src.op0());
+      e1.operands().push_back(src.op1());
+      result.insert(e1);
 
-    exprt e2(ID_equal);
-    e2.type().id(src.type().id());
-    e2.operands().push_back(src.op0());
-    e2.operands().push_back(src.op1());
-    result.insert(e2);
-
-    auto res=bv_with_tolerance(src);
-    result.insert(res.begin(), res.end());
-
-    // tolerance level
-    //auto &type=src.op0().type().id();
-    //if(type==ID_signedbv or type==ID_unsignedbv)
-    //{
-    //  // +1
-    //  exprt e3(ID_equal);
-    //  e3.type().id(src.type().id());
-    //  e3.operands().push_back(src.op0());
-
-    //  exprt tole(ID_plus, src.op0().type());
-    //  tole.operands().push_back(src.op1());
-    //  constant_exprt p1(i2string(1), src.op0().type());
-    //  tole.operands().push_back(p1);
-
-    //  e3.operands().push_back(tole);
-    //  result.insert(e3);
-   
-    //  // -1
-    //  exprt e4(ID_equal);
-    //  e4.type().id(src.type().id());
-    //  e4.operands().push_back(src.op0());
-
-    //  exprt tole2(ID_minus, src.op0().type());
-    //  tole2.operands().push_back(src.op1());
-    //  constant_exprt m1(i2string(1), src.op0().type());
-    //  tole2.operands().push_back(m1);
-
-    //  e4.operands().push_back(tole2);
-    //  result.insert(e4);
-    //}
-    //else if(type==ID_floatbv)
-    //{
-    //  {
-    //  // 0.99
-    //  ieee_floatt f1;
-    //  f1.from_float(0.99);
-    //  ieee_float_spect dest_spec;
-    //  floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
-    //  dest_spec.from_type(fbv_type);
-    //  f1.change_spec(dest_spec);
-    //  exprt p1=f1.to_expr();
-
-    //  exprt e3(ID_equal);
-    //  e3.type().id(src.type().id());
-    //  e3.operands().push_back(src.op0());
-
-    //  exprt tole3(ID_mult, src.op0().type());
-    //  tole3.operands().push_back(src.op1());
-    //  tole3.operands().push_back(p1);
-    //  e3.operands().push_back(tole3);
-
-    //  result.insert(e3);
-    //  }
-   
-    //  {
-    //  // 1.01
-    //  ieee_floatt f1;
-    //  f1.from_float(1.01);
-    //  ieee_float_spect dest_spec;
-    //  floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
-    //  dest_spec.from_type(fbv_type);
-    //  f1.change_spec(dest_spec);
-    //  exprt p1=f1.to_expr();
-
-    //  exprt e3(ID_equal);
-    //  e3.type().id(src.type().id());
-    //  e3.operands().push_back(src.op0());
-
-    //  exprt tole3(ID_mult, src.op0().type());
-    //  tole3.operands().push_back(src.op1());
-    //  tole3.operands().push_back(p1);
-    //  e3.operands().push_back(tole3);
-
-    //  result.insert(e3);
-    //  }
-   
-    //}
+      exprt e2(ID_equal);
+      e2.type().id(src.type().id());
+      e2.operands().push_back(src.op0());
+      e2.operands().push_back(src.op1());
+      result.insert(e2);
+    }
+    else result.insert(src);
+    if(src.id()==ID_lt)
+    {
+      auto res=bv_with_tolerance(src, false);
+      result.insert(res.begin(), res.end());
+    }
 
     return result;
   }
@@ -1438,20 +1407,26 @@ std::set<exprt> autosac_atomic_expand(const exprt &src)
     or src.id()==ID_gt)
   {
     //the expansion of ">=" should be ">" and "=="
-    exprt e1(ID_gt);
-    e1.type().id(src.type().id());
-    e1.operands().push_back(src.op0());
-    e1.operands().push_back(src.op1());
-    result.insert(e1);
+    if(src.id()==ID_ge)
+    {
+      exprt e1(ID_gt);
+      e1.type().id(src.type().id());
+      e1.operands().push_back(src.op0());
+      e1.operands().push_back(src.op1());
+      result.insert(e1);
 
-    exprt e2(ID_equal);
-    e2.type().id(src.type().id());
-    e2.operands().push_back(src.op0());
-    e2.operands().push_back(src.op1());
-    result.insert(e2);
-
-    auto res=bv_with_tolerance(src);
-    result.insert(res.begin(), res.end());
+      exprt e2(ID_equal);
+      e2.type().id(src.type().id());
+      e2.operands().push_back(src.op0());
+      e2.operands().push_back(src.op1());
+      result.insert(e2);
+    }
+    else result.insert(src);
+    if(src.id()==ID_gt)
+    {
+      auto res=bv_with_tolerance(src, true);
+      result.insert(res.begin(), res.end());
+    }
 
     return result;
   }
@@ -1478,7 +1453,10 @@ std::set<exprt> autosac_expand(const exprt &src)
 
   std::set<exprt> s1, s2;
   if(src.id()!=ID_not)
-    s1.insert(src);
+    if(src.id()==ID_typecast)
+      s1.insert(src.op0());
+    else
+      s1.insert(src);
   else
   {
     exprt no=src.op0();
@@ -1487,6 +1465,7 @@ std::set<exprt> autosac_expand(const exprt &src)
       or no.id()==ID_le 
       or no.id()==ID_ge 
       or no.id()==ID_gt
+      or no.id()==ID_notequal
       or no.id()==ID_typecast)
     {
       auto res=autosac_atomic_negate(no);
@@ -1533,6 +1512,7 @@ std::set<exprt> autosac_expand(const exprt &src)
     s2.clear();
   }
 
+
   s2.clear();
   while(true) // dual-loop structure to expand autosac atomics
   {
@@ -1550,6 +1530,15 @@ std::set<exprt> autosac_expand(const exprt &src)
           changed=true;
           res=autosac_atomic_expand(operands[i]);
         }
+        //if(operands[i].id()==ID_notequal)
+        //{
+        //  if(operands[i].op0().type().id()!=ID_bool
+        //     and operands[i].op1().type().id()!=ID_bool)
+        //  {
+        //     changed=true;
+        //     res=autosac_atomic_expand(operands[i]);
+        //  }
+        //}
 
         std::set<exprt> co=replacement_conjunction(res, operands, i);
         s2.insert(co.begin(), co.end());
@@ -1563,14 +1552,22 @@ std::set<exprt> autosac_expand(const exprt &src)
     s2.clear();
   }
 
+
   s2.clear();
-  //while(true) // dual-loop structure to expand autosac atomics
+  // this part shouold be separated for boundary analysis
   {
     bool changed=false;
     for(auto &x : s1)
     {
       std::vector<exprt> operands;
-      collect_operands(x, operands);
+      if(x.id()==ID_lt or x.id()==ID_gt)
+       operands.push_back(x);
+      else if (not is_condition(x)) collect_operands(x, operands);
+      if(operands.empty())
+      {
+        s2.insert(x);
+        continue;
+      }
       for(int i=0; i<operands.size(); i++)
       {
         std::set<exprt> res;
@@ -1580,6 +1577,7 @@ std::set<exprt> autosac_expand(const exprt &src)
           changed=true;
           res=autosac_atomic_expand(operands[i]);
         }
+        else res.insert(operands[i]);
 
         std::set<exprt> co=replacement_conjunction(res, operands, i);
         s2.insert(co.begin(), co.end());
@@ -2114,22 +2112,29 @@ std::vector<std::string> autosac_in_type_strs;
           //}
           
           std::set<exprt> controlling;
+          std::set<exprt> tenary_controlling;
           for(auto &dec: decisions)
           {
             std::set<exprt> ctrl=collect_mcdc_controlling_nested({dec});
+            exprt e_if;
+            bool has_if=get_first_if(dec, e_if);
+            if(ctrl.empty()&&!has_if)
+            {
+              ctrl.insert(dec);
+              //ctrl.insert(not_exprt(dec));
+              auto tmp=autosac_atomic_negate(dec);
+              ctrl.insert(tmp.begin(), tmp.end());
+            }
+            
             // collect its controls if there exists
             std::set<exprt> ite_controlling;
-            //collect_ite(dec, ite_controlling);
-            //if(dec.id()==ID_if)
-            //  collect_tenary(dec, ite_controlling);
-            //else
-            //{
-              exprt e_if;
-              if(get_first_if(dec, e_if))
-              {
-                collect_tenary(e_if, ite_controlling);
-              }
-            ctrl.insert(ite_controlling.begin(), ite_controlling.end());
+            if(has_if)
+            {
+              if(is_condition(dec))
+                ctrl.clear();
+              collect_tenary(e_if, ite_controlling);
+            }
+            tenary_controlling.insert(ite_controlling.begin(), ite_controlling.end());
 
             remove_repetition(ctrl);
             minimize_mcdc_controlling(ctrl, dec);
@@ -2142,41 +2147,31 @@ std::vector<std::string> autosac_in_type_strs;
             for(auto &x: controlling)
             {
               std::set<exprt> res=autosac_expand(x);
-              if(res.empty()) 
-              {
-               if(x.id()==ID_not) 
-               {
-                 auto tmp_res=autosac_atomic_negate(x.op0());
-                 res.insert(tmp_res.begin(), tmp_res.end());
-               }
-               else res.insert(x);
-              }
-              for (auto &x: res)
-              {
-                auto res2=autosac_atomic_expand(x);
-                
-                res.insert(res2.begin(), res2.end());
-              }
               controlling2.insert(res.begin(), res.end());
             }
-            controlling=controlling2;
+            controlling.swap(controlling2);
             remove_repetition(controlling);
 
+            controlling.insert(tenary_controlling.begin(), tenary_controlling.end());
+
             // de-specialize test conditions in 'controlling'
-            std::set<exprt> de_spec_ctrl;
-            for(auto &c: controlling)
+            if(de_special)
             {
-              std::set<exprt> sc;
-              de_specialize(c, sc);
-              if(!sc.empty())
+              std::set<exprt> de_spec_ctrl;
+              for(auto &c: controlling)
               {
-                std::vector<exprt> vc(sc.begin(), sc.end());
-                vc.insert(vc.begin(), true_exprt());
-                vc.insert(vc.begin(), c);
-                de_spec_ctrl.insert(conjunction(vc));
+                std::set<exprt> sc;
+                de_specialize(c, sc);
+                if(!sc.empty())
+                {
+                  std::vector<exprt> vc(sc.begin(), sc.end());
+                  vc.insert(vc.begin(), true_exprt());
+                  vc.insert(vc.begin(), c);
+                  de_spec_ctrl.insert(conjunction(vc));
+                }
               }
+              controlling.insert(de_spec_ctrl.begin(), de_spec_ctrl.end());
             }
-            controlling.insert(de_spec_ctrl.begin(), de_spec_ctrl.end());
           }
         
         
@@ -2231,12 +2226,14 @@ void instrument_cover_goals(
   coverage_criteriont criterion,
   const double toler,
   const bool autosac_strong_in_type,
-  const bool autosac_weakly_strong_in_type)
+  const bool autosac_weakly_strong_in_type,
+  const bool autosac_de_special)
 {
   assert(!(autosac_strong_in_type and autosac_weakly_strong_in_type));
   bv_toler=toler;
   strong_in_type=autosac_strong_in_type;
   weakly_strong_in_type=autosac_weakly_strong_in_type;
+  de_special=autosac_de_special;
 
   Forall_goto_functions(f_it, goto_functions)
   {
@@ -2340,17 +2337,32 @@ void collect_tenary_rec(
   const std::set<exprt> &prior,
   std::set<exprt> &res)
 {
+  // tenary is in form of 'A?B:C'
+  // e is not 'if' means it is either 'B' or 'C'
   if(e.id() !=ID_if)
   {
     std::set<exprt> e_res=collect_mcdc_controlling_nested({e});
+    remove_repetition(e_res);
+    minimize_mcdc_controlling(e_res, e);
     if(e_res.empty())
     {
       exprt e_bool(e);
       e_bool.type().id(ID_bool);
-      //e_res.insert(conjunction({e_bool}));
-      if(not e_bool.is_true())
+      if(not (e_bool.is_true() or e_bool.is_false() or e_bool.id()==ID_symbol))
+      {
+        e_res.insert(conjunction({e_bool}));
         e_res.insert(not_exprt(conjunction({e_bool})));
+      }
     }
+
+    // we expand the 'e_res' set
+    std::set<exprt> e_res_copy;
+    for(auto &x: e_res)
+    {
+      std::set<exprt> res=autosac_expand(x);
+      e_res_copy.insert(res.begin(), res.end());
+    }
+    e_res.swap(e_res_copy);
 
     if(prior.empty())
       res=e_res;
@@ -2373,11 +2385,14 @@ void collect_tenary_rec(
   const exprt &C=e.op2();
   // apply MC/DC on A
   std::set<exprt> Ares=collect_mcdc_controlling_nested({A});
+
   if(Ares.empty())
   {
     Ares.insert(A);
     Ares.insert(not_exprt(A));
   }
+
+  
 
   // Ares needs to be separated into Ares+ and Ares-
   std::set<exprt> Ares_true, Ares_false;
@@ -2397,6 +2412,21 @@ void collect_tenary_rec(
     else
       Ares_false.insert(x);
   }
+
+  std::set<exprt> Ares_true_ex, Ares_false_ex;
+  for(auto &a: Ares_true)
+  {
+    std::set<exprt> res=autosac_expand(a);
+    Ares_true_ex.insert(res.begin(), res.end());
+  }
+  Ares_true.swap(Ares_true_ex);
+
+  for(auto &a: Ares_false)
+  {
+    std::set<exprt> res=autosac_expand(a);
+    Ares_false_ex.insert(res.begin(), res.end());
+  }
+  Ares_false.swap(Ares_false_ex);
   
   std::set<exprt> nu_prior_true, nu_prior_false;
   // if 'prior' is empty

@@ -1,0 +1,161 @@
+CBMC version 5.5 64-bit x86_64 linux
+Parsing days_in_month.c
+Converting
+Type-checking days_in_month
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Partial Inlining
+Generic Property Instrumentation
+Instrumenting coverage goals
+
+e if ((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31)
+
+---> !(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0)
+---> ((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0
+
+---> m == (unsigned int)1
+---> !(m == (unsigned int)1)
+
+---> year % (unsigned int)100 == (unsigned int)0
+---> !(year % (unsigned int)100 == (unsigned int)0)
+
+---> year % (unsigned int)400 == (unsigned int)0
+---> !(year % (unsigned int)400 == (unsigned int)0)
+
+---> year % (unsigned int)4 == (unsigned int)0
+---> !(year % (unsigned int)4 == (unsigned int)0)
+
+
+--->ite !(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && year % (unsigned int)400 == (unsigned int)0 && TRUE
+
+
+--->ite !(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && !(year % (unsigned int)400 == (unsigned int)0) && TRUE
+
+
+--->ite !(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && !(year % (unsigned int)100 == (unsigned int)0) && year % (unsigned int)4 == (unsigned int)0 && TRUE
+
+
+--->ite !(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && !(year % (unsigned int)100 == (unsigned int)0) && !(year % (unsigned int)4 == (unsigned int)0) && TRUE
+
+
+--->ite !(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && !(m == (unsigned int)1) && TRUE
+
+
+--->ite ((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 && TRUE
+
+Starting Bounded Model Checking
+size of program expression: 70 steps
+Generated 38 VCC(s), 26 remaining after simplification
+Passing problem to propositional reduction
+converting SSA
+Aiming to cover 38 goal(s)
+Running propositional reduction
+Post-processing
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 6603 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 == (unsigned int)0'
+Covered "postcondition at basic_tests.ads:72:40": `___result___ < (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31)) && TRUE && ___result___ != 0u && m != 0u && year != 0u'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 == (unsigned int)0 && TRUE && m != 0u && year != 0u'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && year % (unsigned int)400 == (unsigned int)0 && TRUE && TRUE && m != 0u && year != 0u'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m == (unsigned int)1'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m == (unsigned int)1 && TRUE && m != 0u'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && year % (unsigned int)400 == (unsigned int)0 && TRUE'
+Covered "postcondition at basic_tests.ads:72:40": `___result___ < (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31))'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4234 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 && TRUE && TRUE && m != 0u'
+Covered "postcondition at basic_tests.ads:72:40": `((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 && TRUE'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4234 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `___result___ > (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31)) && TRUE && ___result___ != 0u && m != 0u && year != 0u'
+Covered "postcondition at basic_tests.ads:72:40": `___result___ > (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31))'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4234 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m < (unsigned int)1'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4234 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 > (unsigned int)0 && year % (unsigned int)100 > (unsigned int)0'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 > (unsigned int)0 && year % (unsigned int)100 > (unsigned int)0 && TRUE && m != 0u && year != 0u'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4226 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 > (unsigned int)0'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 > (unsigned int)0 && TRUE && m != 0u && year != 0u'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4226 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `___result___ == (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31)) && TRUE && ___result___ != 0u && m != 0u && year != 0u'
+Covered "postcondition at basic_tests.ads:72:40": `___result___ == (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31))'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4226 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m > (unsigned int)1'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m > (unsigned int)1 && TRUE && m != 0u'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4217 clauses
+SAT checker: instance is SATISFIABLE
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && TRUE && year % (unsigned int)400 > (unsigned int)0'
+Covered "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && TRUE && year % (unsigned int)400 > (unsigned int)0 && TRUE && m != 0u && year != 0u'
+Solving with MiniSAT 2.2.1 with simplifier
+1657 variables, 4216 clauses
+SAT checker inconsistent: instance is UNSATISFIABLE
+Runtime decision procedure: 0.021s
+
+** coverage results:
+[main.coverage.1] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 > (unsigned int)0 && year % (unsigned int)100 > (unsigned int)0': SATISFIED
+[main.coverage.2] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 > (unsigned int)0 && year % (unsigned int)100 == (unsigned int)0': FAILED
+[main.coverage.3] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)100 < (unsigned int)0 && year % (unsigned int)4 > (unsigned int)0': FAILED
+[main.coverage.4] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 < (unsigned int)0 && year % (unsigned int)100 > (unsigned int)0': FAILED
+[main.coverage.5] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 < (unsigned int)0 && year % (unsigned int)100 == (unsigned int)0': FAILED
+[main.coverage.6] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 < (unsigned int)0 && year % (unsigned int)100 < (unsigned int)0': FAILED
+[main.coverage.7] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && TRUE && year % (unsigned int)400 > (unsigned int)0': SATISFIED
+[main.coverage.8] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && TRUE && year % (unsigned int)400 < (unsigned int)0': FAILED
+[main.coverage.9] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 > (unsigned int)0': SATISFIED
+[main.coverage.10] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 == (unsigned int)0': SATISFIED
+[main.coverage.11] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 < (unsigned int)0': FAILED
+[main.coverage.12] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `___result___ > (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31)) && TRUE && ___result___ != 0u && m != 0u && year != 0u': SATISFIED
+[main.coverage.13] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `___result___ == (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31)) && TRUE && ___result___ != 0u && m != 0u && year != 0u': SATISFIED
+[main.coverage.14] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `___result___ < (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31)) && TRUE && ___result___ != 0u && m != 0u && year != 0u': SATISFIED
+[main.coverage.15] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 > (unsigned int)0 && year % (unsigned int)100 > (unsigned int)0 && TRUE && m != 0u && year != 0u': SATISFIED
+[main.coverage.16] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 > (unsigned int)0 && year % (unsigned int)100 == (unsigned int)0 && TRUE && m != 0u && year != 0u': FAILED
+[main.coverage.17] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)100 < (unsigned int)0 && year % (unsigned int)4 > (unsigned int)0 && TRUE && m != 0u && year != 0u': FAILED
+[main.coverage.18] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 < (unsigned int)0 && year % (unsigned int)100 > (unsigned int)0 && TRUE && m != 0u && year != 0u': FAILED
+[main.coverage.19] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 < (unsigned int)0 && year % (unsigned int)100 == (unsigned int)0 && TRUE && m != 0u && year != 0u': FAILED
+[main.coverage.20] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && TRUE && year % (unsigned int)4 < (unsigned int)0 && year % (unsigned int)100 < (unsigned int)0 && TRUE && m != 0u && year != 0u': FAILED
+[main.coverage.21] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && TRUE && year % (unsigned int)400 > (unsigned int)0 && TRUE && m != 0u && year != 0u': SATISFIED
+[main.coverage.22] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && TRUE && year % (unsigned int)400 < (unsigned int)0 && TRUE && m != 0u && year != 0u': FAILED
+[main.coverage.23] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 > (unsigned int)0 && TRUE && m != 0u && year != 0u': SATISFIED
+[main.coverage.24] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 == (unsigned int)0 && TRUE && m != 0u && year != 0u': SATISFIED
+[main.coverage.25] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)4 == (unsigned int)0 && TRUE && year % (unsigned int)100 < (unsigned int)0 && TRUE && m != 0u && year != 0u': FAILED
+[main.coverage.26] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && year % (unsigned int)400 == (unsigned int)0 && TRUE && TRUE && m != 0u && year != 0u': SATISFIED
+[main.coverage.27] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m > (unsigned int)1': SATISFIED
+[main.coverage.28] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m == (unsigned int)1': SATISFIED
+[main.coverage.29] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m < (unsigned int)1': SATISFIED
+[main.coverage.30] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m > (unsigned int)1 && TRUE && m != 0u': SATISFIED
+[main.coverage.31] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m == (unsigned int)1 && TRUE && m != 0u': SATISFIED
+[main.coverage.32] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && TRUE && m < (unsigned int)1 && TRUE && m != 0u': FAILED
+[main.coverage.33] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 && TRUE && TRUE && m != 0u': SATISFIED
+[main.coverage.34] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 && TRUE': SATISFIED
+[main.coverage.35] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `!(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0) && m == (unsigned int)1 && year % (unsigned int)100 == (unsigned int)0 && year % (unsigned int)400 == (unsigned int)0 && TRUE': SATISFIED
+[main.coverage.36] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `___result___ > (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31))': SATISFIED
+[main.coverage.37] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `___result___ == (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31))': SATISFIED
+[main.coverage.38] file days_in_month.c line 52 function main "postcondition at basic_tests.ads:72:40": `___result___ < (unsigned int)(((signed int)(m == (unsigned int)8) | (signed int)(m == (unsigned int)3) | (signed int)(m == (unsigned int)5) | (signed int)(m == (unsigned int)10)) != 0 ? 30 : (m == (unsigned int)1 ? (year % (unsigned int)100 == (unsigned int)0 ? (year % (unsigned int)400 == (unsigned int)0 ? 29 : 28) : (year % (unsigned int)4 == (unsigned int)0 ? 29 : 28)) : 31))': SATISFIED
+
+** 23 of 38 covered (60.5%)
+** Used 10 iterations
+Test suite:
+
+
+
+
+
+
+
+
+

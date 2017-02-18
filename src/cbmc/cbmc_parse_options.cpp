@@ -984,6 +984,7 @@ bool cbmc_parse_optionst::process_goto_program(
       double toler=0;
       bool autosac_strong_in_type=false;
       bool autosac_weakly_strong_in_type=false;
+      bool autosac_de_special=false;
       if(cmdline.isset("boundary"))
       {
         toler=atof(cmdline.get_value("boundary").c_str());
@@ -992,7 +993,9 @@ bool cbmc_parse_optionst::process_goto_program(
           autosac_strong_in_type=true;
       if(cmdline.isset("autosac-weakly-strong-in-type"))
           autosac_weakly_strong_in_type=true;
-      instrument_cover_goals(symbol_table, goto_functions, c, toler, autosac_strong_in_type, autosac_weakly_strong_in_type);
+      if(cmdline.isset("autosac-de-special"))
+          autosac_de_special=true;
+      instrument_cover_goals(symbol_table, goto_functions, c, toler, autosac_strong_in_type, autosac_weakly_strong_in_type, autosac_de_special);
       goto_functions.update();
     }
 
