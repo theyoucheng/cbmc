@@ -1691,12 +1691,13 @@ bool is_autosac_expression_function(const goto_programt &goto_program)
 void de_specialize(const exprt& e, std::set<exprt>& res_neq0)
 {
   
-  //if(e.id()==ID_unsignedbv
-  //  || e.id()==ID_signedbv
-  //  || e.id()==ID_floatbv
-  //  || e.id()==ID_floatbv_typecast
   if(e.id()==ID_symbol)
   {
+  if(not(e.id()==ID_unsignedbv
+    || e.id()==ID_signedbv
+    || e.id()==ID_floatbv
+    || e.id()==ID_floatbv_typecast))
+    return;
     exprt e1(ID_notequal);
     e1.type().id(ID_bool);
     signedbv_typet st;
