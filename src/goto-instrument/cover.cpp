@@ -404,8 +404,6 @@ std::set<exprt> collect_mcdc_controlling(
     if(d.operands().size() > 1)
       collect_mcdc_controlling_rec(d, { }, result);
 //for(auto &r: res)
-//std::cout << "rec::: " << from_expr(r) << std::endl;
-//std::cout << std::endl;
 //    if(res.empty())
 //    {
 //      res.insert(d);
@@ -430,6 +428,33 @@ Function: replacement_conjunction
           expr inside ''replacement_exprs''.
 
 \*******************************************************************/
+
+std::set<exprt> replacement(
+  const std::set<exprt> &replacement_exprs,
+  const std::vector<exprt> &operands,
+  const std::size_t i,
+  const exprt& origin)
+{
+  std::set<exprt> result;
+  for(auto &y : replacement_exprs)
+  {
+    std::vector<exprt> others;
+    for(std::size_t j=0; j<operands.size(); j++)
+      if(i!=j)
+        others.push_back(operands[j]);
+      else
+      {
+        exprt yy(y);
+        yy.type()=operands.at(i).type();
+        others.push_back(yy);
+      }
+    exprt c(origin); //=conjunction(others);
+    c.operands().swap(others);
+    result.insert(c);
+  }
+  return result;
+}
+        
 
 std::set<exprt> replacement_conjunction(
   const std::set<exprt> &replacement_exprs,
@@ -1170,7 +1195,6 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
 
   if( src.id()==ID_equal)
   {
-//std::cout << "negat : " << from_expr(src) << ", " << enum_oper(src) << std::endl << std::endl;
     if(enum_oper(src))
     {
       exprt e1(ID_notequal);
@@ -1607,7 +1631,6 @@ std::set<exprt> autosac_expand(const exprt &src)
            or operands[i].id()==ID_gt)
         {
           changed=true;
-//std::cout << "expand : " << from_expr(operands.at(i)) << ", " << enum_oper(operands.at(i)) << std::endl << std::endl;
           res=autosac_atomic_expand(operands[i]);
         }
         else res.insert(operands[i]);
@@ -1761,6 +1784,7 @@ bool get_first_if(const exprt dec, exprt &e_if)
 }
 
 
+std::set<exprt> tenary_expand(const exprt &src);
 
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
@@ -2174,6 +2198,7 @@ std::vector<std::string> autosac_in_type_strs;
             minimize_mcdc_controlling(ctrl, dec);
             controlling.insert(ctrl.begin(), ctrl.end());
           }
+
         
           if(autosac)
           {
@@ -2187,6 +2212,15 @@ std::vector<std::string> autosac_in_type_strs;
             remove_repetition(controlling);
 
             controlling.insert(tenary_controlling.begin(), tenary_controlling.end());
+
+            // to this stage, we expand every nested tenary operator
+            std::set<exprt> tenary_ex;
+            for(auto &x: controlling)
+            {
+              auto tenary_res=tenary_expand(x);
+              tenary_ex.insert(tenary_res.begin(), tenary_res.end());
+            }
+            controlling.swap(tenary_ex);
 
             // de-specialize test conditions in 'controlling'
             if(de_special)
@@ -2375,7 +2409,9 @@ void collect_tenary_rec(
   // e is not 'if' means it is either 'B' or 'C'
   if(e.id() !=ID_if)
   {
+
     std::set<exprt> e_res=collect_mcdc_controlling_nested({e});
+
     remove_repetition(e_res);
     minimize_mcdc_controlling(e_res, e);
     if(e_res.empty())
@@ -2508,6 +2544,57 @@ void collect_tenary(const exprt &src,
 }
 
 
+
+std::set<exprt> tenary_expand(const exprt &src)
+{
+  
+  std::set<exprt> result;
+
+  if(src.id()==ID_if)
+  {
+    collect_tenary(src, result);
+    return result;
+  }
+
+  std::set<exprt> s1, s2;
+  s1.insert(src);
+
+  while(true) // dual-loop structure to expand negations
+  {
+    bool changed=false;
+    for(auto &x : s1)
+    {
+      std::vector<exprt> operands;
+      collect_operands(x, operands);
+      for(int i=0; i<operands.size(); i++)
+      {
+        std::set<exprt> res;
+        if(operands[i].id()==ID_if)
+        {
+          changed=true;
+          collect_tenary(operands.at(i), res);
+        }
+        else 
+        res=tenary_expand(operands.at(i));
+
+
+        if(res.size()>1)
+        { 
+          std::set<exprt> co=replacement(res, operands, i, x);
+          s2.insert(co.begin(), co.end());
+          changed=true;
+        }
+        if(res.size()>1) break;
+      }
+      if(not changed) s2.insert(x);
+    }
+    if(not changed)
+      break; //return s1;
+    s1=s2;
+    s2.clear();
+  }
+  return s1;
+}
 
 
 
