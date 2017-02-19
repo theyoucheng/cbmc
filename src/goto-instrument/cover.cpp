@@ -361,6 +361,18 @@ Function: collect_mcdc_controlling
 \*******************************************************************/
 
 std::set<exprt> autosac_atomic_expand(const exprt &src);
+bool enum_oper(const exprt& src)
+{
+  if(src.type().id()==ID_enumeration)
+   {
+     return true;
+   }
+   for(auto &op: src.operands())
+    if(enum_oper(op))
+      return true;
+   return false;
+}
+
 
 std::set<exprt> collect_mcdc_controlling(
   const std::set<exprt> &decisions)
@@ -1158,6 +1170,16 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
 
   if( src.id()==ID_equal)
   {
+//std::cout << "negat : " << from_expr(src) << ", " << enum_oper(src) << std::endl << std::endl;
+    if(enum_oper(src))
+    {
+      exprt e1(ID_notequal);
+      e1.type().id(src.type().id());
+      e1.operands().push_back(src.op0());
+      e1.operands().push_back(src.op1());
+      result.insert(e1);
+      return result;
+    }
     // the negation of "==" is "<" and ">"
     exprt e1(ID_lt);
     e1.type().id(src.type().id());
@@ -1236,6 +1258,15 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
   }
   else if(src.id()==ID_notequal)
   {
+    if(enum_oper(src))
+    {
+      //exprt e1(ID_equal);
+      //e1.type().id(src.type().id());
+      //e1.operands().push_back(src.op0());
+      //e1.operands().push_back(src.op1());
+      result.insert(src);
+      return result;
+    }
     //the negation of ">" should be "==" and "<"
     exprt e1(ID_equal);
     e1.type().id(src.type().id());
@@ -1468,6 +1499,7 @@ std::set<exprt> autosac_expand(const exprt &src)
       or no.id()==ID_notequal
       or no.id()==ID_typecast)
     {
+      
       auto res=autosac_atomic_negate(no);
       for(auto &x:res)
         s1.insert(x);
@@ -1575,6 +1607,7 @@ std::set<exprt> autosac_expand(const exprt &src)
            or operands[i].id()==ID_gt)
         {
           changed=true;
+//std::cout << "expand : " << from_expr(operands.at(i)) << ", " << enum_oper(operands.at(i)) << std::endl << std::endl;
           res=autosac_atomic_expand(operands[i]);
         }
         else res.insert(operands[i]);
