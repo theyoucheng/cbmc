@@ -1193,7 +1193,7 @@ std::set<exprt> autosac_atomic_negate(const exprt &src)
    **/
   std::set<exprt> result;
 
-  if( src.id()==ID_equal)
+  if( src.id()==ID_equal or src.id()==ID_ieee_float_equal)
   {
     if(enum_oper(src))
     {
@@ -1516,6 +1516,7 @@ std::set<exprt> autosac_expand(const exprt &src)
   {
     exprt no=src.op0();
     if(no.id()==ID_equal 
+      or no.id()==ID_ieee_float_equal 
       or no.id()==ID_lt 
       or no.id()==ID_le 
       or no.id()==ID_ge 
@@ -2136,39 +2137,6 @@ std::vector<std::string> autosac_in_type_strs;
         
           const source_locationt source_location=i_it->source_location;
         
-          //for(const auto & p : both)
-          //{
-          //  bool is_decision=decisions.find(p)!=decisions.end();
-          //  bool is_condition=conditions.find(p)!=conditions.end();
-          //  
-          //  std::string description=words.at(xx/2)+": "+
-          //    ((is_decision && is_condition)?"decision/condition":
-          //    is_decision?"decision":"condition");
-          //    
-          //  std::string p_string=from_expr(ns, "", p);
-          //
-          //  std::string comment_t=description+" `"+p_string+"' true";
-          //  goto_program.insert_before_swap(i_it);
-          //  //i_it->make_assertion(p);
-          //  //if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
-          //  //else 
-          //  i_it->make_assertion(not_exprt(p));
-          //  i_it->source_location=source_location;
-          //  i_it->source_location.set_comment(comment_t);
-          //  i_it->source_location.set_property_class("coverage");
-        
-
-          //  std::string comment_f=description+" `"+p_string+"' false";
-          //  goto_program.insert_before_swap(i_it);
-          //  //i_it->make_assertion(not_exprt(p));
-          //  //if(p.id()==ID_forall or p.id()==ID_exists) i_it->make_skip();
-          //  //else 
-          //  i_it->make_assertion(p);
-          //  i_it->source_location=source_location;
-          //  i_it->source_location.set_comment(comment_f);
-          //  i_it->source_location.set_property_class("coverage");
-          //}
-          
           std::set<exprt> controlling;
           std::set<exprt> tenary_controlling;
           for(auto &dec: decisions)
