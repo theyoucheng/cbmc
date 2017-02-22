@@ -1817,6 +1817,7 @@ std::vector<std::string> autosac_in_type_strs;
   Forall_goto_program_instructions(i_it, goto_program)
   {
 
+        if(i_it->is_return() and is_autosac_expr) is_autosac_expr=false;
 	if(i_it->is_function_call())
 	  if(function_name_prefix(i_it->code, std::string("__AUTOSAC_expression_function")))
 	  {
@@ -2116,7 +2117,6 @@ std::vector<std::string> autosac_in_type_strs;
               words=autosac_words;
               autosac_vect.clear();
               autosac_words.clear();
-              is_autosac_expr=false;
             }
             else
               autosac_words.push_back("");
@@ -2131,9 +2131,16 @@ std::vector<std::string> autosac_in_type_strs;
           std::set<exprt> conditions, decisions;
           //if(xx+1<cond_dec.size()) 
           //{
-            conditions=cond_dec.at(xx+1);
-            decisions=cond_dec.at(xx);
-          //}
+            if(is_autosac_expr)
+            {
+              conditions=cond_dec.at(xx);
+              decisions=cond_dec.at(xx+1);
+            }
+            else
+            {
+              conditions=cond_dec.at(xx+1);
+              decisions=cond_dec.at(xx);
+            }
           //else decisions=cond_dec.at(xx);
           
         
