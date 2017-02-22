@@ -1794,6 +1794,7 @@ void instrument_cover_goals(
 {
 
 bool is_autosac_expr=false;
+bool autosac_started=false;
 
 std::vector<exprt> expression_functions, expression_bodys;
 
@@ -2022,6 +2023,7 @@ std::vector<std::string> autosac_in_type_strs;
           autosac_func_call=is_autosac_function(i_it->code);
         if(autosac_func_call)
           autosac_barrier=is_autosac_barrier(i_it->code);
+        if(autosac_func_call) autosac_started=true;
 
         const std::set<exprt> conditions1=collect_conditions(i_it); //0
         const std::set<exprt> decisions1=collect_decisions(i_it);  //1
@@ -2090,6 +2092,8 @@ std::vector<std::string> autosac_in_type_strs;
 
           cond_dec=autosac_vect;
           words=autosac_words;
+          reverse(cond_dec.begin(), cond_dec.end());
+          reverse(words.begin(), words.end());
           autosac_vect.clear();
           autosac_words.clear();
         }
@@ -2100,8 +2104,11 @@ std::vector<std::string> autosac_in_type_strs;
           //words.push_back("");
           if(not (conditions1.size()==0 and decisions1.size()==0))
           {
-            autosac_vect.push_back(conditions1);
-            autosac_vect.push_back(decisions1);
+            if(is_autosac_expr or autosac_started)
+            {
+              autosac_vect.push_back(conditions1);
+              autosac_vect.push_back(decisions1);
+            }
             if(is_autosac_expr)
             {
               autosac_words.push_back(std::string("autosac exprssion function \'") + i_it->function.c_str() + std::string("\': "));
@@ -2109,6 +2116,7 @@ std::vector<std::string> autosac_in_type_strs;
               words=autosac_words;
               autosac_vect.clear();
               autosac_words.clear();
+              is_autosac_expr=false;
             }
             else
               autosac_words.push_back("");
@@ -2123,8 +2131,8 @@ std::vector<std::string> autosac_in_type_strs;
           std::set<exprt> conditions, decisions;
           //if(xx+1<cond_dec.size()) 
           //{
-            conditions=cond_dec.at(xx);
-            decisions=cond_dec.at(xx+1);
+            conditions=cond_dec.at(xx+1);
+            decisions=cond_dec.at(xx);
           //}
           //else decisions=cond_dec.at(xx);
           
