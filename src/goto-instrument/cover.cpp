@@ -1628,14 +1628,11 @@ std::set<exprt> autosac_expand(const exprt &src)
       for(int i=0; i<operands.size(); i++)
       {
         std::set<exprt> res;
-        if(bv_toler!=0 and (operands[i].id()==ID_lt
-           or operands[i].id()==ID_gt))
+        if(operands[i].id()==ID_lt
+           or operands[i].id()==ID_gt)
         {
           changed=true;
-          //res=autosac_atomic_expand(operands[i]);
-          res=bv_with_tolerance(operands[i], ID_gt==operands[i].id());
-          if(res.empty())
-            res.insert(operands[i]);
+          res=autosac_atomic_expand(operands[i]);
         }
         else res.insert(operands[i]);
 

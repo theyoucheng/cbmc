@@ -60,10 +60,8 @@ _Bool A, B, C;
   // This is a bug __AUTOSAC_postcondition(((!A)?2:1), "autosc post conditions");
   //__AUTOSAC_postcondition((A?m:n), "autosc post conditions");
   //__AUTOSAC_postcondition(A, "autosc post conditions");
-
-  __AUTOSAC_postcondition(0<=m && m<=10, "autosc post conditions");
   
-  //__AUTOSAC_postcondition(m+n>10000?res==10000:res==m+n, "autosc post conditions");
+   __AUTOSAC_postcondition(m+n>10000?res==10000:res==m+n, "autosc post conditions");
   __AUTOSAC_conditions_go_here("postconditions");
   
   //__CPROVER_assert(f_expr(x,y)<z, "");
