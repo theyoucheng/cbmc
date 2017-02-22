@@ -1784,6 +1784,17 @@ bool get_first_if(const exprt dec, exprt &e_if)
   return false;
 }
 
+bool is_loop_head(goto_programt::instructionst::iterator it_h,
+                  goto_programt &goto_program)
+{
+  assert(it_h->is_goto());
+  Forall_goto_program_instructions(i_it, goto_program)
+    if(i_it->is_goto())
+      if(i_it->get_target()==it_h) return true;
+  return false;
+}
+
+
 
 std::set<exprt> tenary_expand(const exprt &src);
 
@@ -1824,6 +1835,8 @@ std::vector<std::string> autosac_in_type_strs;
 		  is_autosac_expr=true;
 		  continue;
 	  }
+        if(i_it->is_goto())
+          if(is_loop_head(i_it, goto_program)) continue;
 
     switch(criterion)
     {
