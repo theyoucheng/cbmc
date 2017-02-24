@@ -6,6 +6,8 @@ SRC = cbmc_main.cpp cbmc_parse_options.cpp bmc.cpp cbmc_dimacs.cpp \
 
 OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../cpp/cpp$(LIBEXT) \
+      ../json/json$(LIBEXT) \
+      ../json-symtab-language/json_symtab_language$(LIBEXT) \
       ../linking/linking$(LIBEXT) \
       ../big-int/big-int$(LIBEXT) \
       ../goto-programs/goto-programs$(LIBEXT) \
