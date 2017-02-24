@@ -1708,14 +1708,16 @@ bool function_name_prefix(const codet& code, const std::string& s)
   return has_prefix(func_name, s);
 }
 
-std::string autosac_description(const codet& code)
+std::string autosac_description(const codet& code, bool post)
 {
   const code_function_callt &code_function_call=
     to_code_function_call(code);
-  if(code_function_call.arguments().size()!=2) return "";
+  if(code_function_call.arguments().size()!=2) return post?"(output) ":"";
   auto it=code_function_call.arguments().begin();
   it++;
-  return from_expr(*it);
+  std::string desc=from_expr(*it);
+  if(post) desc.insert(1,"(output) ");
+  return desc;
 }
 
 
@@ -1806,6 +1808,7 @@ void instrument_cover_goals(
 
 bool is_autosac_expr=false;
 bool autosac_started=false;
+bool autosac_pre_done=false;
 
 std::vector<exprt> expression_functions, expression_bodys;
 
@@ -1829,6 +1832,9 @@ std::vector<std::string> autosac_in_type_strs;
   {
 
         if(i_it->is_return() and is_autosac_expr) is_autosac_expr=false;
+        if(i_it->is_return() and autosac_started) autosac_started=false;
+        if(i_it->is_return() and autosac_pre_done) autosac_pre_done=false;
+
 	if(i_it->is_function_call())
 	  if(function_name_prefix(i_it->code, std::string("__AUTOSAC_expression_function")))
 	  {
@@ -2035,9 +2041,13 @@ std::vector<std::string> autosac_in_type_strs;
         bool autosac=(criterion==coverage_criteriont::AUTOSAC);
         if(autosac && i_it->is_function_call())
           autosac_func_call=is_autosac_function(i_it->code);
-        if(autosac_func_call)
+        if(autosac_func_call)       
+        {
           autosac_barrier=is_autosac_barrier(i_it->code);
-        if(autosac_func_call) autosac_started=true;
+          if(function_name_prefix(i_it->code, "__AUTOSAC_in_type")) autosac_started=true;
+          if(function_name_prefix(i_it->code, "__AUTOSAC_conditions_go_here")) 
+          { autosac_pre_done=true;}
+        }
 
         const std::set<exprt> conditions1=collect_conditions(i_it); //0
         const std::set<exprt> decisions1=collect_decisions(i_it);  //1
@@ -2050,12 +2060,12 @@ std::vector<std::string> autosac_in_type_strs;
            * AUTOSAC assertions are inserted only when 
            * meeting a barrier.
            */
-          std::string desc=autosac_description(i_it->code);
+          std::string desc=autosac_description(i_it->code, autosac_pre_done);
           if((not (strong_in_type or weakly_strong_in_type)) or (not is_autosac_in_type_function(i_it->code)))
           {
             autosac_vect.push_back(conditions1);
             autosac_vect.push_back(decisions1);
-            autosac_words.push_back(autosac_description(i_it->code));
+            autosac_words.push_back(desc); //autosac_description(i_it->code));
           }
           else if(weakly_strong_in_type)
           {
@@ -2125,7 +2135,8 @@ std::vector<std::string> autosac_in_type_strs;
             }
             if(is_autosac_expr)
             {
-              autosac_words.push_back(std::string("autosac exprssion function \'") + i_it->function.c_str() + std::string("\': "));
+              std::string tmp(std::string("autosac exprssion function ") + i_it->function.c_str() + std::string(" "));
+              autosac_words.push_back(tmp); 
               cond_dec=autosac_vect;
               words=autosac_words;
               autosac_vect.clear();
