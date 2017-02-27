@@ -46,7 +46,7 @@ bool get_goto_modelt::operator()(const std::vector<std::string> &files)
     binaries.reserve(files.size());
     sources.reserve(files.size());
 
-    for(const auto & file : files)
+    for(const auto &file : files)
     {
       if(is_goto_binary(file))
         binaries.push_back(file);
@@ -57,15 +57,15 @@ bool get_goto_modelt::operator()(const std::vector<std::string> &files)
     if(!sources.empty())
     {
       language_filest language_files;
-      
+
       language_files.set_message_handler(get_message_handler());
 
-      for(const auto & filename : sources)
+      for(const auto &filename : sources)
       {
         #ifdef _MSC_VER
-        std::ifstream infile(widen(filename).c_str());
+        std::ifstream infile(widen(filename));
         #else
-        std::ifstream infile(filename.c_str());
+        std::ifstream infile(filename);
         #endif
 
         if(!infile)
@@ -74,7 +74,7 @@ bool get_goto_modelt::operator()(const std::vector<std::string> &files)
                   << '\'' << eom;
           return true;
         }
-        
+
         std::pair<language_filest::filemapt::iterator, bool>
           result=language_files.filemap.insert(
             std::pair<std::string, language_filet>(filename, language_filet()));
@@ -89,7 +89,7 @@ bool get_goto_modelt::operator()(const std::vector<std::string> &files)
           error("failed to figure out type of file", filename);
           return true;
         }
-        
+
         languaget &language=*lf.language;
         language.set_message_handler(get_message_handler());
 
@@ -101,11 +101,11 @@ bool get_goto_modelt::operator()(const std::vector<std::string> &files)
           return true;
         }
 
-        lf.get_modules();         
+        lf.get_modules();
       }
 
       status() << "Converting" << eom;
-      
+
       if(language_files.typecheck(symbol_table))
       {
         error() << "CONVERSION ERROR" << eom;
@@ -122,11 +122,11 @@ bool get_goto_modelt::operator()(const std::vector<std::string> &files)
       }
     }
 
-    for(const auto & it : binaries)
+    for(const auto &file : binaries)
     {
       status() << "Reading GOTO program from file" << eom;
 
-      if(read_object_and_link(it, *this, get_message_handler()))
+      if(read_object_and_link(file, *this, get_message_handler()))
         return true;
     }
 
@@ -151,17 +151,17 @@ bool get_goto_modelt::operator()(const std::vector<std::string> &files)
     error() << e << eom;
     return true;
   }
-  
+
   catch(int)
   {
     return true;
   }
-  
+
   catch(std::bad_alloc)
   {
     error() << "Out of memory" << eom;
     return true;
   }
-  
+
   return false; // no error
 }

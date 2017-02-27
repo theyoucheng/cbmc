@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_DANGER_SOLUTION_FACTORY_H_
-#define CEGIS_DANGER_SOLUTION_FACTORY_H_
+#ifndef CPROVER_CEGIS_DANGER_SYMEX_LEARN_SOLUTION_FACTORY_H
+#define CPROVER_CEGIS_DANGER_SYMEX_LEARN_SOLUTION_FACTORY_H
 
 #include <goto-programs/goto_program.h>
 
@@ -63,4 +63,4 @@ void create_danger_solution(danger_goto_solutiont &result,
     const danger_programt &prog, const program_individualt &ind,
     const operand_variable_idst &ids);
 
-#endif /* CEGIS_DANGER_SOLUTION_FACTORY_H_ */
+#endif // CPROVER_CEGIS_DANGER_SYMEX_LEARN_SOLUTION_FACTORY_H

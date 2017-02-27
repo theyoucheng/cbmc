@@ -9,7 +9,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <limits>
 
 #include <util/source_location.h>
-#include <util/i2string.h>
 
 #include "symex_bmc.h"
 
@@ -30,7 +29,9 @@ symex_bmct::symex_bmct(
   symbol_tablet &_new_symbol_table,
   symex_targett &_target):
   goto_symext(_ns, _new_symbol_table, _target),
-  max_unwind_is_set(false)
+  record_coverage(false),
+  max_unwind_is_set(false),
+  symex_coverage(_ns)
 {
 }
 
@@ -62,6 +63,10 @@ void symex_bmct::symex_step(
     last_source_location=source_location;
   }
 
+  if(record_coverage &&
+     !state.guard.is_false())
+    symex_coverage.covered(state.source.pc);
+
   goto_symext::symex_step(goto_functions, state);
 }
 
@@ -87,10 +92,10 @@ bool symex_bmct::get_unwind(
   // and 'infinity' when we have none.
 
   unsigned this_loop_limit=std::numeric_limits<unsigned>::max();
-  
+
   loop_limitst &this_thread_limits=
     thread_loop_limits[source.thread_nr];
-    
+
   loop_limitst::const_iterator l_it=this_thread_limits.find(id);
   if(l_it!=this_thread_limits.end())
     this_loop_limit=l_it->second;
@@ -142,7 +147,7 @@ bool symex_bmct::get_unwind_recursion(
 
   loop_limitst &this_thread_limits=
     thread_loop_limits[thread_nr];
-    
+
   loop_limitst::const_iterator l_it=this_thread_limits.find(id);
   if(l_it!=this_thread_limits.end())
     this_loop_limit=l_it->second;
@@ -165,7 +170,7 @@ bool symex_bmct::get_unwind_recursion(
                  << " recursion "
                  << symbol.display_name()
                  << " iteration " << unwind;
-    
+
     if(this_loop_limit!=std::numeric_limits<unsigned>::max())
       statistics() << " (" << this_loop_limit << " max)";
 

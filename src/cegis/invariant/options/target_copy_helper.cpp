@@ -1,3 +1,12 @@
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
 #include <algorithm>
 #include <iterator>
 #include <functional>
@@ -8,10 +17,6 @@
 target_copy_helpert::target_copy_helpert(const goto_programt &old_body,
     goto_programt &new_body) :
     old_instrs(old_body.instructions), new_instrs(new_body.instructions)
-{
-}
-
-target_copy_helpert::~target_copy_helpert()
 {
 }
 

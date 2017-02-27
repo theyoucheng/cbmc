@@ -7,14 +7,14 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_PATH_SYMEX_STATE_H
-#define CPROVER_PATH_SYMEX_STATE_H
+#ifndef CPROVER_AA_PATH_SYMEX_PATH_SYMEX_STATE_H
+#define CPROVER_AA_PATH_SYMEX_PATH_SYMEX_STATE_H
 
 #include <algorithm>
 
-#include "locs.h"
-#include "var_map.h"
-#include "path_symex_history.h"
+#include <path-symex/locs.h>
+#include <path-symex/var_map.h>
+#include <path-symex/path_symex_history.h>
 
 // These variables may be defined in this header file only because
 // it is (transitively) included by many essential path-symex files.
@@ -83,7 +83,7 @@ public:
 
   // like initial state except that branches are copied from "other"
   // and history will be 'nil'
-  static path_symex_statet lazy_copy(path_symex_statet& other)
+  static path_symex_statet lazy_copy(path_symex_statet &other)
   {
     // allow compiler to use RVO
     return path_symex_statet(
@@ -104,7 +104,7 @@ public:
     // it's a given explicit value or a symbol with given identifier
     exprt value;
     symbol_exprt ssa_symbol;
-    
+
     // for uninterpreted functions or arrays we maintain an index set
     typedef std::set<exprt> index_sett;
     index_sett index_set;
@@ -115,11 +115,11 @@ public:
     {
     }
   };
-  
+
   // the values of the shared variables
   typedef std::vector<var_statet> var_valt;
   var_valt shared_vars;
-  
+
   // procedure frame
   struct framet
   {
@@ -129,68 +129,68 @@ public:
     var_valt saved_local_vars;
   };
 
-  // call stack  
+  // call stack
   typedef std::vector<framet> call_stackt;
-  
+
   // the state of a thread
   struct threadt
   {
   public:
-    loc_reft pc;    
+    loc_reft pc;
     call_stackt call_stack; // the call stack
     var_valt local_vars; // thread-local variables
     bool active;
-    
+
     threadt():active(true)
     {
     }
   };
-  
+
   typedef std::vector<threadt> threadst;
   threadst threads;
 
   // warning: reference is not stable
   var_statet &get_var_state(const var_mapt::var_infot &var_info);
-  
+
   bool inside_atomic_section;
-  
-  inline unsigned get_current_thread() const
+
+  unsigned get_current_thread() const
   {
     return current_thread;
   }
 
-  inline void set_current_thread(unsigned _thread)
+  void set_current_thread(unsigned _thread)
   {
     current_thread=_thread;
   }
-  
+
   goto_programt::const_targett get_instruction() const;
 
   // branch taken case
-  inline void record_true_branch()
+  void record_true_branch()
   {
     branches.push_back(true);
   }
 
   // branch not taken case
-  inline void record_false_branch()
+  void record_false_branch()
   {
     branches.push_back(false);
   }
 
-  inline bool is_lazy() const
+  bool is_lazy() const
   {
     return branches_restore < branches.size();
   }
 
   // returns branch direction that should be taken
-  inline bool restore_branch()
+  bool restore_branch()
   {
     assert(is_lazy());
     return branches[branches_restore++];
   }
 
-  inline bool is_executable() const
+  bool is_executable() const
   {
     return !threads.empty() &&
            threads[current_thread].active;
@@ -198,7 +198,7 @@ public:
 
   // execution history
   path_symex_step_reft history;
-  
+
   // adds an entry to the history
   void record_step();
 
@@ -206,45 +206,45 @@ public:
   void record_branch_step(bool taken);
 
   // various state transformers
-  
-  inline threadt &add_thread()
+
+  threadt &add_thread()
   {
     threads.resize(threads.size()+1);
     return threads.back();
   }
-  
-  inline void disable_current_thread()
+
+  void disable_current_thread()
   {
     threads[current_thread].active=false;
   }
 
-  inline loc_reft pc() const
+  loc_reft pc() const
   {
     return threads[current_thread].pc;
   }
 
-  inline void next_pc()
+  void next_pc()
   {
     threads[current_thread].pc.increase();
   }
 
-  inline void set_pc(loc_reft new_pc)
+  void set_pc(loc_reft new_pc)
   {
     threads[current_thread].pc=new_pc;
   }
-  
-  // output  
+
+  // output
   void output(std::ostream &out) const;
   void output(const threadt &thread, std::ostream &out) const;
 
   // instantiate expressions with propagation
-  inline exprt read(const exprt &src)
+  exprt read(const exprt &src)
   {
     return read(src, true);
   }
-  
+
   // instantiate without constant propagation
-  inline exprt read_no_propagate(const exprt &src)
+  exprt read_no_propagate(const exprt &src)
   {
     return read(src, false);
   }
@@ -252,17 +252,17 @@ public:
   exprt dereference_rec(const exprt &src, bool propagate);
 
   std::string array_index_as_string(const exprt &) const;
-  
-  inline unsigned get_no_thread_interleavings() const
+
+  unsigned get_no_thread_interleavings() const
   {
     return no_thread_interleavings;
   }
-  
-  inline unsigned get_depth() const
+
+  unsigned get_depth() const
   {
     return depth;
   }
-  
+
   bool is_feasible(class decision_proceduret &) const;
 
   bool check_assertion(class decision_proceduret &);
@@ -281,7 +281,7 @@ protected:
 
   // On first call, O(N) where N is the length of the execution path
   // leading to this state. Subsequent calls run in constant time.
-  const branchest& get_branches()
+  const branchest &get_branches()
   {
     if(!branches.empty() || history.is_nil())
       return branches;
@@ -346,5 +346,5 @@ path_symex_statet initial_state(
   var_mapt &var_map,
   const locst &locs,
   path_symex_historyt &);
-  
-#endif
+
+#endif // CPROVER_AA_PATH_SYMEX_PATH_SYMEX_STATE_H

@@ -1,7 +1,8 @@
 DIRS = ansi-c big-int cbmc cpp goto-cc goto-instrument goto-programs \
        goto-symex langapi pointer-analysis solvers util linking xmllang \
        assembler analyses java_bytecode aa-path-symex path-symex musketeer \
-       json cegis goto-analyzer jsil symex goto-diff
+       json cegis goto-analyzer jsil symex goto-diff aa-symex clobber \
+       memory-models
 
 all: cbmc.dir goto-cc.dir goto-instrument.dir symex.dir goto-analyzer.dir goto-diff.dir
 
@@ -43,6 +44,8 @@ symex.dir: languages goto-programs.dir pointer-analysis.dir \
            goto-symex.dir linking.dir analyses.dir solvers.dir \
            path-symex.dir goto-instrument.dir
 
+aa-symex.dir: symex.dir aa-path-symex.dir
+
 # building for a particular directory
 
 $(patsubst %, %.dir, $(DIRS)):
@@ -53,7 +56,7 @@ $(patsubst %, %.dir, $(DIRS)):
 
 $(patsubst %, %_generated_files, $(DIRS)):
 	$(MAKE) $(MAKEARGS) -C $(patsubst %_generated_files, %, $@) generated_files
-	
+
 generated_files: $(patsubst %, %_generated_files, $(DIRS))
 
 # cleaning
@@ -84,20 +87,22 @@ glucose-download:
 	@rm glucose-syrup.tgz
 
 zlib-download:
-	@echo "Downloading zlib 1.2.8"
-	@lwp-download http://zlib.net/zlib-1.2.8.tar.gz
-	@tar xfz zlib-1.2.8.tar.gz
+	@echo "Downloading zlib 1.2.11"
+	@lwp-download http://zlib.net/zlib-1.2.11.tar.gz
+	@tar xfz zlib-1.2.11.tar.gz
 	@rm -Rf ../zlib
-	@mv zlib-1.2.8 ../zlib
-	@rm zlib-1.2.8.tar.gz
+	@mv zlib-1.2.11 ../zlib
+	@rm zlib-1.2.11.tar.gz
 
 libzip-download:
 	@echo "Downloading libzip 1.1.2"
-	@lwp-download http://www.nih.at/libzip/libzip-1.1.2.tar.gz
-	@tar xfz libzip-1.1.2.tar.gz
+	# The below wants SSL
+	#@lwp-download http://www.nih.at/libzip/libzip-1.1.2.tar.gz
+	@lwp-download http://http.debian.net/debian/pool/main/libz/libzip/libzip_1.1.2.orig.tar.gz
+	@tar xfz libzip_1.1.2.orig.tar.gz
 	@rm -Rf ../libzip
 	@mv libzip-1.1.2 ../libzip
-	@rm libzip-1.1.2.tar.gz
+	@rm libzip_1.1.2.orig.tar.gz
 
 libzip-build:
 	@echo "Building zlib"

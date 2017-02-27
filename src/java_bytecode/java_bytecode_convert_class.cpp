@@ -6,8 +6,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#define DEBUG
-
 #ifdef DEBUG
 #include <iostream>
 #endif
@@ -17,25 +15,30 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "java_types.h"
 #include "java_bytecode_convert_method.h"
 
+#include <util/namespace.h>
 #include <util/std_expr.h>
-#include <util/expr_util.h>
 
-namespace {
+#include <linking/zero_initializer.h>
+
 class java_bytecode_convert_classt:public messaget
 {
 public:
   java_bytecode_convert_classt(
     symbol_tablet &_symbol_table,
-    message_handlert &_message_handler):
+    message_handlert &_message_handler,
+    bool _disable_runtime_checks,
+    size_t _max_array_length):
     messaget(_message_handler),
-    symbol_table(_symbol_table)
+    symbol_table(_symbol_table),
+    disable_runtime_checks(_disable_runtime_checks),
+    max_array_length(_max_array_length)
   {
   }
 
   void operator()(const java_bytecode_parse_treet &parse_tree)
   {
     add_array_types();
-  
+
     if(parse_tree.loading_successful)
       convert(parse_tree.parsed_class);
     else
@@ -47,15 +50,16 @@ public:
 
 protected:
   symbol_tablet &symbol_table;
+  const bool disable_runtime_checks;
+  const size_t max_array_length;
 
   // conversion
   void convert(const classt &c);
   void convert(symbolt &class_symbol, const fieldt &f);
-  
+
   void generate_class_stub(const irep_idt &class_name);
   void add_array_types();
 };
-}
 
 /*******************************************************************\
 
@@ -75,6 +79,10 @@ void java_bytecode_convert_classt::convert(const classt &c)
 
   class_type.set_tag(c.name);
   class_type.set(ID_base_name, c.name);
+  if(c.is_enum)
+    class_type.set(
+      ID_java_enum_static_unwind,
+      std::to_string(c.enum_elements+1));
 
   if(!c.extends.empty())
   {
@@ -89,11 +97,9 @@ void java_bytecode_convert_classt::convert(const classt &c)
   }
 
   // interfaces are recorded as bases
-  const std::list<irep_idt> &ifc=c.implements;
-
-  for(const auto & it : ifc)
+  for(const auto &interface : c.implements)
   {
-    symbol_typet base("java::"+id2string(it));
+    symbol_typet base("java::"+id2string(interface));
     class_type.add_base(base);
   }
 
@@ -106,9 +112,9 @@ void java_bytecode_convert_classt::convert(const classt &c)
   new_symbol.type=class_type;
   new_symbol.mode=ID_java;
   new_symbol.is_type=true;
-  
+
   symbolt *class_symbol;
-  
+
   // add before we do members
   if(symbol_table.move(new_symbol, class_symbol))
   {
@@ -117,13 +123,18 @@ void java_bytecode_convert_classt::convert(const classt &c)
   }
 
   // now do fields
-  for(const auto & it : c.fields)
-    convert(*class_symbol, it);
+  for(const auto &field : c.fields)
+    convert(*class_symbol, field);
 
   // now do methods
-  for(const auto & it : c.methods)
+  for(const auto &method : c.methods)
     java_bytecode_convert_method(
-      *class_symbol, it, symbol_table, get_message_handler());
+      *class_symbol,
+      method,
+      symbol_table,
+      get_message_handler(),
+      disable_runtime_checks,
+      max_array_length);
 
   // is this a root class?
   if(c.extends.empty())
@@ -142,7 +153,8 @@ Function: java_bytecode_convert_classt::generate_class_stub
 
 \*******************************************************************/
 
-void java_bytecode_convert_classt::generate_class_stub(const irep_idt &class_name)
+void java_bytecode_convert_classt::generate_class_stub(
+  const irep_idt &class_name)
 {
   class_typet class_type;
 
@@ -160,12 +172,13 @@ void java_bytecode_convert_classt::generate_class_stub(const irep_idt &class_nam
   new_symbol.type=class_type;
   new_symbol.mode=ID_java;
   new_symbol.is_type=true;
-  
+
   symbolt *class_symbol;
-  
+
   if(symbol_table.move(new_symbol, class_symbol))
   {
-    warning() << "stub class symbol "+id2string(new_symbol.name)+" already exists";
+    warning() << "stub class symbol " << new_symbol.name
+              << " already exists" << eom;
   }
   else
   {
@@ -204,16 +217,25 @@ void java_bytecode_convert_classt::convert(
     new_symbol.name=id2string(class_symbol.name)+"."+id2string(f.name);
     new_symbol.base_name=f.name;
     new_symbol.type=field_type;
-    new_symbol.pretty_name=id2string(class_symbol.pretty_name)+"."+id2string(f.name);
+    new_symbol.pretty_name=id2string(class_symbol.pretty_name)+
+      "."+id2string(f.name);
     new_symbol.mode=ID_java;
-    new_symbol.is_type=false;  
-    new_symbol.value=gen_zero(field_type);
+    new_symbol.is_type=false;
+    const namespacet ns(symbol_table);
+    new_symbol.value=
+      zero_initializer(
+        field_type,
+        class_symbol.location,
+        ns,
+        get_message_handler());
+
+    // Do we have the static field symbol already?
+    const auto s_it=symbol_table.symbols.find(new_symbol.name);
+    if(s_it!=symbol_table.symbols.end())
+      symbol_table.symbols.erase(s_it); // erase, we stubbed it
 
     if(symbol_table.add(new_symbol))
-    {
-      error() << "failed to add static field symbol" << eom;
-      throw 0;
-    }
+      assert(false && "failed to add static field symbol");
   }
   else
   {
@@ -226,7 +248,7 @@ void java_bytecode_convert_classt::convert(
     component.set_base_name(f.name);
     component.set_pretty_name(f.name);
     component.type()=field_type;
-    
+
     if(f.is_private)
       component.set_access(ID_private);
     else if(f.is_protected)
@@ -250,25 +272,29 @@ Function: java_bytecode_convert_classt::add_array_types
 
 void java_bytecode_convert_classt::add_array_types()
 {
-  const char letters[]="ijsbcfdza";
+  const std::string letters="ijsbcfdza";
 
-  for(unsigned i=0; letters[i]!=0; i++)
+  for(const char l : letters)
   {
     symbol_typet symbol_type=
-      to_symbol_type(java_array_type(letters[i]).subtype());
-    
+      to_symbol_type(java_array_type(l).subtype());
+
     struct_typet struct_type;
     // we have the base class, java.lang.Object, length and data
     // of appropriate type
     struct_type.set_tag(symbol_type.get_identifier());
-    struct_type.components().resize(3);
-    struct_type.components()[0].set_name("@java.lang.Object");
-    struct_type.components()[0].type()=symbol_typet("java::java.lang.Object");
-    struct_type.components()[1].set_name("length");
-    struct_type.components()[1].type()=java_int_type();
-    struct_type.components()[2].set_name("data");
-    struct_type.components()[2].type()=
-      pointer_typet(java_type_from_char(letters[i]));
+
+    struct_type.components().reserve(3);
+    struct_typet::componentt
+      comp0("@java.lang.Object", symbol_typet("java::java.lang.Object"));
+    struct_type.components().push_back(comp0);
+
+    struct_typet::componentt comp1("length", java_int_type());
+    struct_type.components().push_back(comp1);
+
+    struct_typet::componentt
+      comp2("data", pointer_typet(java_type_from_char(l)));
+    struct_type.components().push_back(comp2);
 
     symbolt symbol;
     symbol.name=symbol_type.get_identifier();
@@ -294,10 +320,15 @@ Function: java_bytecode_convert_class
 bool java_bytecode_convert_class(
   const java_bytecode_parse_treet &parse_tree,
   symbol_tablet &symbol_table,
-  message_handlert &message_handler)
+  message_handlert &message_handler,
+  bool disable_runtime_checks,
+  size_t max_array_length)
 {
   java_bytecode_convert_classt java_bytecode_convert_class(
-    symbol_table, message_handler);
+    symbol_table,
+    message_handler,
+    disable_runtime_checks,
+    max_array_length);
 
   try
   {

@@ -1,4 +1,4 @@
-/*******************************************************************
+/*******************************************************************\
 
 Module: Counterexample-Guided Inductive Synthesis
 
@@ -7,8 +7,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CEGIS_UTIL_CBMC_RUNNER_H_
-#define CEGIS_UTIL_CBMC_RUNNER_H_
+#ifndef CPROVER_CEGIS_CEGIS_UTIL_CBMC_RUNNER_H
+#define CPROVER_CEGIS_CEGIS_UTIL_CBMC_RUNNER_H
 
 #include <goto-programs/safety_checker.h>
 
@@ -61,6 +61,6 @@ safety_checkert::resultt run_cbmc(
     const class symbol_tablet &st,
     const class goto_functionst &gf,
     cbmc_resultt &result,
-    const optionst &options);
+    const class optionst &options);
 
-#endif /* CEGIS_UTIL_CBMC_RUNNER_H_ */
+#endif // CPROVER_CEGIS_CEGIS_UTIL_CBMC_RUNNER_H

@@ -1,3 +1,12 @@
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
 #if !defined(_WIN32) || defined(_HAVE_DLFCN)
 #include <dlfcn.h>
 #endif
@@ -24,7 +33,7 @@ void close_fitness_tester_library(fitness_lib_handlet &handle)
 
 namespace
 {
-void write_file(const char * const path, const std::string &content)
+void write_file(const std::string &path, const std::string &content)
 {
   std::ofstream ofs(path);
   ofs << content;
@@ -37,6 +46,7 @@ void write_file(const char * const path, const std::string &content)
 #define CLANG_COMPILE_COMMAND "clang -std=c99 -g0 -O2 -shared -rdynamic -fPIC "
 #else
 #define COMPILE_COMMAND "gcc -std=c99 -g0 -O2 -shared "
+#define CLANG_COMPILE_COMMAND "clang -std=c99 -g0 -O2 "
 #endif
 #define ARTIFACT_SEPARATOR " -o "
 #define COMPLING_FAILED "Compiling test runner failed."
@@ -50,9 +60,9 @@ void *prepare_fitness_tester_library(fitness_lib_handlet &handle,
 {
   const temporary_filet source_file(SOURCE_FILE_PREFIX, SOURCE_FILE_SUFFIX);
   const std::string source_file_name(source_file());
-  write_file(source_file_name.c_str(), source_code_provider());
+  write_file(source_file_name, source_code_provider());
   std::string compile_command;
-  if (configt::ansi_ct::preprocessort::PP_CLANG == config.ansi_c.preprocessor)
+  if (configt::ansi_ct::preprocessort::CLANG == config.ansi_c.preprocessor)
     compile_command+=CLANG_COMPILE_COMMAND;
   else
     compile_command+=COMPILE_COMMAND;

@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_INDIVIDUAL_TO_SAFETY_SOLUTION_DESERIALISER_H_
-#define CEGIS_INDIVIDUAL_TO_SAFETY_SOLUTION_DESERIALISER_H_
+#ifndef CPROVER_CEGIS_SAFETY_VALUE_INDIVIDUAL_TO_SAFETY_SOLUTION_DESERIALISER_H
+#define CPROVER_CEGIS_SAFETY_VALUE_INDIVIDUAL_TO_SAFETY_SOLUTION_DESERIALISER_H
 
 #include <functional>
 
@@ -46,4 +46,4 @@ public:
   void operator()(safety_goto_solutiont &entity, const irept &sdu) const;
 };
 
-#endif /* CEGIS_INDIVIDUAL_TO_SAFETY_SOLUTION_DESERIALISER_H_ */
+#endif // CPROVER_CEGIS_SAFETY_VALUE_INDIVIDUAL_TO_SAFETY_SOLUTION_DESERIALISER_H

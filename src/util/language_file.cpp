@@ -8,10 +8,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <fstream>
 
-#include "i2string.h"
 #include "language.h"
 #include "language_file.h"
-  
+
 /*******************************************************************\
 
 Function: language_filet::language_filet
@@ -45,7 +44,8 @@ Function: language_filet::~language_filet
 
 language_filet::~language_filet()
 {
-  if(language!=NULL) delete language;
+  if(language!=NULL)
+    delete language;
 }
 
 /*******************************************************************\
@@ -103,7 +103,7 @@ bool language_filest::parse()
   {
     // open file
 
-    std::ifstream infile(it->first.c_str());
+    std::ifstream infile(it->first);
 
     if(!infile)
     {
@@ -153,7 +153,7 @@ bool language_filest::typecheck(symbol_tablet &symbol_table)
   }
 
   // build module map
-  
+
   unsigned collision_counter=0;
 
   for(filemapt::iterator fm_it=filemap.begin();
@@ -169,13 +169,13 @@ bool language_filest::typecheck(symbol_tablet &symbol_table)
     {
       // these may collide, and then get renamed
       std::string module_name=*mo_it;
-      
+
       while(modulemap.find(module_name)!=modulemap.end())
       {
-        module_name=*mo_it+"#"+i2string(collision_counter);
+        module_name=*mo_it+"#"+std::to_string(collision_counter);
         collision_counter++;
       }
-      
+
       language_modulet module;
       module.file=&fm_it->second;
       module.name=module_name;

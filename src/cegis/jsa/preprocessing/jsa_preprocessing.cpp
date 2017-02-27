@@ -1,6 +1,16 @@
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
 #include <ansi-c/c_types.h>
 
 #include <cegis/cegis-util/program_helper.h>
+#include <cegis/cegis-util/inline_user_program.h>
 
 #include <cegis/jsa/instrument/temps_helper.h>
 #include <cegis/jsa/preprocessing/add_constraint_meta_variables.h>
@@ -8,7 +18,6 @@
 #include <cegis/jsa/preprocessing/collect_variables.h>
 #include <cegis/jsa/preprocessing/create_temp_variables.h>
 #include <cegis/jsa/preprocessing/default_jsa_constant_strategy.h>
-#include <cegis/jsa/preprocessing/inline_user_program.h>
 #include <cegis/jsa/preprocessing/remove_loop.h>
 #include <cegis/jsa/preprocessing/jsa_preprocessing.h>
 
@@ -26,7 +35,7 @@ void jsa_preprocessingt::operator()()
 {
   goto_functionst &gf=original_program.gf;
   symbol_tablet &st=original_program.st;
-  inline_jsa_user_program(st, gf);
+  inline_user_program(st, gf);
   remove_loop(original_program);
   original_program.synthetic_variables=default_jsa_constant_strategy(st, gf);
   add_jsa_constraint_meta_variables(original_program);

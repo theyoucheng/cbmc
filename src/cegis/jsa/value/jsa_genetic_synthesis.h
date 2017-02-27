@@ -1,5 +1,14 @@
-#ifndef CEGIS_JSA_GENETIC_SYNTHESIS_H_
-#define CEGIS_JSA_GENETIC_SYNTHESIS_H_
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
+#ifndef CPROVER_CEGIS_JSA_VALUE_JSA_GENETIC_SYNTHESIS_H
+#define CPROVER_CEGIS_JSA_VALUE_JSA_GENETIC_SYNTHESIS_H
 
 #define __CPROVER_JSA_MAX_CONCRETE_NODES 3u
 #define __CPROVER_JSA_MAX_ABSTRACT_NODES 0u
@@ -18,4 +27,4 @@ typedef bool _Bool;
 
 #include <ansi-c/library/jsa.h>
 
-#endif /* CEGIS_JSA_GENETIC_SYNTHESIS_H_ */
+#endif // CPROVER_CEGIS_JSA_VALUE_JSA_GENETIC_SYNTHESIS_H

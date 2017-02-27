@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_DYNAMIC_TEST_RUNNER_HELPER_H_
-#define CEGIS_DYNAMIC_TEST_RUNNER_HELPER_H_
+#ifndef CPROVER_CEGIS_GENETIC_DYNAMIC_TEST_RUNNER_HELPER_H
+#define CPROVER_CEGIS_GENETIC_DYNAMIC_TEST_RUNNER_HELPER_H
 
 #include <functional>
 
@@ -80,4 +80,4 @@ void close_fitness_tester_library(
 
 #include "dynamic_test_runner_helper.inc"
 
-#endif /* CEGIS_DYNAMIC_TEST_RUNNER_HELPER_H_ */
+#endif // CPROVER_CEGIS_GENETIC_DYNAMIC_TEST_RUNNER_HELPER_H

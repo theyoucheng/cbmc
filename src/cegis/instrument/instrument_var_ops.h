@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_INSTRUMENT_VAR_OPS_H_
-#define CEGIS_INSTRUMENT_VAR_OPS_H_
+#ifndef CPROVER_CEGIS_INSTRUMENT_INSTRUMENT_VAR_OPS_H
+#define CPROVER_CEGIS_INSTRUMENT_INSTRUMENT_VAR_OPS_H
 
 #include <goto-programs/goto_program.h>
 
@@ -166,4 +166,4 @@ goto_programt::targett set_ops_reference(const symbol_tablet &st,
  */
 source_locationt default_cegis_source_location();
 
-#endif /* CEGIS_INSTRUMENT_VAR_OPS_H_ */
+#endif // CPROVER_CEGIS_INSTRUMENT_INSTRUMENT_VAR_OPS_H

@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_UTIL_ITERATOR_HELPER_H_
-#define CEGIS_UTIL_ITERATOR_HELPER_H_
+#ifndef CPROVER_CEGIS_CEGIS_UTIL_ITERATOR_HELPER_H
+#define CPROVER_CEGIS_CEGIS_UTIL_ITERATOR_HELPER_H
 
 /**
  * @brief
@@ -47,4 +47,4 @@ iterator_containert copy_iterators(
 
 #include "iterator_helper.inc"
 
-#endif /* CEGIS_UTIL_ITERATOR_HELPER_H_ */
+#endif // CPROVER_CEGIS_CEGIS_UTIL_ITERATOR_HELPER_H

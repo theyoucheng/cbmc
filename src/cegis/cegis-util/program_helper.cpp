@@ -1,4 +1,14 @@
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
 #include <algorithm>
+#include <functional>
 
 #include <util/type_eq.h>
 #include <goto-programs/goto_functions.h>
@@ -6,33 +16,20 @@
 
 #include <cegis/instrument/literals.h>
 #include <cegis/instrument/instrument_var_ops.h>
+#include <cegis/cegis-util/string_helper.h>
 #include <cegis/cegis-util/program_helper.h>
 
 goto_programt &get_entry_body(goto_functionst &gf)
 {
-  const irep_idt id(goto_functionst::entry_point());
-  goto_functionst::function_mapt &function_map=gf.function_map;
-  const goto_functionst::function_mapt::iterator it=function_map.find(id);
-  assert(function_map.end() != it && "Danger program function missing.");
-  goto_function_templatet<goto_programt> &f=it->second;
-  assert(f.body_available() && "Danger program function body missing.");
-  return f.body;
+  return get_body(gf, id2string(goto_functionst::entry_point()));
 }
 
 const goto_programt &get_entry_body(const goto_functionst &gf)
 {
-  const irep_idt id(goto_functionst::entry_point());
-  const goto_functionst::function_mapt &function_map=gf.function_map;
-  const goto_functionst::function_mapt::const_iterator it=function_map.find(id);
-  assert(function_map.end() != it && "Danger program function missing.");
-  const goto_function_templatet<goto_programt> &f=it->second;
-  assert(f.body_available() && "Danger program function body missing.");
-  return f.body;
+  return get_body(gf, id2string(goto_functionst::entry_point()));
 }
 
-class goto_programt &get_body(
-    class goto_functionst &gf,
-    const std::string &func_name)
+goto_programt &get_body(goto_functionst &gf, const std::string &func_name)
 {
   const irep_idt id(func_name);
   goto_functionst::function_mapt &function_map=gf.function_map;
@@ -43,8 +40,13 @@ class goto_programt &get_body(
   return f.body;
 }
 
-const goto_programt &get_body(
-    const goto_functionst &gf,
+goto_programt &get_body(goto_functionst &gf,
+    const goto_programt::const_targett pos)
+{
+  return get_body(gf, id2string(pos->function));
+}
+
+const goto_programt &get_body(const goto_functionst &gf,
     const std::string &func_name)
 {
   const irep_idt id(func_name);
@@ -63,7 +65,7 @@ class id_searcht: public const_expr_visitort
   const irep_idt &id;
   bool found;
 public:
-  id_searcht(const irep_idt &id) :
+  explicit id_searcht(const irep_idt &id) :
       id(id), found(false)
   {
   }
@@ -92,15 +94,15 @@ bool contains(const exprt &rhs, const irep_idt &id)
 }
 }
 
-bool is_nondet(const goto_programt::targett &target,
-    const goto_programt::targett &end)
+bool is_nondet(goto_programt::const_targett target,
+    goto_programt::const_targett end)
 {
   const goto_programt::instructiont &instr=*target;
   switch (instr.type)
   {
   case goto_program_instruction_typet::DECL:
   {
-    goto_programt::targett next=std::next(target);
+    goto_programt::const_targett next=std::next(target);
     if (next == end) return true;
     if (goto_program_instruction_typet::FUNCTION_CALL == next->type)
     {
@@ -127,6 +129,12 @@ bool is_nondet(const goto_programt::targett &target,
   default:
     return false;
   }
+}
+
+bool is_return_value_name(const std::string &name)
+{
+  return contains(name, "return_value___")
+      || contains(name, RETURN_VALUE_SUFFIX);
 }
 
 const typet &get_affected_type(const goto_programt::instructiont &instr)
@@ -181,12 +189,26 @@ bool is_global_const(const irep_idt &name, const typet &type)
   return std::string::npos == n.find(NS_SEP);
 }
 
+void move_labels(goto_programt::instructionst &body,
+    const goto_programt::targett &from, const goto_programt::targett &to)
+{
+  for (goto_programt::instructiont &instr : body)
+    for (goto_programt::targett &target : instr.targets)
+      if (from == target) target=to;
+}
+
 void move_labels(goto_programt &body, const goto_programt::targett &from,
     const goto_programt::targett &to)
 {
-  for (goto_programt::instructiont &instr : body.instructions)
-    for (goto_programt::targett &target : instr.targets)
-      if (from == target) target=to;
+  move_labels(body.instructions, from, to);
+}
+
+goto_programt::targett insert_before_preserve_labels(goto_programt &body,
+    const goto_programt::targett &target)
+{
+  const goto_programt::targett result=body.insert_before(target);
+  move_labels(body, target, result);
+  return result;
 }
 
 bool is_builtin(const source_locationt &loc)
@@ -196,14 +218,15 @@ bool is_builtin(const source_locationt &loc)
   return file.empty() || file.at(0) == '<';
 }
 
-symbolt &create_cegis_symbol(symbol_tablet &st, const std::string &full_name,
+symbolt &create_local_cegis_symbol(symbol_tablet &st,
+    const std::string &full_name, const std::string &base_name,
     const typet &type)
 {
   symbolt new_symbol;
   new_symbol.name=full_name;
   new_symbol.type=type;
-  new_symbol.base_name=full_name;
-  new_symbol.pretty_name=new_symbol.base_name;
+  new_symbol.base_name=base_name;
+  new_symbol.pretty_name=base_name;
   new_symbol.location=default_cegis_source_location();
   new_symbol.mode=ID_C;
   new_symbol.module=CEGIS_MODULE;
@@ -215,17 +238,29 @@ symbolt &create_cegis_symbol(symbol_tablet &st, const std::string &full_name,
   return st.lookup(new_symbol.name);
 }
 
+symbolt &create_cegis_symbol(symbol_tablet &st, const std::string &full_name,
+    const typet &type)
+{
+  return create_local_cegis_symbol(st, full_name, full_name, type);
+}
+
+void cegis_assign(const symbol_tablet &st, goto_programt::instructiont &instr,
+    const exprt &lhs, const exprt &rhs, const source_locationt &loc)
+{
+  instr.type=goto_program_instruction_typet::ASSIGN;
+  instr.source_location=loc;
+  const namespacet ns(st);
+  const typet &type=lhs.type();
+  if (type_eq(type, rhs.type(), ns)) instr.code=code_assignt(lhs, rhs);
+  else instr.code=code_assignt(lhs, typecast_exprt(rhs, type));
+}
+
 goto_programt::targett cegis_assign(const symbol_tablet &st,
     goto_programt &body, const goto_programt::targett &insert_after_pos,
     const exprt &lhs, const exprt &rhs, const source_locationt &loc)
 {
-  goto_programt::targett assign=body.insert_after(insert_after_pos);
-  assign->type=goto_program_instruction_typet::ASSIGN;
-  assign->source_location=loc;
-  const namespacet ns(st);
-  const typet &type=lhs.type();
-  if (type_eq(type, rhs.type(), ns)) assign->code=code_assignt(lhs, rhs);
-  else assign->code=code_assignt(lhs, typecast_exprt(rhs, type));
+  const goto_programt::targett assign=body.insert_after(insert_after_pos);
+  cegis_assign(st, *assign, lhs, rhs, loc);
   return assign;
 }
 
@@ -253,6 +288,19 @@ goto_programt::targett cegis_assign_user_variable(const symbol_tablet &st,
   return cegis_assign(st, gf, insert_after_pos, lhs, value);
 }
 
+goto_programt::targett cegis_assign_local_variable(const symbol_tablet &st,
+    goto_programt &body, const goto_programt::targett &insert_after_pos,
+    const std::string &func_name, const std::string &var_name,
+    const exprt &value)
+{
+  std::string name(func_name);
+  name+=NS_SEP;
+  name+=var_name;
+  const symbol_exprt lhs(st.lookup(name).symbol_expr());
+  const source_locationt loc(default_cegis_source_location());
+  return cegis_assign(st, body, insert_after_pos, lhs, value, loc);
+}
+
 symbol_exprt get_ret_val_var(const irep_idt &func_id, const typet &type)
 {
   return symbol_exprt(id2string(func_id) + RETURN_VALUE_SUFFIX, type);
@@ -273,11 +321,8 @@ void remove_return(goto_programt &body, const goto_programt::targett pos)
   call.lhs().make_nil();
 }
 
-goto_programt::targett add_return_assignment(
-    goto_programt &body,
-    goto_programt::targett pos,
-    const irep_idt &func_id,
-    const exprt &value)
+goto_programt::targett add_return_assignment(goto_programt &body,
+    goto_programt::targett pos, const irep_idt &func_id, const exprt &value)
 {
   const source_locationt &loc=pos->source_location;
   pos=body.insert_after(pos);
@@ -285,4 +330,51 @@ goto_programt::targett add_return_assignment(
   pos->source_location=loc;
   pos->code=code_assignt(get_ret_val_var(func_id, value.type()), value);
   return pos;
+}
+
+namespace
+{
+goto_programt::targett insert_preserving_source_location(
+    goto_programt::targett pos,
+    const std::function<goto_programt::targett(goto_programt::targett)> &inserter)
+{
+  const source_locationt &loc=pos->source_location;
+  const irep_idt &func_name=pos->function;
+  pos=inserter(pos);
+  pos->source_location=loc;
+  pos->function=func_name;
+  return pos;
+}
+}
+
+goto_programt::targett insert_after_preserving_source_location(
+    goto_programt &body, goto_programt::targett pos)
+{
+  const auto op=std::bind1st(std::mem_fun(&goto_programt::insert_after), &body);
+  return insert_preserving_source_location(pos, op);
+}
+
+goto_programt::targett insert_before_preserving_source_location(
+    goto_programt &body, goto_programt::targett pos)
+{
+  typedef goto_programt::targett (goto_programt::*ftype)(
+      goto_programt::targett);
+  const auto op=std::bind1st(
+      std::mem_fun(static_cast<ftype>(&goto_programt::insert_before)), &body);
+  return insert_preserving_source_location(pos, op);
+}
+
+void assign_in_cprover_init(goto_functionst &gf, symbolt &symbol,
+    const exprt &value)
+{
+  symbol.value=value;
+  goto_programt &body=get_body(gf, CPROVER_INIT);
+  goto_programt::instructionst &instrs=body.instructions;
+  const auto p(std::mem_fun_ref(&goto_programt::instructiont::is_end_function));
+  goto_programt::targett pos=std::find_if(instrs.begin(), instrs.end(), p);
+  assert(instrs.end() != pos);
+  pos=insert_before_preserving_source_location(body, pos);
+  pos->type=goto_program_instruction_typet::ASSIGN;
+  const symbol_exprt lhs(symbol.symbol_expr());
+  pos->code=code_assignt(lhs, value);
 }

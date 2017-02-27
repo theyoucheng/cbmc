@@ -3,14 +3,13 @@
 Module: Concrete Symbolic Transformer
 
 Author: Daniel Kroening, kroening@kroening.com
-        Alex Horn, alex.horn@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CPROVER_PATH_SYMEX_H
-#define CPROVER_PATH_SYMEX_H
+// NOLINT(build/header_guard) as this file is also symlinked
+#ifndef CPROVER_PATH_SYMEX_PATH_SYMEX_H
+#define CPROVER_PATH_SYMEX_PATH_SYMEX_H
 
-#include "locs.h"
 #include "path_symex_state.h"
 
 // Transform a state by executing a single statement.
@@ -39,4 +38,4 @@ void path_symex_goto(
 void path_symex_assert_fail(
   path_symex_statet &state);
 
-#endif
+#endif // CPROVER_PATH_SYMEX_PATH_SYMEX_H

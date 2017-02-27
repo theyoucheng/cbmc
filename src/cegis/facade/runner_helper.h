@@ -1,4 +1,4 @@
-/*******************************************************************
+/*******************************************************************\
 
 Module: Counterexample-Guided Inductive Synthesis
 
@@ -7,8 +7,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CEGIS_FACADE_RUNNER_HELPER_H_
-#define CEGIS_FACADE_RUNNER_HELPER_H_
+#ifndef CPROVER_CEGIS_FACADE_RUNNER_HELPER_H
+#define CPROVER_CEGIS_FACADE_RUNNER_HELPER_H
 
 #include <util/message.h>
 
@@ -30,7 +30,7 @@ Author: Daniel Kroening, kroening@kroening.com
 template<class learnt, class verifyt, class preproct>
 int run_cegis_with_statistics_wrapper(
     messaget::mstreamt &os,
-    const optionst &opt,
+    const class optionst &opt,
     learnt &learn,
     verifyt &verify,
     preproct &preproc);
@@ -55,7 +55,7 @@ int run_cegis_with_statistics_wrapper(
 template<class learnt, class verifyt, class preproct, class seedt>
 int run_cegis_with_statistics_wrapper(
     messaget::mstreamt &os,
-    const optionst &opt,
+    const class optionst &opt,
     learnt &learn,
     verifyt &verify,
     preproct &preproc,
@@ -63,4 +63,4 @@ int run_cegis_with_statistics_wrapper(
 
 #include "runner_helper.inc"
 
-#endif /* CEGIS_FACADE_RUNNER_HELPER_H_ */
+#endif // CPROVER_CEGIS_FACADE_RUNNER_HELPER_H

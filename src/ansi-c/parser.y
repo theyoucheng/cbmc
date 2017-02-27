@@ -2206,7 +2206,7 @@ compound_scope:
         /* nothing */
         {
           unsigned prefix=++PARSER.current_scope().compound_counter;
-          PARSER.new_scope(i2string(prefix)+"::");
+          PARSER.new_scope(std::to_string(prefix)+"::");
         }
         ;
 
@@ -2302,7 +2302,7 @@ iteration_statement:
             if(PARSER.for_has_scope)
             {
               unsigned prefix=++PARSER.current_scope().compound_counter;
-              PARSER.new_scope(i2string(prefix)+"::");
+              PARSER.new_scope(std::to_string(prefix)+"::");
             }
           }
           '(' declaration_or_expression_statement
@@ -2376,6 +2376,7 @@ gcc_local_label_statement:
             irep_idt id="label-"+id2string(base_name);
             ansi_c_parsert::identifiert &i=PARSER.current_scope().name_map[id];
             i.id_class=ANSI_C_LOCAL_LABEL;
+            i.prefixed_name=PARSER.current_scope().prefix+id2string(id);
             i.base_name=base_name;
           }
 
@@ -2701,6 +2702,10 @@ external_definition:
 
 asm_definition:
           TOK_GCC_ASM_PAREN '(' string ')' ';'
+        {
+          // Not obvious what to do with this.
+        }
+        | '{' TOK_ASM_STRING '}'
         {
           // Not obvious what to do with this.
         }

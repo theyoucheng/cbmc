@@ -1,7 +1,18 @@
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
 #include <util/config.h>
 #include <util/substitute.h>
+
 #include <cbmc/cbmc_parse_options.h>
 #include <cbmc/bmc.h>
+
 #include <goto-programs/goto_trace.h>
 #include <goto-programs/write_goto_binary.h>
 
@@ -9,11 +20,13 @@
 #include <cegis/cegis-util/temporary_output_block.h>
 #include <cegis/cegis-util/cbmc_runner.h>
 
+#define ARGV_MAX_SIZE 5u
+
 namespace
 {
 bool exists(const std::string &name)
 {
-  return std::ifstream(name.c_str()).good();
+  return std::ifstream(name).good();
 }
 
 std::string get_goto_file_name(const size_t index)
@@ -31,26 +44,37 @@ std::string get_next_goto_file_name()
   return get_goto_file_name(index);
 }
 
-const char * ARGV[]= { "cbmc", "--stop-on-fail" };
-const char * GCC_ARGV[]= { "cbmc", "--stop-on-fail", "-gcc" };
+bool is_gcc()
+{
+  return configt::ansi_ct::flavourt::GCC == config.ansi_c.mode;
+}
 
-bool is_gcc() { return configt::ansi_ct::flavourt::MODE_GCC_C == config.ansi_c.mode; }
-int get_argc() { return is_gcc() ? 3 : 2; }
-const char ** get_argv() { return is_gcc() ? GCC_ARGV : ARGV; }
+int argc()
+{
+  return is_gcc()?3:2;
+}
 
-class cbmc_runnert: public cbmc_parse_optionst
+const char **argv()
+{
+  static const char* n_gcc[]={"cbmc", "--stop-on-fail", 0};
+  static const char* w_gcc[]={"cbmc", "--stop-on-fail", "--gcc", 0};
+
+  return is_gcc()?w_gcc:n_gcc;
+}
+
+class cbmc_runnert:public cbmc_parse_optionst
 {
   const symbol_tablet &st;
   const goto_functionst &gf;
   cbmc_resultt &result;
   safety_checkert::resultt bmc_result;
   const bool keep_goto_programs;
+
 public:
   cbmc_runnert(const symbol_tablet &st, const goto_functionst &gf,
       cbmc_resultt &result, const bool keep_goto_programs) :
-      cbmc_parse_optionst(get_argc(), get_argv()), st(st), gf(gf), result(
-          result), bmc_result(safety_checkert::UNSAFE), keep_goto_programs(
-          keep_goto_programs)
+      cbmc_parse_optionst(argc(), argv()), st(st), gf(gf), result(result), bmc_result(
+          safety_checkert::UNSAFE), keep_goto_programs(keep_goto_programs)
   {
   }
 
@@ -70,6 +94,7 @@ public:
       message_handlert &msg=get_message_handler();
       write_goto_binary(path, symbol_table, goto_functions, msg);
     }
+
     return -1;
   }
 
@@ -106,8 +131,8 @@ safety_checkert::resultt run_cbmc(const symbol_tablet &st,
 }
 
 safety_checkert::resultt run_cbmc(const symbol_tablet &st,
-    const goto_functionst &gf, cbmc_resultt &cbmc_result,
-    const optionst &o)
+    const goto_functionst &gf, cbmc_resultt &cbmc_result, const optionst &o)
 {
-  return run_cbmc(st, gf, cbmc_result, o.get_bool_option(CEGIS_KEEP_GOTO_PROGRAMS));
+  return run_cbmc(st, gf, cbmc_result,
+      o.get_bool_option(CEGIS_KEEP_GOTO_PROGRAMS));
 }

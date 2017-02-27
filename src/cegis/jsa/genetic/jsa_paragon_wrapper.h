@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_JSA_PARAGON_WRAPPER_H_
-#define CEGIS_JSA_PARAGON_WRAPPER_H_
+#ifndef CPROVER_CEGIS_JSA_GENETIC_JSA_PARAGON_WRAPPER_H
+#define CPROVER_CEGIS_JSA_GENETIC_JSA_PARAGON_WRAPPER_H
 
 #include <cegis/jsa/value/jsa_counterexample.h>
 #include <cegis/jsa/value/jsa_genetic_solution.h>
@@ -110,4 +110,4 @@ public:
       const candidatet &candidate) const;
 };
 
-#endif /* CEGIS_JSA_PARAGON_WRAPPER_H_ */
+#endif // CPROVER_CEGIS_JSA_GENETIC_JSA_PARAGON_WRAPPER_H

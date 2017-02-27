@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/set_properties.h>
 #include <goto-programs/remove_function_pointers.h>
 #include <goto-programs/remove_virtual_functions.h>
+#include <goto-programs/remove_instanceof.h>
 #include <goto-programs/remove_returns.h>
 #include <goto-programs/remove_vector.h>
 #include <goto-programs/remove_complex.h>
@@ -30,7 +31,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/goto_inline.h>
 #include <goto-programs/link_to_library.h>
 
-#include <analyses/goto_check.h>
 #include <analyses/local_may_alias.h>
 
 #include <langapi/mode.h>
@@ -60,14 +60,15 @@ Function: goto_analyzer_parse_optionst::goto_analyzer_parse_optionst
 
 \*******************************************************************/
 
-goto_analyzer_parse_optionst::goto_analyzer_parse_optionst(int argc, const char **argv):
+goto_analyzer_parse_optionst::goto_analyzer_parse_optionst(
+  int argc,
+  const char **argv):
   parse_options_baset(GOTO_ANALYSER_OPTIONS, argc, argv),
   language_uit(cmdline, ui_message_handler),
-  ui_message_handler(language_uit::get_ui_cmdline(cmdline),
-                     "GOTO-ANALYZER " CBMC_VERSION)
+  ui_message_handler(cmdline, "GOTO-ANALYZER " CBMC_VERSION)
 {
 }
-  
+
 /*******************************************************************\
 
 Function: goto_analyzer_parse_optionst::register_languages
@@ -104,13 +105,14 @@ void goto_analyzer_parse_optionst::eval_verbosity()
 {
   // this is our default verbosity
   unsigned int v=messaget::M_STATISTICS;
-  
+
   if(cmdline.isset("verbosity"))
   {
     v=unsafe_string2unsigned(cmdline.get_value("verbosity"));
-    if(v>10) v=10;
+    if(v>10)
+      v=10;
   }
-  
+
   ui_message_handler.set_verbosity(v);
 }
 
@@ -155,54 +157,6 @@ void goto_analyzer_parse_optionst::get_command_line_options(optionst &options)
   #endif
 
   #if 0
-  // check array bounds
-  if(cmdline.isset("bounds-check"))
-    options.set_option("bounds-check", true);
-  else
-    options.set_option("bounds-check", false);
-
-  // check division by zero
-  if(cmdline.isset("div-by-zero-check"))
-    options.set_option("div-by-zero-check", true);
-  else
-    options.set_option("div-by-zero-check", false);
-
-  // check overflow/underflow
-  if(cmdline.isset("signed-overflow-check"))
-    options.set_option("signed-overflow-check", true);
-  else
-    options.set_option("signed-overflow-check", false);
-
-  // check overflow/underflow
-  if(cmdline.isset("unsigned-overflow-check"))
-    options.set_option("unsigned-overflow-check", true);
-  else
-    options.set_option("unsigned-overflow-check", false);
-
-  // check overflow/underflow
-  if(cmdline.isset("float-overflow-check"))
-    options.set_option("float-overflow-check", true);
-  else
-    options.set_option("float-overflow-check", false);
-
-  // check for NaN (not a number)
-  if(cmdline.isset("nan-check"))
-    options.set_option("nan-check", true);
-  else
-    options.set_option("nan-check", false);
-
-  // check pointers
-  if(cmdline.isset("pointer-check"))
-    options.set_option("pointer-check", true);
-  else
-    options.set_option("pointer-check", false);
-
-  // check for memory leaks
-  if(cmdline.isset("memory-leak-check"))
-    options.set_option("memory-leak-check", true);
-  else
-    options.set_option("memory-leak-check", false);
-
   // check assertions
   if(cmdline.isset("no-assertions"))
     options.set_option("assertions", false);
@@ -240,7 +194,7 @@ int goto_analyzer_parse_optionst::doit()
     std::cout << CBMC_VERSION << std::endl;
     return 0;
   }
-  
+
   //
   // command line options
   //
@@ -258,12 +212,12 @@ int goto_analyzer_parse_optionst::doit()
            << config.this_operating_system() << eom;
 
   register_languages();
-  
+
   goto_model.set_message_handler(get_message_handler());
 
   if(goto_model(cmdline.args))
     return 6;
-    
+
   if(process_goto_program(options))
     return 6;
 
@@ -280,7 +234,8 @@ int goto_analyzer_parse_optionst::doit()
     {
       std::string json_file=cmdline.get_value("json");
       bool result=
-        taint_analysis(goto_model, taint_file, get_message_handler(), false, json_file);
+        taint_analysis(
+          goto_model, taint_file, get_message_handler(), false, json_file);
       return result?10:0;
     }
   }
@@ -312,7 +267,7 @@ int goto_analyzer_parse_optionst::doit()
   if(cmdline.isset("show-local-may-alias"))
   {
     namespacet ns(goto_model.symbol_table);
-  
+
     forall_goto_functions(it, goto_model.goto_functions)
     {
       std::cout << ">>>>\n";
@@ -336,7 +291,7 @@ int goto_analyzer_parse_optionst::doit()
 
   if(set_properties())
     return 7;
-  
+
   if(cmdline.isset("show-intervals"))
   {
     show_intervals(goto_model, std::cout);
@@ -390,12 +345,12 @@ bool goto_analyzer_parse_optionst::set_properties()
     error() << e << eom;
     return true;
   }
-  
+
   catch(int)
   {
     return true;
   }
-  
+
   return false;
 }
 
@@ -410,7 +365,7 @@ Function: goto_analyzer_parse_optionst::process_goto_program
  Purpose:
 
 \*******************************************************************/
-  
+
 bool goto_analyzer_parse_optionst::process_goto_program(
   const optionst &options)
 {
@@ -422,7 +377,7 @@ bool goto_analyzer_parse_optionst::process_goto_program(
     remove_asm(goto_model);
 
     // add the library
-    status() << "Adding CPROVER library (" 
+    status() << "Adding CPROVER library ("
              << config.ansi_c.arch << ")" << eom;
     link_to_library(goto_model, ui_message_handler);
     #endif
@@ -430,12 +385,15 @@ bool goto_analyzer_parse_optionst::process_goto_program(
     // remove function pointers
     status() << "Removing function pointers and virtual functions" << eom;
     remove_function_pointers(goto_model, cmdline.isset("pointer-check"));
+    // Java virtual functions -> explicit dispatch tables:
     remove_virtual_functions(goto_model);
+    // Java instanceof -> clsid comparison:
+    remove_instanceof(goto_model);
 
     // do partial inlining
     status() << "Partial Inlining" << eom;
     goto_partial_inline(goto_model, ui_message_handler);
-    
+
     // remove returns, gcc vectors, complex
     remove_returns(goto_model);
     remove_vector(goto_model);
@@ -446,19 +404,17 @@ bool goto_analyzer_parse_optionst::process_goto_program(
     status() << "Generic Property Instrumentation" << eom;
     goto_check(options, goto_model);
     #endif
-    
+
     // recalculate numbers, etc.
     goto_model.goto_functions.update();
 
     // add loop ids
     goto_model.goto_functions.compute_loop_numbers();
-    
+
     // show it?
     if(cmdline.isset("show-goto-functions"))
     {
-      namespacet ns(goto_model.symbol_table);
-
-      goto_model.goto_functions.output(ns, std::cout);
+      show_goto_functions(goto_model, get_ui());
       return true;
     }
 
@@ -481,18 +437,18 @@ bool goto_analyzer_parse_optionst::process_goto_program(
     error() << e << eom;
     return true;
   }
-  
+
   catch(int)
   {
     return true;
   }
-  
+
   catch(std::bad_alloc)
   {
     error() << "Out of memory" << eom;
     return true;
   }
-  
+
   return false;
 }
 
@@ -513,11 +469,11 @@ void goto_analyzer_parse_optionst::help()
   std::cout <<
     "\n"
     "* * GOTO-ANALYSER " CBMC_VERSION " - Copyright (C) 2016 ";
-    
+
   std::cout << "(" << (sizeof(void *)*8) << "-bit version)";
-    
+
   std::cout << " * *\n";
-    
+
   std::cout <<
     "* *                Daniel Kroening, DiffBlue                * *\n"
     "* *                 kroening@kroening.com                   * *\n"
@@ -529,12 +485,14 @@ void goto_analyzer_parse_optionst::help()
     "\n"
     "Analyses:\n"
     "\n"
+    // NOLINTNEXTLINE(whitespace/line_length)
     " --taint file_name            perform taint analysis using rules in given file\n"
     " --unreachable-instructions   list dead code\n"
     " --intervals                  interval analysis\n"
     " --non-null                   non-null analysis\n"
     "\n"
     "Analysis options:\n"
+    // NOLINTNEXTLINE(whitespace/line_length)
     " --json file_name             output results in JSON format to given file\n"
     " --xml file_name              output results in XML format to given file\n"
     "\n"
@@ -551,14 +509,18 @@ void goto_analyzer_parse_optionst::help()
                                        configt::ansi_ct::default_c_standard()==
                                        configt::ansi_ct::c_standardt::C99?"c99":
                                        configt::ansi_ct::default_c_standard()==
-                                       configt::ansi_ct::c_standardt::C11?"c11":"") << ")\n"
+                                       configt::ansi_ct::c_standardt::C11?
+                                         "c11":"") << ")\n"
     " --cpp98/03/11                set C++ language standard (default: "
                                    << (configt::cppt::default_cpp_standard()==
-                                       configt::cppt::cpp_standardt::CPP98?"cpp98":
+                                       configt::cppt::cpp_standardt::CPP98?
+                                         "cpp98":
                                        configt::cppt::default_cpp_standard()==
-                                       configt::cppt::cpp_standardt::CPP03?"cpp03":
+                                       configt::cppt::cpp_standardt::CPP03?
+                                         "cpp03":
                                        configt::cppt::default_cpp_standard()==
-                                       configt::cppt::cpp_standardt::CPP11?"cpp11":"") << ")\n"
+                                       configt::cppt::cpp_standardt::CPP11?
+                                         "cpp11":"") << ")\n"
     #ifdef _WIN32
     " --gcc                        use GCC as preprocessor\n"
     #endif
@@ -571,7 +533,8 @@ void goto_analyzer_parse_optionst::help()
     "Program representations:\n"
     " --show-parse-tree            show parse tree\n"
     " --show-symbol-table          show symbol table\n"
-    " --show-goto-functions        show goto program\n"
+    HELP_SHOW_GOTO_FUNCTIONS
+    // NOLINTNEXTLINE(whitespace/line_length)
     " --show-properties            show the properties, but don't run analysis\n"
     "\n"
     "Other options:\n"

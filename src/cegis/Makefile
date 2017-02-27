@@ -30,9 +30,8 @@ SRC = danger/meta/meta_variable_names.cpp danger/facade/danger_runner.cpp danger
       invariant/fitness/concrete_fitness_source_provider.cpp \
       jsa/facade/jsa_runner.cpp jsa/options/jsa_program.cpp jsa/options/jsa_program_info.cpp \
       jsa/preprocessing/jsa_preprocessing.cpp jsa/preprocessing/remove_loop.cpp \
-      jsa/preprocessing/add_constraint_meta_variables.cpp jsa/preprocessing/inline_user_program.cpp \
-      jsa/preprocessing/default_jsa_constant_strategy.cpp jsa/preprocessing/create_temp_variables.cpp \
-      jsa/preprocessing/collect_variables.cpp jsa/preprocessing/clone_heap.cpp \
+      jsa/preprocessing/add_constraint_meta_variables.cpp jsa/preprocessing/default_jsa_constant_strategy.cpp \
+      jsa/preprocessing/create_temp_variables.cpp jsa/preprocessing/collect_variables.cpp jsa/preprocessing/clone_heap.cpp \
       jsa/preprocessing/add_synthesis_library.cpp \
       jsa/learn/jsa_symex_learn.cpp jsa/learn/insert_counterexample.cpp jsa/learn/insert_predicates_and_queries.cpp \
       jsa/learn/instrument_pred_ops.cpp jsa/learn/execute_jsa_programs.cpp jsa/learn/extract_candidate.cpp \
@@ -47,6 +46,28 @@ SRC = danger/meta/meta_variable_names.cpp danger/facade/danger_runner.cpp danger
       jsa/genetic/jsa_source_provider.cpp jsa/genetic/dynamic_jsa_test_runner.cpp jsa/genetic/random_jsa_mutate.cpp \
       jsa/genetic/random_jsa_cross.cpp jsa/genetic/jsa_genetic_convert.cpp jsa/genetic/jsa_random.cpp \
       jsa/genetic/solution_helper.cpp jsa/genetic/jsa_serialiser.cpp jsa/genetic/jsa_paragon_wrapper.cpp \
+      control/facade/control_runner.cpp \
+      control/learn/print_control_solution.cpp \
+      control/learn/rational_solution_configuration.cpp control/learn/vector_solution_configuration.cpp \
+      control/preprocessing/control_preprocessing.cpp control/preprocessing/propagate_controller_sizes.cpp \
+      control/options/control_program.cpp \
+      control/learn/nondet_solution.cpp \
+      control/simplify/remove_unused_elements.cpp \
+      control/verify/insert_solution.cpp control/verify/zero_solutions.cpp \
+      control/value/float_helper.cpp control/value/control_types.cpp \
+      refactor/environment/instrument_state_vars.cpp \
+      refactor/instructionset/create_cegis_processor.cpp refactor/instructionset/execute_cegis_program.cpp \
+      refactor/instructionset/processor_types.cpp refactor/instructionset/cegis_processor_body_factory.cpp \
+      refactor/instructionset/instruction_description.cpp refactor/instructionset/cegis_instruction_factory.cpp \
+      refactor/instructionset/processor_symbols.cpp \
+      refactor/constraint/constraint_factory.cpp \
+      refactor/preprocessing/refactor_preprocessing.cpp refactor/preprocessing/collect_counterexamples.cpp \
+      refactor/learn/refactor_symex_learn.cpp refactor/learn/instrument_counterexamples.cpp \
+      refactor/learn/refactor_candidate_printer.cpp \
+      refactor/verify/refactor_symex_verify.cpp \
+      refactor/facade/refactor_runner.cpp \
+      refactor/options/refactoring_type.cpp refactor/options/refactor_program.cpp \
+      refactor/nullobject/range_collector.cpp refactor/nullobject/nullable_analysis.cpp \
       wordsize/restrict_bv_size.cpp value/program_individual_serialisation.cpp value/assignments_printer.cpp \
       seed/literals_seed.cpp \
       genetic/instruction_set_info_factory.cpp genetic/random_mutate.cpp genetic/random_cross.cpp \
@@ -55,12 +76,15 @@ SRC = danger/meta/meta_variable_names.cpp danger/facade/danger_runner.cpp danger
       genetic/serialise_individual.cpp genetic/program_individual_test_runner_helper.cpp \
       cegis-util/task_pool.cpp cegis-util/constant_width.cpp cegis-util/irep_pipe.cpp cegis-util/program_helper.cpp \
       cegis-util/temporary_output_block.cpp cegis-util/cbmc_runner.cpp cegis-util/module_helper.cpp \
+      cegis-util/inline_user_program.cpp cegis-util/counterexample_vars.cpp cegis-util/string_helper.cpp \
+      cegis-util/instruction_iterator.cpp cegis-util/type_helper.cpp \
+      learn/insert_counterexample.cpp learn/constraint_helper.cpp \
       constant/add_constant.cpp constant/literals_collector.cpp constant/default_cegis_constant_strategy.cpp \
       instrument/cegis_library.cpp instrument/instrument_var_ops.cpp instrument/meta_variables.cpp \
-      runner/cegis_parse_options.cpp runner/cegis_main.cpp
- 
+      instrument/find_cprover_initialize.cpp \
+      runner/cegis_parse_options.cpp runner/cegis_main.cpp runner/cegis_languages.cpp
+
 OBJ += ../ansi-c/ansi-c$(LIBEXT) \
-      ../jsil/jsil$(LIBEXT) \
       ../cpp/cpp$(LIBEXT) \
       ../java_bytecode/java_bytecode$(LIBEXT) \
       ../linking/linking$(LIBEXT) \
@@ -88,9 +112,10 @@ OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../cbmc/cbmc_parse_options$(OBJEXT) ../cbmc/bmc$(OBJEXT) ../cbmc/cbmc_solvers$(OBJEXT) \
       ../cbmc/symex_bmc$(OBJEXT) ../cbmc/xml_interface$(OBJEXT) ../cbmc/bmc_cover$(OBJEXT) \
       ../cbmc/bv_cbmc$(OBJEXT) ../cbmc/counterexample_beautification$(OBJEXT) \
-      ../cbmc/cbmc_languages$(OBJEXT) ../cbmc/show_vcc$(OBJEXT) \
+      ../cbmc/show_vcc$(OBJEXT) \
       ../cbmc/cbmc_dimacs$(OBJEXT) ../cbmc/all_properties$(OBJEXT) \
-      ../cbmc/fault_localization$(OBJEXT)
+      ../cbmc/fault_localization$(OBJEXT) \
+      ../cbmc/symex_coverage$(OBJEXT)
 
 INCLUDES= -I ..
 
@@ -104,6 +129,8 @@ endif
 LIBS = $(DLFCN_LINKFLAGS)
 
 CLEANFILES = cegis$(EXEEXT)
+
+CP_CXXFLAGS += -Wno-unused-label
 
 all: cegis$(EXEEXT)
 
@@ -119,4 +146,3 @@ endif
 
 cegis$(EXEEXT): $(OBJ)
 	$(LINKBIN)
-

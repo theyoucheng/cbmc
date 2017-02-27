@@ -1,4 +1,4 @@
-/*******************************************************************
+/*******************************************************************\
 
 Module: Counterexample-Guided Inductive Synthesis
 
@@ -7,8 +7,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CEGIS_GENETIC_INSTRUCTION_SET_INFO_FACTORY_H_
-#define CEGIS_GENETIC_INSTRUCTION_SET_INFO_FACTORY_H_
+#ifndef CPROVER_CEGIS_GENETIC_INSTRUCTION_SET_INFO_FACTORY_H
+#define CPROVER_CEGIS_GENETIC_INSTRUCTION_SET_INFO_FACTORY_H
 
 #include <functional>
 
@@ -46,7 +46,8 @@ public:
    * @tparam goto_program_providert
    */
   template<class goto_program_providert>
-  instruction_set_info_factoryt(const goto_program_providert &provider);
+  explicit instruction_set_info_factoryt(
+    const goto_program_providert &provider);
 
   /**
    * @brief
@@ -76,4 +77,4 @@ public:
 
 #include "instruction_set_info_factory.inc"
 
-#endif /* CEGIS_GENETIC_INSTRUCTION_SET_INFO_FACTORY_H_ */
+#endif // CPROVER_CEGIS_GENETIC_INSTRUCTION_SET_INFO_FACTORY_H

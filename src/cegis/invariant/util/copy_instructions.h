@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_DANGER_COPY_INSTRUCTIONS_H_
-#define CEGIS_DANGER_COPY_INSTRUCTIONS_H_
+#ifndef CPROVER_CEGIS_INVARIANT_UTIL_COPY_INSTRUCTIONS_H
+#define CPROVER_CEGIS_INVARIANT_UTIL_COPY_INSTRUCTIONS_H
 
 #include <goto-programs/goto_program.h>
 
@@ -113,4 +113,4 @@ goto_programt::targett copy_instructions(
     goto_programt::targett pos,
     const goto_programt::instructionst &source);
 
-#endif /* SRC_CEGIS_DANGER_UTIL_COPY_INSTRUCTIONS_H_ */
+#endif // CPROVER_CEGIS_INVARIANT_UTIL_COPY_INSTRUCTIONS_H

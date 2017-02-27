@@ -20,21 +20,22 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <set>
 
 #include <util/arith_tools.h>
-#include <util/c_misc.h>
 #include <util/config.h>
 #include <util/std_types.h>
 #include <util/std_code.h>
-#include <util/i2string.h>
 #include <util/ieee_float.h>
 #include <util/fixedbv.h>
 #include <util/prefix.h>
 #include <util/lispirep.h>
 #include <util/lispexpr.h>
+#include <util/namespace.h>
 #include <util/symbol.h>
 #include <util/suffix.h>
 #include <util/find_symbols.h>
 #include <util/pointer_offset_size.h>
 
+#include "c_misc.h"
+#include "c_qualifiers.h"
 #include "expr2c.h"
 #include "c_types.h"
 #include "expr2c_class.h"
@@ -140,7 +141,8 @@ void expr2ct::get_shorthands(const exprt &expr)
     const symbolt *symbol;
     bool is_param=!ns.lookup(*it, symbol) && symbol->is_parameter;
 
-    if(!is_param) continue;
+    if(!is_param)
+      continue;
 
     irep_idt sh=id_shorthand(*it);
 
@@ -226,7 +228,7 @@ std::string expr2ct::convert_rec(
   new_qualifiers.read(src);
 
   std::string q=new_qualifiers.as_string();
-  
+
   std::string d=
     declarator==""?declarator:" "+declarator;
 
@@ -276,28 +278,25 @@ std::string expr2ct::convert_rec(
   }
   else if(src.id()==ID_fixedbv)
   {
-    std::size_t width=to_fixedbv_type(src).get_width();
+    const std::size_t width=to_fixedbv_type(src).get_width();
 
     if(config.ansi_c.use_fixed_for_float)
     {
       if(width==config.ansi_c.single_width)
         return q+"float"+d;
-      else if(width==config.ansi_c.double_width)
+      if(width==config.ansi_c.double_width)
         return q+"double"+d;
-      else if(width==config.ansi_c.long_double_width)
+      if(width==config.ansi_c.long_double_width)
         return q+"long double"+d;
-      else
-        assert(false);
     }
-    else
-    {
-      std::size_t fraction_bits=to_fixedbv_type(src).get_fraction_bits();
-      return q+"__CPROVER_fixedbv["+i2string(width)+"]["+i2string(fraction_bits)+"]";
-    }
+    const std::size_t fraction_bits=to_fixedbv_type(src).get_fraction_bits();
+    return
+      q+"__CPROVER_fixedbv["+std::to_string(width)+"]["+
+      std::to_string(fraction_bits)+"]"+d;
   }
   else if(src.id()==ID_c_bit_field)
   {
-    std::string width=i2string(to_c_bit_field_type(src).get_width());
+    std::string width=std::to_string(to_c_bit_field_type(src).get_width());
     return q+convert(src.subtype())+d+" : "+width;
   }
   else if(src.id()==ID_signedbv ||
@@ -317,7 +316,7 @@ std::string expr2ct::convert_rec(
     }
     else if(c_type!=ID_wchar_t && !c_type_str.empty())
       return q+c_type_str+d;
-      
+
     // There is also wchar_t among the above, but this isn't a C type.
 
     mp_integer width=string2integer(src.get_string(ID_width));
@@ -327,12 +326,14 @@ std::string expr2ct::convert_rec(
 
     if(width==config.ansi_c.int_width)
     {
-      if(is_signed) sign_str="";
+      if(is_signed)
+        sign_str="";
       return q+sign_str+"int"+d;
     }
     else if(width==config.ansi_c.long_int_width)
     {
-      if(is_signed) sign_str="";
+      if(is_signed)
+        sign_str="";
       return q+sign_str+"long int"+d;
     }
     else if(width==config.ansi_c.char_width)
@@ -342,17 +343,20 @@ std::string expr2ct::convert_rec(
     }
     else if(width==config.ansi_c.short_int_width)
     {
-      if(is_signed) sign_str="";
+      if(is_signed)
+        sign_str="";
       return q+sign_str+"short int"+d;
     }
     else if(width==config.ansi_c.long_long_int_width)
     {
-      if(is_signed) sign_str="";
+      if(is_signed)
+        sign_str="";
       return q+sign_str+"long long int"+d;
     }
     else if(width==128)
     {
-      if(is_signed) sign_str="";
+      if(is_signed)
+        sign_str="";
       return q+sign_str+"__int128";
     }
     else
@@ -363,50 +367,30 @@ std::string expr2ct::convert_rec(
   }
   else if(src.id()==ID_struct)
   {
-    const struct_typet &struct_type=to_struct_type(src);
-  
-    std::string dest=q+"struct";
-
-    const irep_idt &tag=struct_type.get_tag();
-    if(tag!="") dest+=" "+id2string(tag);
-    dest+=" {";
-    
-    for(struct_typet::componentst::const_iterator
-        it=struct_type.components().begin();
-        it!=struct_type.components().end();
-        it++)
-    {
-      dest+=' ';
-      dest+=convert_rec(it->type(), c_qualifierst(), id2string(it->get_name()));
-      dest+=';';
-    }
-    
-    dest+=" }";
-    
-    dest+=d;
-    
-    return dest;
+    return convert_struct_type(src, q, d);
   }
   else if(src.id()==ID_incomplete_struct)
   {
     std::string dest=q+"struct";
 
     const std::string &tag=src.get_string(ID_tag);
-    if(tag!="") dest+=" "+tag;
+    if(tag!="")
+      dest+=" "+tag;
     dest+=d;
-    
+
     return dest;
   }
   else if(src.id()==ID_union)
   {
     const union_typet &union_type=to_union_type(src);
-  
+
     std::string dest=q+"union";
 
     const irep_idt &tag=union_type.get_tag();
-    if(tag!="") dest+=" "+id2string(tag);
+    if(tag!="")
+      dest+=" "+id2string(tag);
     dest+=" {";
-    
+
     for(union_typet::componentst::const_iterator
         it=union_type.components().begin();
         it!=union_type.components().end();
@@ -416,11 +400,11 @@ std::string expr2ct::convert_rec(
       dest+=convert_rec(it->type(), c_qualifierst(), id2string(it->get_name()));
       dest+=';';
     }
-    
+
     dest+=" }";
-    
+
     dest+=d;
-    
+
     return dest;
   }
   else if(src.id()==ID_incomplete_union)
@@ -428,7 +412,8 @@ std::string expr2ct::convert_rec(
     std::string dest=q+"union";
 
     const std::string &tag=src.get_string(ID_tag);
-    if(tag!="") dest+=" "+tag;
+    if(tag!="")
+      dest+=" "+tag;
     dest+=d;
 
     return dest;
@@ -441,7 +426,7 @@ std::string expr2ct::convert_rec(
 
     // do we have a tag?
     const irept &tag=src.find(ID_tag);
-    
+
     if(tag.is_nil())
     {
     }
@@ -450,19 +435,20 @@ std::string expr2ct::convert_rec(
       result+=' ';
       result+=tag.get_string(ID_C_base_name);
     }
-    
+
     result+=' ';
     result+='{';
-    
+
     // add members
     const c_enum_typet::memberst &members=to_c_enum_type(src).members();
-    
+
     for(c_enum_typet::memberst::const_iterator
         it=members.begin();
         it!=members.end();
         it++)
     {
-      if(it!=members.begin()) result+=',';
+      if(it!=members.begin())
+        result+=',';
       result+=' ';
       result+=id2string(it->get_base_name());
       result+='=';
@@ -477,7 +463,7 @@ std::string expr2ct::convert_rec(
   else if(src.id()==ID_incomplete_c_enum)
   {
     const irept &tag=src.find(ID_tag);
-    
+
     if(tag.is_not_nil())
     {
       std::string result=q+"enum";
@@ -500,14 +486,14 @@ std::string expr2ct::convert_rec(
     c_qualifierst sub_qualifiers;
     sub_qualifiers.read(src.subtype());
     const typet &subtype_followed=ns.follow(src.subtype());
-  
+
     // The star gets attached to the declarator.
     std::string new_declarator="*";
 
     if(q!="" &&
        (!declarator.empty() || subtype_followed.id()==ID_pointer))
       new_declarator+=" "+q;
-    
+
     new_declarator+=declarator;
 
     // Depending on precedences, we may add parentheses.
@@ -516,23 +502,12 @@ std::string expr2ct::convert_rec(
          (subtype_followed.id()==ID_array ||
           subtype_followed.id()==ID_incomplete_array)))
       new_declarator="("+new_declarator+")";
-      
+
     return convert_rec(src.subtype(), sub_qualifiers, new_declarator);
   }
   else if(src.id()==ID_array)
   {
-    // The [...] gets attached to the declarator.
-    std::string array_suffix;
-   
-    if(to_array_type(src).size().is_nil())
-      array_suffix="[]";
-    else
-      array_suffix="["+convert(to_array_type(src).size())+"]";
-    
-    // This won't really parse without declarator.
-    // Note that qualifiers are passed down.
-    return convert_rec(
-      src.subtype(), qualifiers, declarator+array_suffix);
+    return convert_array_type(src, qualifiers, declarator);
   }
   else if(src.id()==ID_incomplete_array)
   {
@@ -544,12 +519,13 @@ std::string expr2ct::convert_rec(
   else if(src.id()==ID_symbol)
   {
     const typet &followed=ns.follow(src);
-    
+
     if(followed.id()==ID_struct)
     {
       std::string dest=q+"struct";
       const irep_idt &tag=to_struct_type(followed).get_tag();
-      if(tag!="") dest+=" "+id2string(tag);
+      if(tag!="")
+        dest+=" "+id2string(tag);
       dest+=d;
       return dest;
     }
@@ -557,7 +533,8 @@ std::string expr2ct::convert_rec(
     {
       std::string dest=q+"union";
       const irep_idt &tag=to_union_type(followed).get_tag();
-      if(tag!="") dest+=" "+id2string(tag);
+      if(tag!="")
+        dest+=" "+id2string(tag);
       dest+=d;
       return dest;
     }
@@ -571,7 +548,8 @@ std::string expr2ct::convert_rec(
 
     std::string dest=q+"struct";
     const std::string &tag=ns.follow_tag(struct_tag_type).get_string(ID_tag);
-    if(tag!="") dest+=" "+tag;
+    if(tag!="")
+      dest+=" "+tag;
     dest+=d;
 
     return dest;
@@ -583,7 +561,8 @@ std::string expr2ct::convert_rec(
 
     std::string dest=q+"union";
     const std::string &tag=ns.follow_tag(union_tag_type).get_string(ID_tag);
-    if(tag!="") dest+=" "+tag;
+    if(tag!="")
+      dest+=" "+tag;
     dest+=d;
 
     return dest;
@@ -591,13 +570,13 @@ std::string expr2ct::convert_rec(
   else if(src.id()==ID_code)
   {
     const code_typet &code_type=to_code_type(src);
-  
+
     // C doesn't really have syntax for function types,
     // i.e., the following won't parse without declarator
     std::string dest=declarator+"(";
 
     const code_typet::parameterst &parameters=code_type.parameters();
-    
+
     if(parameters.empty())
     {
       if(code_type.has_ellipsis())
@@ -659,7 +638,7 @@ std::string expr2ct::convert_rec(
   else if(src.id()==ID_vector)
   {
     const vector_typet &vector_type=to_vector_type(src);
-    
+
     mp_integer size_int;
     to_integer(vector_type.size(), size_int);
 
@@ -712,6 +691,160 @@ std::string expr2ct::convert_rec(
 
 /*******************************************************************\
 
+Function: expr2ct::convert_struct_type
+
+  Inputs:
+          src - the struct type being converted
+          qualifiers - any qualifiers on the type
+          declarator - the declarator on the type
+
+ Outputs: Returns a type declaration for a struct, containing the
+          body of the struct and in that body the padding parameters.
+
+ Purpose: To generate C-like string for defining the given struct
+
+\*******************************************************************/
+std::string expr2ct::convert_struct_type(
+  const typet &src,
+  const std::string &qualifiers_str,
+  const std::string &declarator_str)
+{
+  return convert_struct_type(src, qualifiers_str, declarator_str, true, true);
+}
+
+/*******************************************************************\
+
+Function: expr2ct::convert_struct_type
+
+  Inputs:
+          src - the struct type being converted
+          qualifiers - any qualifiers on the type
+          declarator - the declarator on the type
+          inc_struct_body - when generating the code, should we include
+                            a complete definition of the struct
+          inc_padding_components - should the padding parameters be included
+                                   Note this only makes sense if inc_struct_body
+
+ Outputs: Returns a type declaration for a struct, optionally containing the
+          body of the struct (and in that body, optionally the padding
+          parameters).
+
+ Purpose: To generate C-like string for declaring (or defining) the given struct
+
+\*******************************************************************/
+std::string expr2ct::convert_struct_type(
+  const typet &src,
+  const std::string &qualifiers,
+  const std::string &declarator,
+  bool inc_struct_body,
+  bool inc_padding_components)
+{
+  // Either we are including the body (in which case it makes sense to include
+  // or exclude the parameters) or there is no body so therefore we definitely
+  // shouldn't be including the parameters
+  assert(inc_struct_body || !inc_padding_components);
+
+  const struct_typet &struct_type=to_struct_type(src);
+
+  std::string dest=qualifiers+"struct";
+
+  const irep_idt &tag=struct_type.get_tag();
+  if(tag!="")
+    dest+=" "+id2string(tag);
+
+  if(inc_struct_body)
+  {
+    dest+=" {";
+
+    for(const struct_union_typet::componentt &component :
+      struct_type.components())
+    {
+      // Skip padding parameters unless we including them
+      if(component.get_is_padding() && !inc_padding_components)
+      {
+        continue;
+      }
+
+      dest+=' ';
+      dest+=convert_rec(
+        component.type(),
+        c_qualifierst(),
+        id2string(component.get_name()));
+      dest+=';';
+    }
+
+    dest+=" }";
+  }
+
+  dest+=declarator;
+
+  return dest;
+}
+
+/*******************************************************************\
+
+Function: expr2ct::convert_array_type
+
+  Inputs:
+          src - The array type to convert
+          qualifier
+          declarator_str
+
+ Outputs: A C-like type declaration of an array
+
+ Purpose: To generate a C-like type declaration of an array. Includes
+          the size of the array in the []
+
+\*******************************************************************/
+
+std::string expr2ct::convert_array_type(
+  const typet &src,
+  const c_qualifierst &qualifiers,
+  const std::string &declarator_str)
+{
+  return convert_array_type(src, qualifiers, declarator_str, true);
+}
+
+/*******************************************************************\
+
+Function: expr2ct::convert_array_type
+
+  Inputs:
+          src - The array type to convert
+          qualifier
+          declarator_str
+          inc_size_if_possible - Should the generated string include
+                                 the size of the array (if it is known).
+
+ Outputs: A C-like type declaration of an array
+
+ Purpose: To generate a C-like type declaration of an array. Optionally
+          can include or exclude the size of the array in the []
+
+\*******************************************************************/
+
+std::string expr2ct::convert_array_type(
+  const typet &src,
+  const c_qualifierst &qualifiers,
+  const std::string &declarator_str,
+  bool inc_size_if_possible)
+{
+  // The [...] gets attached to the declarator.
+  std::string array_suffix;
+
+  if(to_array_type(src).size().is_nil() || !inc_size_if_possible)
+    array_suffix="[]";
+  else
+    array_suffix="["+convert(to_array_type(src).size())+"]";
+
+  // This won't really parse without declarator.
+  // Note that qualifiers are passed down.
+  return convert_rec(
+    src.subtype(), qualifiers, declarator_str+array_suffix);
+}
+
+/*******************************************************************\
+
 Function: expr2ct::convert_typecast
 
   Inputs:
@@ -733,11 +866,11 @@ std::string expr2ct::convert_typecast(
 
   const typet &to_type=ns.follow(src.type());
   const typet &from_type=ns.follow(src.op().type());
-  
+
   if(to_type.id()==ID_c_bool &&
      from_type.id()==ID_bool)
     return convert(src.op(), precedence);
-     
+
   if(to_type.id()==ID_bool &&
      from_type.id()==ID_c_bool)
     return convert(src.op(), precedence);
@@ -747,9 +880,11 @@ std::string expr2ct::convert_typecast(
   unsigned p;
   std::string tmp=convert(src.op(), p);
 
-  if(precedence>p) dest+='(';
+  if(precedence>p)
+    dest+='(';
   dest+=tmp;
-  if(precedence>p) dest+=')';
+  if(precedence>p)
+    dest+=')';
 
   return dest;
 }
@@ -788,25 +923,31 @@ std::string expr2ct::convert_trinary(
 
   std::string dest;
 
-  if(precedence>=p0) dest+='(';
+  if(precedence>=p0)
+    dest+='(';
   dest+=s_op0;
-  if(precedence>=p0) dest+=')';
+  if(precedence>=p0)
+    dest+=')';
 
   dest+=' ';
   dest+=symbol1;
   dest+=' ';
 
-  if(precedence>=p1) dest+='(';
+  if(precedence>=p1)
+    dest+='(';
   dest+=s_op1;
-  if(precedence>=p1) dest+=')';
+  if(precedence>=p1)
+    dest+=')';
 
   dest+=' ';
   dest+=symbol2;
   dest+=' ';
 
-  if(precedence>=p2) dest+='(';
+  if(precedence>=p2)
+    dest+='(';
   dest+=s_op2;
-  if(precedence>=p2) dest+=')';
+  if(precedence>=p2)
+    dest+=')';
 
   return dest;
 }
@@ -837,7 +978,7 @@ std::string expr2ct::convert_quantifier(
   std::string op1=convert(src.op1(), p1);
 
   std::string dest=symbol+" { ";
-  dest+=convert(src.op0().type());  
+  dest+=convert(src.op0().type());
   dest+=" "+op0+"; ";
   dest+=op1;
   dest+=" }";
@@ -869,9 +1010,11 @@ std::string expr2ct::convert_with(
 
   std::string dest;
 
-  if(precedence>p0) dest+='(';
+  if(precedence>p0)
+    dest+='(';
   dest+=op0;
-  if(precedence>p0) dest+=')';
+  if(precedence>p0)
+    dest+=')';
 
   dest+=" WITH [";
 
@@ -880,7 +1023,8 @@ std::string expr2ct::convert_with(
     std::string op1, op2;
     unsigned p1, p2;
 
-    if(i!=1) dest+=", ";
+    if(i!=1)
+      dest+=", ";
 
     if(src.operands()[i].id()==ID_member_name)
     {
@@ -894,16 +1038,16 @@ std::string expr2ct::convert_with(
 
       const struct_union_typet::componentt &comp_expr=
         struct_union_type.get_component(component_name);
-        
+
       assert(comp_expr.is_not_nil());
-      
+
       irep_idt display_component_name;
-      
+
       if(comp_expr.get_pretty_name().empty())
         display_component_name=component_name;
       else
         display_component_name=comp_expr.get_pretty_name();
-        
+
       op1="."+id2string(display_component_name);
       p1=10;
     }
@@ -948,26 +1092,30 @@ std::string expr2ct::convert_update(
 
   std::string op0, op1, op2;
   unsigned p0, p2;
-  
+
   op0=convert(src.op0(), p0);
   op2=convert(src.op2(), p2);
 
-  if(precedence>p0) dest+='(';
+  if(precedence>p0)
+    dest+='(';
   dest+=op0;
-  if(precedence>p0) dest+=')';
-  
+  if(precedence>p0)
+    dest+=')';
+
   dest+=", ";
-  
+
   const exprt &designator=src.op1();
 
   forall_operands(it, designator)
     dest+=convert(*it);
-  
+
   dest+=", ";
 
-  if(precedence>p2) dest+='(';
+  if(precedence>p2)
+    dest+='(';
   dest+=op2;
-  if(precedence>p2) dest+=')';
+  if(precedence>p2)
+    dest+=')';
 
   dest+=')';
 
@@ -1002,7 +1150,8 @@ std::string expr2ct::convert_cond(
     unsigned p;
     std::string op=convert(*it, p);
 
-    if(condition) dest+="  ";
+    if(condition)
+      dest+="  ";
 
     dest+=op;
 
@@ -1049,29 +1198,32 @@ std::string expr2ct::convert_binary(
       first=false;
     else
     {
-      if(symbol!=", ") dest+=' ';
+      if(symbol!=", ")
+        dest+=' ';
       dest+=symbol;
       dest+=' ';
     }
 
     unsigned p;
     std::string op=convert(*it, p);
-    
+
     // In pointer arithmetic, x+(y-z) is unfortunately
     // not the same as (x+y)-z, even though + and -
     // have the same precedence. We thus add parentheses
     // for the case x+(y-z). Similarly, (x*y)/z is not
     // the same as x*(y/z), but * and / have the same
     // precedence.
-    
+
     bool use_parentheses=
-      precedence>p || 
+      precedence>p ||
       (precedence==p && full_parentheses) ||
       (precedence==p && src.id()!=it->id());
-    
-    if(use_parentheses) dest+='(';
+
+    if(use_parentheses)
+      dest+='(';
     dest+=op;
-    if(use_parentheses) dest+=')';
+    if(use_parentheses)
+      dest+=')';
   }
 
   return dest;
@@ -1175,7 +1327,7 @@ std::string expr2ct::convert_malloc(
     dest+=convert(src.type().subtype());
     dest+=", ";
   }
-  
+
   dest+=op0;
   dest+=')';
 
@@ -1315,7 +1467,8 @@ std::string expr2ct::convert_function(
     unsigned p;
     std::string op=convert(*it, p);
 
-    if(it!=src.operands().begin()) dest+=", ";
+    if(it!=src.operands().begin())
+      dest+=", ";
 
     dest+=op;
   }
@@ -1390,12 +1543,12 @@ std::string expr2ct::convert_complex(
   // double complex CMPLX(double x, double y);
   // float complex CMPLXF(float x, float y);
   // long double complex CMPLXL(long double x, long double y);
-  
+
   const typet &subtype=
     ns.follow(ns.follow(src.type()).subtype());
 
   std::string name;
-  
+
   if(subtype==double_type())
     name="CMPLX";
   else if(subtype==float_type())
@@ -1413,7 +1566,8 @@ std::string expr2ct::convert_complex(
     unsigned p;
     std::string op=convert(*it, p);
 
-    if(it!=src.operands().begin()) dest+=", ";
+    if(it!=src.operands().begin())
+      dest+=", ";
 
     dest+=op;
   }
@@ -1548,9 +1702,11 @@ std::string expr2ct::convert_unary_post(
   std::string op=convert(src.op0(), p);
 
   std::string dest;
-  if(precedence>p) dest+='(';
+  if(precedence>p)
+    dest+='(';
   dest+=op;
-  if(precedence>p) dest+=')';
+  if(precedence>p)
+    dest+=')';
   dest+=symbol;
 
   return dest;
@@ -1579,9 +1735,11 @@ std::string expr2ct::convert_index(
   std::string op=convert(src.op0(), p);
 
   std::string dest;
-  if(precedence>p) dest+='(';
+  if(precedence>p)
+    dest+='(';
   dest+=op;
-  if(precedence>p) dest+=')';
+  if(precedence>p)
+    dest+=')';
 
   dest+='[';
   dest+=convert(src.op1());
@@ -1607,28 +1765,32 @@ std::string expr2ct::convert_pointer_arithmetic(
 {
   if(src.operands().size()!=2)
     return convert_norep(src, precedence);
-  
+
   std::string dest="POINTER_ARITHMETIC(";
 
   unsigned p;
   std::string op;
-  
+
   op=convert(src.op0().type());
   dest+=op;
-  
+
   dest+=", ";
 
   op=convert(src.op0(), p);
-  if(precedence>p) dest+='(';
+  if(precedence>p)
+    dest+='(';
   dest+=op;
-  if(precedence>p) dest+=')';
-  
+  if(precedence>p)
+    dest+=')';
+
   dest+=", ";
 
   op=convert(src.op1(), p);
-  if(precedence>p) dest+='(';
+  if(precedence>p)
+    dest+='(';
   dest+=op;
-  if(precedence>p) dest+=')';
+  if(precedence>p)
+    dest+=')';
 
   dest+=')';
 
@@ -1652,28 +1814,32 @@ std::string expr2ct::convert_pointer_difference(
 {
   if(src.operands().size()!=2)
     return convert_norep(src, precedence);
-  
+
   std::string dest="POINTER_DIFFERENCE(";
 
   unsigned p;
   std::string op;
-  
+
   op=convert(src.op0().type());
   dest+=op;
-  
+
   dest+=", ";
 
   op=convert(src.op0(), p);
-  if(precedence>p) dest+='(';
+  if(precedence>p)
+    dest+='(';
   dest+=op;
-  if(precedence>p) dest+=')';
-  
+  if(precedence>p)
+    dest+=')';
+
   dest+=", ";
 
   op=convert(src.op1(), p);
-  if(precedence>p) dest+='(';
+  if(precedence>p)
+    dest+='(';
   dest+=op;
-  if(precedence>p) dest+=')';
+  if(precedence>p)
+    dest+=')';
 
   dest+=')';
 
@@ -1698,7 +1864,7 @@ std::string expr2ct::convert_member_designator(const exprt &src)
 
   if(!src.operands().empty())
     return convert_norep(src, precedence);
-    
+
   return "."+src.get_string(ID_component_name);
 }
 
@@ -1720,7 +1886,7 @@ std::string expr2ct::convert_index_designator(const exprt &src)
 
   if(src.operands().size()!=1)
     return convert_norep(src, precedence);
-    
+
   return "["+convert(src.op0())+"]";
 }
 
@@ -1751,9 +1917,11 @@ std::string expr2ct::convert_member(
   {
     std::string op=convert(src.op0().op0(), p);
 
-    if(precedence>p || src.op0().op0().id()==ID_typecast) dest+='(';
+    if(precedence>p || src.op0().op0().id()==ID_typecast)
+      dest+='(';
     dest+=op;
-    if(precedence>p || src.op0().op0().id()==ID_typecast) dest+=')';
+    if(precedence>p || src.op0().op0().id()==ID_typecast)
+      dest+=')';
 
     dest+="->";
   }
@@ -1761,9 +1929,11 @@ std::string expr2ct::convert_member(
   {
     std::string op=convert(src.op0(), p);
 
-    if(precedence>p || src.op0().id()==ID_typecast) dest+='(';
+    if(precedence>p || src.op0().id()==ID_typecast)
+      dest+='(';
     dest+=op;
-    if(precedence>p || src.op0().id()==ID_typecast) dest+=')';
+    if(precedence>p || src.op0().id()==ID_typecast)
+      dest+=')';
 
     dest+='.';
   }
@@ -1778,7 +1948,7 @@ std::string expr2ct::convert_member(
     to_struct_union_type(full_type);
 
   irep_idt component_name=src.get_component_name();
-  
+
   if(component_name!="")
   {
     const exprt comp_expr=
@@ -1786,23 +1956,23 @@ std::string expr2ct::convert_member(
 
     if(comp_expr.is_nil())
       return convert_norep(src, precedence);
-     
+
     if(!comp_expr.get(ID_pretty_name).empty())
       dest+=comp_expr.get_string(ID_pretty_name);
     else
       dest+=id2string(component_name);
 
     return dest;
-  }  
+  }
 
   std::size_t n=src.get_component_number();
-  
+
   if(n>=struct_union_type.components().size())
     return convert_norep(src, precedence);
 
   const exprt comp_expr=
     struct_union_type.components()[n];
-    
+
   dest+=comp_expr.get_string(ID_pretty_name);
 
   return dest;
@@ -1899,7 +2069,7 @@ std::string expr2ct::convert_symbol(
     dest=src.op0().get_string(ID_identifier);
   else
   {
-    hash_map_cont<irep_idt, irep_idt, irep_id_hash>::const_iterator
+    std::unordered_map<irep_idt, irep_idt, irep_id_hash>::const_iterator
       entry=shorthands.find(id);
     // we might be called from conversion of a type
     if(entry==shorthands.end())
@@ -1917,7 +2087,8 @@ std::string expr2ct::convert_symbol(
     {
       if(sizeof_nesting++ == 0)
         dest+=" /*"+convert(src.type());
-      if(--sizeof_nesting == 0) dest+="*/";
+      if(--sizeof_nesting == 0)
+        dest+="*/";
     }
     #endif
   }
@@ -2072,7 +2243,7 @@ std::string expr2ct::convert_object_descriptor(
   result+=", ";
   result+=convert(src.op1());
   result+=", ";
-  
+
   if(src.type().is_nil())
     result+='?';
   else
@@ -2124,12 +2295,12 @@ std::string expr2ct::convert_constant(
 
     mp_integer int_value=binary2integer(id2string(value), is_signed);
     mp_integer i=0;
-    
+
     irep_idt int_value_string=integer2string(int_value);
 
     const c_enum_typet::memberst &members=
       to_c_enum_type(c_enum_type).members();
-    
+
     for(c_enum_typet::memberst::const_iterator
         it=members.begin();
         it!=members.end();
@@ -2151,11 +2322,7 @@ std::string expr2ct::convert_constant(
   }
   else if(type.id()==ID_bool)
   {
-    // C doesn't really have these
-    if(src.is_true())
-      dest="TRUE";
-    else
-      dest="FALSE";
+    dest=convert_constant_bool(src.is_true());
   }
   else if(type.id()==ID_unsignedbv ||
           type.id()==ID_signedbv ||
@@ -2164,20 +2331,18 @@ std::string expr2ct::convert_constant(
   {
     mp_integer int_value=
       binary2integer(id2string(value), type.id()==ID_signedbv);
-    
+
     const irep_idt &c_type=
       type.id()==ID_c_bit_field?type.subtype().get(ID_C_c_type):
                  type.get(ID_C_c_type);
 
     if(type.id()==ID_c_bool)
     {
-      // C doesn't really have these
-      if(int_value!=0)
-        dest="TRUE";
-      else
-        dest="FALSE";
+      dest=convert_constant_bool(int_value!=0);
     }
-    else if(type==char_type() && type!=signed_int_type() && type!=unsigned_int_type())
+    else if(type==char_type() &&
+            type!=signed_int_type() &&
+            type!=unsigned_int_type())
     {
       if(int_value=='\n')
         dest+="'\\n'";
@@ -2192,7 +2357,7 @@ std::string expr2ct::convert_constant(
       else if(int_value>=' ' && int_value<126)
       {
         dest+='\'';
-        dest+=char(integer2ulong(int_value));
+        dest+=static_cast<char>(integer2ulong(int_value));
         dest+='\'';
       }
       else
@@ -2208,7 +2373,7 @@ std::string expr2ct::convert_constant(
         dest="0b"+integer2string(int_value, 2);
       else
         dest=integer2string(int_value);
-      
+
       if(c_type==ID_unsigned_int)
         dest+='u';
       else if(c_type==ID_unsigned_long_int)
@@ -2281,7 +2446,7 @@ std::string expr2ct::convert_constant(
   else if(type.id()==ID_pointer)
   {
     const irep_idt &value=to_constant_expr(src).get_value();
-    
+
     if(value==ID_NULL)
     {
       dest="NULL";
@@ -2302,9 +2467,9 @@ std::string expr2ct::convert_constant(
         return convert_norep(src, precedence);
 
       if(src.op0().id()==ID_constant)
-      {        
+      {
         const irep_idt &op_value=src.op0().get(ID_value);
-    
+
         if(op_value=="INVALID" ||
            has_prefix(id2string(op_value), "INVALID-") ||
            op_value=="NULL+offset")
@@ -2328,6 +2493,28 @@ std::string expr2ct::convert_constant(
 
 /*******************************************************************\
 
+Function: expr2ct::convert_constant_bool
+
+  Inputs:
+          boolean_value - The value of the constant bool expression
+
+ Outputs: Returns a C-like representation of the boolean value,
+          e.g. TRUE or FALSE.
+
+ Purpose: To get the C-like representation of a given boolean value.
+
+\*******************************************************************/
+std::string expr2ct::convert_constant_bool(bool boolean_value)
+{
+  // C doesn't really have these
+  if(boolean_value)
+    return "TRUE";
+  else
+    return "FALSE";
+}
+
+/*******************************************************************\
+
 Function: expr2ct::convert_struct
 
   Inputs:
@@ -2342,11 +2529,36 @@ std::string expr2ct::convert_struct(
   const exprt &src,
   unsigned &precedence)
 {
+  return convert_struct(src, precedence, true);
+}
+
+/*******************************************************************\
+
+Function: expr2ct::convert_struct
+
+  Inputs:
+    src - The struct declaration expression
+    precedence
+    include_padding_components - Should the generated C code
+                              include the padding members added
+                              to structs for GOTOs benifit
+
+ Outputs: A string representation of the struct expression
+
+ Purpose: To generate a C-like string representing a struct. Can optionally
+          include the padding parameters.
+
+\*******************************************************************/
+std::string expr2ct::convert_struct(
+  const exprt &src,
+  unsigned &precedence,
+  bool include_padding_components)
+{
   const typet full_type=ns.follow(src.type());
 
   if(full_type.id()!=ID_struct)
     return convert_norep(src, precedence);
-    
+
   const struct_typet &struct_type=
     to_struct_type(full_type);
 
@@ -2364,13 +2576,17 @@ std::string expr2ct::convert_struct(
   bool newline=false;
   size_t last_size=0;
 
-  for(struct_typet::componentst::const_iterator
-      c_it=components.begin();
-      c_it!=components.end();
-      c_it++)
+  for(const struct_union_typet::componentt &component :
+    struct_type.components())
   {
     if(o_it->type().id()==ID_code)
       continue;
+
+    if(component.get_is_padding() && !include_padding_components)
+    {
+      ++o_it;
+      continue;
+    }
 
     if(first)
       first=false;
@@ -2395,7 +2611,7 @@ std::string expr2ct::convert_struct(
       newline=false;
 
     dest+='.';
-    dest+=c_it->get_string(ID_name);
+    dest+=component.get_string(ID_name);
     dest+='=';
     dest+=tmp;
 
@@ -2519,36 +2735,36 @@ std::string expr2ct::convert_array(
 
   // we treat arrays of characters as string constants,
   // and arrays of wchar_t as wide strings
-  
+
   const typet &subtype=ns.follow(ns.follow(src.type()).subtype());
-  
+
   bool all_constant=true;
-  
+
   forall_operands(it, src)
     if(!it->is_constant())
       all_constant=false;
-  
+
   if(src.get_bool(ID_C_string_constant) &&
      all_constant &&
      (subtype==char_type() || subtype==wchar_t_type()))
   {
     bool wide=subtype==wchar_t_type();
-  
+
     if(wide)
       dest+='L';
 
     dest+="\"";
-    
+
     dest.reserve(dest.size()+1+src.operands().size());
-    
+
     bool last_was_hex=false;
-    
+
     forall_operands(it, src)
     {
       // these have a trailing zero
       if(it==--src.operands().end())
         break;
-        
+
       assert(it->is_constant());
       mp_integer i;
       to_integer(*it, i);
@@ -2559,10 +2775,10 @@ std::string expr2ct::convert_array(
         // we use "string splicing" to avoid ambiguity
         if(isxdigit(ch))
           dest+="\" \"";
-        
+
         last_was_hex=false;
       }
-        
+
       switch(ch)
       {
       case '\n': dest+="\\n"; break; /* NL (0x0a) */
@@ -2574,10 +2790,10 @@ std::string expr2ct::convert_array(
       case '\a': dest+="\\a"; break; /* BEL (0x07) */
       case '\\': dest+="\\\\"; break;
       case '"': dest+="\\\""; break;
-      
+
       default:
         if(ch>=' ' && ch!=127 && ch<0xff)
-          dest+=(char)ch;
+          dest+=static_cast<char>(ch);
         else
         {
           char hexbuf[10];
@@ -2589,7 +2805,7 @@ std::string expr2ct::convert_array(
     }
 
     dest+="\"";
-    
+
     return dest;
   }
 
@@ -2605,7 +2821,8 @@ std::string expr2ct::convert_array(
     if((it+1)!=src.operands().end())
     {
       tmp+=", ";
-      if(tmp.size()>40) tmp+="\n    ";
+      if(tmp.size()>40)
+        tmp+="\n    ";
     }
 
     dest+=tmp;
@@ -2650,7 +2867,8 @@ std::string expr2ct::convert_array_list(
     if((it+1)!=src.operands().end())
     {
       tmp+=", ";
-      if(tmp.size()>40) tmp+="\n    ";
+      if(tmp.size()>40)
+        tmp+="\n    ";
     }
 
     dest+=tmp;
@@ -2678,7 +2896,8 @@ std::string expr2ct::convert_initializer_list(
   unsigned &precedence)
 {
   std::string dest;
-  if(src.id()!=ID_compound_literal) dest+="{ ";
+  if(src.id()!=ID_compound_literal)
+    dest+="{ ";
 
   forall_operands(it, src)
   {
@@ -2687,13 +2906,15 @@ std::string expr2ct::convert_initializer_list(
     if((it+1)!=src.operands().end())
     {
       tmp+=", ";
-      if(tmp.size()>40) tmp+="\n    ";
+      if(tmp.size()>40)
+        tmp+="\n    ";
     }
 
     dest+=tmp;
   }
 
-  if(src.id()!=ID_compound_literal) dest+=" }";
+  if(src.id()!=ID_compound_literal)
+    dest+=" }";
 
   return dest;
 }
@@ -2759,7 +2980,8 @@ std::string expr2ct::convert_function_application(
     unsigned p;
     std::string arg_str=convert(*it, p);
 
-    if(it!=src.arguments().begin()) dest+=", ";
+    if(it!=src.arguments().begin())
+      dest+=", ";
     // TODO: ggf. Klammern je nach p
     dest+=arg_str;
   }
@@ -2800,7 +3022,8 @@ std::string expr2ct::convert_side_effect_expr_function_call(
     unsigned p;
     std::string arg_str=convert(*it, p);
 
-    if(it!=src.arguments().begin()) dest+=", ";
+    if(it!=src.arguments().begin())
+      dest+=", ";
     // TODO: ggf. Klammern je nach p
     dest+=arg_str;
   }
@@ -2831,7 +3054,7 @@ std::string expr2ct::convert_overflow(
   std::string dest="overflow(\"";
   dest+=src.id().c_str()+9;
   dest+="\"";
-  
+
   if(!src.operands().empty())
   {
     dest+=", ";
@@ -3084,7 +3307,7 @@ std::string expr2ct::convert_code_ifthenelse(
         to_code(src.else_case()),
         to_code(src.else_case()).get_statement()==ID_block ? indent : indent+2);
   }
-  
+
   return dest;
 }
 
@@ -3201,7 +3424,8 @@ std::string expr2ct::convert_code_switch(
 
   forall_operands(it, src)
   {
-    if(it==src.operands().begin()) continue;
+    if(it==src.operands().begin())
+      continue;
     const exprt &op=*it;
 
     if(op.get(ID_statement)!=ID_block)
@@ -3269,7 +3493,7 @@ std::string expr2ct::convert_code_decl(
     unsigned precedence;
     return convert_norep(src, precedence);
   }
-  
+
   std::string declarator=convert(src.op0());
 
   std::string dest=indent_str(indent);
@@ -3320,7 +3544,7 @@ std::string expr2ct::convert_code_dead(
     unsigned precedence;
     return convert_norep(src, precedence);
   }
-  
+
   return "dead "+convert(src.op0())+";";
 }
 
@@ -3465,7 +3689,8 @@ std::string expr2ct::convert_code_expression(
   }
 
   dest+=expr_str;
-  if(dest.empty() || *dest.rbegin()!=';') dest+=';';
+  if(dest.empty() || *dest.rbegin()!=';')
+    dest+=';';
 
   return dest;
 }
@@ -3598,7 +3823,8 @@ std::string expr2ct::convert_code(
 
   if(statement=="set_may" ||
      statement=="set_must")
-    return indent_str(indent)+convert_function(src, id2string(statement), 16)+";";
+    return
+      indent_str(indent)+convert_function(src, id2string(statement), 16)+";";
 
   unsigned precedence;
   return convert_norep(src, precedence);
@@ -3772,7 +3998,8 @@ std::string expr2ct::convert_code_function_call(
     unsigned p;
     std::string arg_str=convert(*it, p);
 
-    if(it!=arguments.begin()) dest+=", ";
+    if(it!=arguments.begin())
+      dest+=", ";
     // TODO: ggf. Klammern je nach p
     dest+=arg_str;
   }
@@ -3805,7 +4032,8 @@ std::string expr2ct::convert_code_printf(
     unsigned p;
     std::string arg_str=convert(*it, p);
 
-    if(it!=src.operands().begin()) dest+=", ";
+    if(it!=src.operands().begin())
+      dest+=", ";
     // TODO: ggf. Klammern je nach p
     dest+=arg_str;
   }
@@ -3832,14 +4060,14 @@ std::string expr2ct::convert_code_fence(
   unsigned indent)
 {
   std::string dest=indent_str(indent)+"FENCE(";
-  
+
   irep_idt att[]=
     { ID_WRfence, ID_RRfence, ID_RWfence, ID_WWfence,
       ID_RRcumul, ID_RWcumul, ID_WWcumul, ID_WRcumul,
       irep_idt() };
 
   bool first=true;
-      
+
   for(unsigned i=0; !att[i].empty(); i++)
   {
     if(src.get_bool(att[i]))
@@ -3852,7 +4080,7 @@ std::string expr2ct::convert_code_fence(
       dest+=id2string(att[i]);
     }
   }
-  
+
   dest+=");";
   return dest;
 }
@@ -3880,7 +4108,8 @@ std::string expr2ct::convert_code_input(
     unsigned p;
     std::string arg_str=convert(*it, p);
 
-    if(it!=src.operands().begin()) dest+=", ";
+    if(it!=src.operands().begin())
+      dest+=", ";
     // TODO: ggf. Klammern je nach p
     dest+=arg_str;
   }
@@ -3913,7 +4142,8 @@ std::string expr2ct::convert_code_output(
     unsigned p;
     std::string arg_str=convert(*it, p);
 
-    if(it!=src.operands().begin()) dest+=", ";
+    if(it!=src.operands().begin())
+      dest+=", ";
     dest+=arg_str;
   }
 
@@ -3945,7 +4175,8 @@ std::string expr2ct::convert_code_array_set(
     unsigned p;
     std::string arg_str=convert(*it, p);
 
-    if(it!=src.operands().begin()) dest+=", ";
+    if(it!=src.operands().begin())
+      dest+=", ";
     // TODO: ggf. Klammern je nach p
     dest+=arg_str;
   }
@@ -3978,7 +4209,8 @@ std::string expr2ct::convert_code_array_copy(
     unsigned p;
     std::string arg_str=convert(*it, p);
 
-    if(it!=src.operands().begin()) dest+=", ";
+    if(it!=src.operands().begin())
+      dest+=", ";
     // TODO: ggf. Klammern je nach p
     dest+=arg_str;
   }
@@ -4057,7 +4289,7 @@ std::string expr2ct::convert_code_label(
   std::string labels_string;
 
   irep_idt label=src.get_label();
-  
+
   labels_string+="\n";
   labels_string+=indent_str(indent);
   labels_string+=clean_identifier(label);
@@ -4311,21 +4543,34 @@ std::string expr2ct::convert(
 
   else if(src.id()==ID_floatbv_typecast)
   {
-    #if 1
-    return convert_function(src, "FLOAT_TYPECAST", precedence=16);
-    #else
+    precedence=16;
+    std::string dest="FLOAT_TYPECAST(";
+
+    unsigned p0;
+    std::string tmp0=convert(src.op0(), p0);
+
+    if(p0<=1)
+      dest+='(';
+    dest+=tmp0;
+    if(p0<=1)
+      dest+=')';
+
     const typet &to_type=ns.follow(src.type());
-    std::string dest="("+convert(to_type)+")";
+    dest+=", ";
+    dest+=convert(to_type);
+    dest+=", ";
 
-    unsigned p;
-    std::string tmp=convert(src.op0(), p);
+    unsigned p1;
+    std::string tmp1=convert(src.op1(), p1);
 
-    if(precedence>p) dest+='(';
-    dest+=tmp;
-    if(precedence>p) dest+=')';
+    if(p1<=1)
+      dest+='(';
+    dest+=tmp1;
+    if(p1<=1)
+      dest+=')';
 
+    dest+=')';
     return dest;
-    #endif
   }
 
   else if(src.id()==ID_sign)
@@ -4339,7 +4584,7 @@ std::string expr2ct::convert(
 
   else if(src.id()==ID_popcount)
   {
-    if(config.ansi_c.mode==configt::ansi_ct::flavourt::MODE_VISUAL_STUDIO_C_CPP)
+    if(config.ansi_c.mode==configt::ansi_ct::flavourt::VISUAL_STUDIO)
       return convert_function(src, "__popcnt", precedence=16);
     else
       return convert_function(src, "__builtin_popcount", precedence=16);
@@ -4373,7 +4618,7 @@ std::string expr2ct::convert(
   {
     return id2string(src.id());
   }
-  
+
   else if(src.id()==ID_infinity)
     return convert_function(src, "INFINITY", precedence=16);
 
@@ -4504,8 +4749,10 @@ std::string expr2ct::convert(
     return convert_struct_member_value(src, precedence=16);
 
   else if(src.id()==ID_function_application)
-    return convert_function_application(to_function_application_expr(src), precedence);
-    
+    return
+      convert_function_application(
+        to_function_application_expr(src), precedence);
+
   else if(src.id()==ID_side_effect)
   {
     const irep_idt &statement=src.get(ID_statement);
@@ -4540,7 +4787,9 @@ std::string expr2ct::convert(
     else if(statement==ID_assign)
       return convert_binary(src, "=", precedence=2, true);
     else if(statement==ID_function_call)
-      return convert_side_effect_expr_function_call(to_side_effect_expr_function_call(src), precedence);
+      return
+        convert_side_effect_expr_function_call(
+          to_side_effect_expr_function_call(src), precedence);
     else if(statement==ID_malloc)
       return convert_malloc(src, precedence=15);
     else if(statement==ID_printf)
@@ -4561,7 +4810,7 @@ std::string expr2ct::convert(
 
   else if(src.id()==ID_literal)
     return convert_literal(src, precedence=16);
-    
+
   else if(src.id()==ID_not)
     return convert_unary(src, "!", precedence=15);
 
@@ -4755,7 +5004,7 @@ std::string expr2ct::convert(
 
   else if(src.id()==ID_sizeof)
     return convert_sizeof(src, precedence);
-    
+
   else if(src.id()==ID_type)
     return convert(src.type());
 
@@ -4816,6 +5065,6 @@ Function: type2c
 std::string type2c(const typet &type, const namespacet &ns)
 {
   expr2ct expr2c(ns);
-  //expr2c.get_shorthands(expr);
+  // expr2c.get_shorthands(expr);
   return expr2c.convert(type);
 }

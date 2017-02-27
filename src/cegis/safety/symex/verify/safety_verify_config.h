@@ -1,4 +1,4 @@
-/*******************************************************************
+/*******************************************************************\
 
 Module: Counterexample-Guided Inductive Synthesis
 
@@ -7,8 +7,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CEGIS_SAFETY_VERIFY_CONFIG_H_
-#define CEGIS_SAFETY_VERIFY_CONFIG_H_
+#ifndef CPROVER_CEGIS_SAFETY_SYMEX_VERIFY_SAFETY_VERIFY_CONFIG_H
+#define CPROVER_CEGIS_SAFETY_SYMEX_VERIFY_SAFETY_VERIFY_CONFIG_H
 
 #include <deque>
 
@@ -51,7 +51,7 @@ public:
    *
    * @param program
    */
-  safety_verify_configt(const safety_programt &program);
+  explicit safety_verify_configt(const safety_programt &program);
 
   /**
    * @brief
@@ -110,4 +110,4 @@ public:
       const counterexamplet &counterexample) const;
 };
 
-#endif /* CEGIS_SAFETY_VERIFY_CONFIG_H_ */
+#endif // CPROVER_CEGIS_SAFETY_SYMEX_VERIFY_SAFETY_VERIFY_CONFIG_H

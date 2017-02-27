@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_TARGET_COPY_HELPER_H_
-#define CEGIS_TARGET_COPY_HELPER_H_
+#ifndef CPROVER_CEGIS_INVARIANT_OPTIONS_TARGET_COPY_HELPER_H
+#define CPROVER_CEGIS_INVARIANT_OPTIONS_TARGET_COPY_HELPER_H
 
 #include <cegis/invariant/options/invariant_program.h>
 
@@ -31,13 +31,6 @@ public:
    * @param new_body
    */
   target_copy_helpert(const goto_programt &old_body, goto_programt &new_body);
-
-  /**
-   * @brief
-   *
-   * @details
-   */
-  ~target_copy_helpert();
 
   /**
    * @brief
@@ -100,4 +93,4 @@ public:
       const invariant_programt::invariant_loopt &loop) const;
 };
 
-#endif /* CEGIS_TARGET_COPY_HELPER_H_ */
+#endif // CPROVER_CEGIS_INVARIANT_OPTIONS_TARGET_COPY_HELPER_H

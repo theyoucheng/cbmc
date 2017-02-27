@@ -1,9 +1,19 @@
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
 #include <goto-programs/remove_returns.h>
 #include <linking/zero_initializer.h>
 
 #include <cegis/cegis-util/program_helper.h>
 #include <cegis/jsa/value/jsa_solution_printer.h>
 #include <cegis/jsa/preprocessing/add_synthesis_library.h>
+#include <cegis/jsa/constraint/jsa_constraint_factory.h>
 #include <cegis/jsa/learn/insert_counterexample.h>
 #include <cegis/jsa/learn/insert_predicates_and_queries.h>
 #include <cegis/jsa/learn/instrument_pred_ops.h>
@@ -23,6 +33,7 @@ void jsa_symex_learnt::process(const counterexamplest &counterexamples,
   const goto_programt::targetst pred_ops(collect_pred_ops(program));
   //add_jsa_library(program, max_solution_size, pred_ops);
   instrument_pred_ops(program, pred_ops, op_ids, const_op_ids);
+  insert_jsa_constraint(program, true);
   insert_counterexamples(program, counterexamples);
   declare_jsa_predicates(program, max_solution_size);
   declare_jsa_query(program, max_solution_size);
@@ -34,7 +45,6 @@ void jsa_symex_learnt::process(const counterexamplest &counterexamples,
 
 void jsa_symex_learnt::process(const size_t max_solution_size)
 {
-  null_message_handlert msg;
   const namespacet ns(original_program.st);
   counterexamplest counterexamples(1);
   counterexamplet &counterexample=counterexamples.front();
@@ -44,7 +54,7 @@ void jsa_symex_learnt::process(const size_t max_solution_size)
     const irep_idt &key=pos->labels.front();
     const typet &type=get_affected_type(*pos);
     const source_locationt &loc=pos->source_location;
-    const exprt value(zero_initializer(type, loc, ns, msg));
+    const exprt value(zero_initializer(type, loc, ns));
     counterexample.insert(std::make_pair(key, value));
   }
   process(counterexamples, max_solution_size);

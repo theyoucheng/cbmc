@@ -14,7 +14,7 @@ SRC = c_typecast.cpp ansi_c_y.tab.cpp ansi_c_lex.yy.cpp ansi_c_parser.cpp \
       literals/convert_float_literal.cpp \
       literals/convert_character_literal.cpp \
       literals/convert_integer_literal.cpp \
-      literals/convert_string_literal.cpp
+      literals/convert_string_literal.cpp c_misc.cpp
 
 INCLUDES= -I ..
 
@@ -79,7 +79,7 @@ library_check: library/*.c
 		[ $$ec -eq 0 ] || exit $$ec ; \
 	done
 	touch $@
-	
+
 cprover_library.inc: library/converter$(EXEEXT) library/*.c
 	cat library/*.c | library/converter$(EXEEXT) > $@
 
@@ -108,6 +108,5 @@ generated_files: cprover_library.inc gcc_builtin_headers_generic.inc \
 
 ###############################################################################
 
-ansi-c$(LIBEXT): $(OBJ) 
+ansi-c$(LIBEXT): $(OBJ)
 	$(LINKLIB)
-

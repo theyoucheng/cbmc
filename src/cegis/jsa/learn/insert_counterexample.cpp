@@ -1,33 +1,30 @@
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
 #include <ansi-c/c_types.h>
 #include <util/arith_tools.h>
-#include <util/expr_util.h>
 
 #include <cegis/cegis-util/program_helper.h>
+#include <cegis/cegis-util/type_helper.h>
 #include <cegis/instrument/meta_variables.h>
 #include <cegis/invariant/util/invariant_program_helper.h>
 
 #include <cegis/jsa/instrument/jsa_meta_data.h>
 #include <cegis/jsa/options/jsa_program.h>
-#include <cegis/jsa/constraint/jsa_constraint_factory.h>
 #include <cegis/jsa/preprocessing/add_constraint_meta_variables.h>
 #include <cegis/jsa/learn/insert_counterexample.h>
 
 #define CE_ARRAY_PREFIX JSA_PREFIX "ce_array_"
 #define CE_ARRAY_INDEX JSA_PREFIX "ce_array_index"
-#define TAG_PREFIX "tag-"
 
 namespace
 {
-const typet &clean_up_type(const symbol_tablet &st, const typet &type)
-{
-  const irep_idt &type_id=type.id();
-  if (ID_struct != type_id && ID_incomplete_struct != type_id
-      && ID_union != type_id && ID_incomplete_union != type_id) return type;
-  std::string tag(TAG_PREFIX);
-  tag+=id2string(to_struct_union_type(type).get_tag());
-  return st.lookup(tag).type;
-}
-
 constant_exprt get_size_expr(const size_t size)
 {
   return from_integer(size, signed_int_type());
@@ -39,10 +36,11 @@ array_valuest get_array_values(const symbol_tablet &st,
 {
   const constant_exprt size_expr(get_size_expr(ces.size()));
   const jsa_counterexamplet &prototype=ces.front();
-  std::map<jsa_counterexamplet::key_type, array_exprt> array_values;
+  array_valuest array_values;
   for (const jsa_counterexamplet::value_type &value : prototype)
   {
-    const typet &element_type=clean_up_type(st, value.second.type());
+    const typet &org_type=value.second.type();
+    const typet &element_type=replace_struct_by_symbol_type(st, org_type);
     const array_typet array_type(element_type, size_expr);
     array_values.insert(std::make_pair(value.first, array_exprt(array_type)));
   }
@@ -71,7 +69,8 @@ void add_array_declarations(jsa_programt &program,
   for (const jsa_counterexamplet::value_type &value : prototype)
   {
     const jsa_counterexamplet::value_type::first_type loc_id=value.first;
-    const typet &element_type=clean_up_type(st, value.second.type());
+    const typet &org_type=value.second.type();
+    const typet &element_type=replace_struct_by_symbol_type(st, org_type);
     const array_typet array_type(element_type, size_expr);
     const std::string base_name(get_array_name(loc_id));
     pos=body.insert_after(pos);
@@ -93,7 +92,8 @@ void add_array_index(jsa_programt &prog)
   pos=body.insert_after(pos);
   const typet type(signed_int_type());
   declare_jsa_meta_variable(st, pos, CE_ARRAY_INDEX, type);
-  pos=assign_jsa_meta_variable(st, gf, pos, CE_ARRAY_INDEX, gen_zero(type));
+  constant_exprt zero=from_integer(0, signed_int_type());
+  pos=assign_jsa_meta_variable(st, gf, pos, CE_ARRAY_INDEX, zero);
 }
 
 symbol_exprt get_ce_array_index(const symbol_tablet &st)
@@ -110,7 +110,7 @@ void add_ce_goto(jsa_programt &prog, const size_t ces_size)
   pos->type=goto_program_instruction_typet::ASSIGN;
   const symbol_exprt lhs(get_ce_array_index(prog.st));
   const typet &type=lhs.type();
-  const plus_exprt inc(lhs, gen_one(type), type);
+  const plus_exprt inc(lhs, from_integer(1, type), type);
   pos->code=code_assignt(lhs, inc);
   pos=body.insert_after(pos);
   pos->source_location=jsa_builtin_source_location();
@@ -162,9 +162,8 @@ void assign_ce_values(jsa_programt &prog)
 void insert_counterexamples(jsa_programt &program,
     const jsa_counterexamplest &ces)
 {
-  if (ces.empty()) return;
+  assert(!ces.empty());
   assert(ces.front().size() == program.counterexample_locations.size());
-  insert_jsa_constraint(program, true);
   add_array_declarations(program, ces);
   add_array_index(program);
   add_ce_goto(program, ces.size());

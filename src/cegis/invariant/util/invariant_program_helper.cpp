@@ -1,3 +1,12 @@
+/*******************************************************************\
+
+Module: Counterexample-Guided Inductive Synthesis
+
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+
+\*******************************************************************/
+
 #include <util/cprover_prefix.h>
 
 #include <goto-programs/goto_functions.h>
@@ -17,14 +26,6 @@ void erase_target(goto_programt::instructionst &body,
       if (target == t) t=succ;
 
   body.erase(target);
-}
-
-goto_programt::targett insert_before_preserve_labels(goto_programt &body,
-    const goto_programt::targett &target)
-{
-  const goto_programt::targett result=body.insert_before(target);
-  move_labels(body, target, result);
-  return result;
 }
 
 void restrict_bv_size(invariant_programt &prog, const size_t width_in_bits)

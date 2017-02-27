@@ -1,14 +1,14 @@
-/*******************************************************************
+/*******************************************************************\
 
- Module: Counterexample-Guided Inductive Synthesis
+Module: Counterexample-Guided Inductive Synthesis
 
- Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
+Author: Daniel Kroening, kroening@kroening.com
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
-#ifndef CEGIS_INVARIANT_PROGRAM_HELPER_H_
-#define CEGIS_INVARIANT_PROGRAM_HELPER_H_
+#ifndef CPROVER_CEGIS_INVARIANT_UTIL_INVARIANT_PROGRAM_HELPER_H
+#define CPROVER_CEGIS_INVARIANT_UTIL_INVARIANT_PROGRAM_HELPER_H
 
 #include <goto-programs/goto_program.h>
 
@@ -21,17 +21,6 @@
  * @param target
  */
 void erase_target(goto_programt::instructionst &body,
-    const goto_programt::targett &target);
-
-/**
- * @brief
- *
- * @details
- *
- * @param body
- * @param target
- */
-goto_programt::targett insert_before_preserve_labels(goto_programt &body,
     const goto_programt::targett &target);
 
 /**
@@ -58,4 +47,4 @@ template<class loop_itert>
 void restrict_bv_size(invariant_programt &prog, loop_itert first_loop,
     const loop_itert &last_loop, size_t width_in_bits);
 
-#endif /* CEGIS_INVARIANT_PROGRAM_HELPER_H_ */
+#endif // CPROVER_CEGIS_INVARIANT_UTIL_INVARIANT_PROGRAM_HELPER_H
