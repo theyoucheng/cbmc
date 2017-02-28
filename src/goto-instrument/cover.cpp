@@ -1712,7 +1712,7 @@ std::string autosac_description(const codet& code, bool post)
 {
   const code_function_callt &code_function_call=
     to_code_function_call(code);
-  if(code_function_call.arguments().size()!=2) return post?"(output) ":"";
+  if(code_function_call.arguments().size()!=2) return (post?"(output) ":"");
   auto it=code_function_call.arguments().begin();
   it++;
   std::string desc=from_expr(*it);
@@ -1796,7 +1796,16 @@ bool is_loop_head(goto_programt::instructionst::iterator it_h,
   return false;
 }
 
+static std::string convert_num(const int num)
+{
+  std::string n=std::to_string(num);
+  std::size_t l=n.length();
+  if(n[l-1]=='1') return n+std::string("st");
+  else if(n[l-1]=='2') return n+std::string("nd");
+  else if(n[l-1]=='3') return n+std::string("rd");
+  else return n+std::string("th");
 
+}
 
 std::set<exprt> tenary_expand(const exprt &src);
 
@@ -1809,6 +1818,8 @@ void instrument_cover_goals(
 bool is_autosac_expr=false;
 bool autosac_started=false;
 bool autosac_pre_done=false;
+
+std::map<std::string, size_t> count_func_calls;
 
 std::vector<exprt> expression_functions, expression_bodys;
 
@@ -2037,6 +2048,10 @@ std::vector<std::string> autosac_in_type_strs;
       {
         bool autosac_func_call=false;
         bool autosac_barrier=false;
+        bool autosac_pre=false;
+        bool autosac_post=false;
+        bool autosac_in_type=false;
+
 
         bool autosac=(criterion==coverage_criteriont::AUTOSAC);
         if(autosac && i_it->is_function_call())
@@ -2044,6 +2059,9 @@ std::vector<std::string> autosac_in_type_strs;
         if(autosac_func_call)       
         {
           autosac_barrier=is_autosac_barrier(i_it->code);
+          if(function_name_prefix(i_it->code, "__AUTOSAC_in_type")) autosac_in_type=true;
+          if(function_name_prefix(i_it->code, "__AUTOSAC_precondition")) autosac_pre=true;
+          if(function_name_prefix(i_it->code, "__AUTOSAC_postcondition")) autosac_post=true;
           if(function_name_prefix(i_it->code, "__AUTOSAC_in_type")) autosac_started=true;
           if(function_name_prefix(i_it->code, "__AUTOSAC_conditions_go_here")) 
           { autosac_pre_done=true;}
@@ -2052,8 +2070,19 @@ std::vector<std::string> autosac_in_type_strs;
         const std::set<exprt> conditions1=collect_conditions(i_it); //0
         const std::set<exprt> decisions1=collect_decisions(i_it);  //1
 
+        std::string source=i_it->source_location.as_string();
+        size_t pos=source.find("function ");
+        std::string source_func="";
+        if(pos!=std::string::npos)
+        {
+        	pos+=9;
+            source_func=source.substr(pos);
+
+        }
+
         std::vector<std::set<exprt> > cond_dec;
         std::vector<std::string > words;
+
         if(autosac_func_call and not autosac_barrier)
         {
           /** 
@@ -2061,6 +2090,8 @@ std::vector<std::string> autosac_in_type_strs;
            * meeting a barrier.
            */
           std::string desc=autosac_description(i_it->code, autosac_pre_done);
+          if(not (autosac_in_type or autosac_pre or autosac_post) and not(source_func==""))
+            desc+=std::string(" (func call ") + source_func + std::string(") ");
           if((not (strong_in_type or weakly_strong_in_type)) or (not is_autosac_in_type_function(i_it->code)))
           {
             autosac_vect.push_back(conditions1);
@@ -2078,6 +2109,17 @@ std::vector<std::string> autosac_in_type_strs;
             if(!(autosac_in_type_str==""))
               autosac_in_type_str+=";";
             autosac_in_type_str+=desc;
+          }
+          if(autosac_pre or autosac_post)
+          {
+            for(auto &x: autosac_words)
+            {
+            	std::size_t ppos=x.find(std::string(" (func call ") + source_func + std::string(") "));
+            	std::string tmp=std::string(" (func call ") + source_func + std::string(") ");
+            	if(ppos!=std::string::npos)
+            		x.replace(ppos, tmp.length(), desc);
+            }
+
           }
         }
         else if(autosac_func_call and autosac_barrier)
@@ -2128,11 +2170,21 @@ std::vector<std::string> autosac_in_type_strs;
           //words.push_back("");
           if(not (conditions1.size()==0 and decisions1.size()==0))
           {
-            if(is_autosac_expr or autosac_started)
+            //if(is_autosac_expr or autosac_started)
             {
               autosac_vect.push_back(conditions1);
               autosac_vect.push_back(decisions1);
             }
+            std::string tmp="";
+            if(autosac_pre_done)
+            	tmp="(output) ";
+            if(not(source_func==""))
+              tmp+=(std::string(" (func call ") + source_func + std::string(") "));
+            autosac_words.push_back(tmp);
+
+
+            //std::cout << "source location: " << i_it->source_location << std::endl;
+            /**
             if(is_autosac_expr)
             {
               std::string tmp(std::string("autosac exprssion function ") + i_it->function.c_str() + std::string(" "));
@@ -2142,8 +2194,8 @@ std::vector<std::string> autosac_in_type_strs;
               autosac_vect.clear();
               autosac_words.clear();
             }
-            else
-              autosac_words.push_back("");
+            else**/
+             // autosac_words.push_back("");
 
           }
         }
@@ -2257,6 +2309,22 @@ std::vector<std::string> autosac_in_type_strs;
         
             std::string description=
               words.at(xx/2)+": `"+p_string+"'";
+            if(count_func_calls.find(description)==count_func_calls.end())
+            	count_func_calls[description]=1;
+            else
+            {
+            	count_func_calls[description]++;
+            }
+            int cc=count_func_calls[description];
+
+            std::size_t ppos=description.find("func call ");
+            if(ppos!=std::string::npos)
+            {
+              ppos=description.find(")", ppos);
+              assert(ppos!=std::string::npos);
+              description.insert(ppos, std::string(" [") + convert_num(cc) + std::string(" time] "));
+            }
+
               
             goto_program.insert_before_swap(i_it);
             i_it->make_assertion(not_exprt(p));

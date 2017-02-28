@@ -1002,7 +1002,11 @@ bool goto_inlinet::is_ignored(const irep_idt id) const
     id=="__CPROVER_set_may" ||
     id=="__CPROVER_clear_must" ||
     id=="__CPROVER_clear_may" ||
-    id=="__CPROVER_cover";
+    id=="__CPROVER_cover" ||
+	id=="__AUTOSAC_in_type" ||
+	id=="__AUTOSAC_postcondition" ||
+	id=="__AUTOSAC_precondition" ||
+	id=="__AUTOSAC_conditions_go_here";
 }
 
 /*******************************************************************\
