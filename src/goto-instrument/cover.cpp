@@ -1403,7 +1403,7 @@ static std::set<exprt> bv_with_tolerance(const exprt& src,
     }
   
   }
-  return result;
+  return {conjunction({src, *result.begin()})};
 }
 
 std::set<exprt> autosac_atomic_expand(const exprt &src)
@@ -1752,21 +1752,23 @@ void de_specialize(const exprt& e, std::set<exprt>& res_neq0)
   
   if(e.id()==ID_symbol)
   {
-  if(not(e.id()==ID_unsignedbv
-    || e.id()==ID_signedbv
-    || e.id()==ID_floatbv
-    || e.id()==ID_floatbv_typecast))
-    return;
-    exprt e1(ID_notequal);
-    e1.type().id(ID_bool);
-    signedbv_typet st;
-    e1.operands().push_back(e);
+    //if(not(e.id()==ID_unsignedbv
+    //  || e.id()==ID_signedbv
+    //  || e.id()==ID_floatbv
+    //  || e.id()==ID_floatbv_typecast))
+    //{
+    //  return;
+    //}
+      exprt e1(ID_notequal);
+      e1.type().id(ID_bool);
+      signedbv_typet st;
+      e1.operands().push_back(e);
 
-    exprt ee=st.zero_expr();
-    exprt zero= gen_zero(e.type());
-    e1.operands().push_back(zero);
-    res_neq0.insert(e1);
-    return; 
+      exprt ee=st.zero_expr();
+      exprt zero= gen_zero(e.type());
+      e1.operands().push_back(zero);
+      res_neq0.insert(e1);
+      return; 
   }
 
   for(auto &op: e.operands())
