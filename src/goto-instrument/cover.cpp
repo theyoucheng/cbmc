@@ -1403,7 +1403,8 @@ static std::set<exprt> bv_with_tolerance(const exprt& src,
     }
   
   }
-  return {conjunction({src, *result.begin()})};
+  if (result.empty()) return result;
+  else return {conjunction({src, *result.begin()})};
 }
 
 std::set<exprt> autosac_atomic_expand(const exprt &src)
