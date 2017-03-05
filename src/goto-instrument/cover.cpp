@@ -1613,7 +1613,6 @@ std::set<exprt> autosac_expand(const exprt &src)
   s2.clear();
   // this part shouold be separated for boundary analysis
   {
-    bool changed=false;
     for(auto &x : s1)
     {
       std::vector<exprt> operands;
@@ -1625,19 +1624,26 @@ std::set<exprt> autosac_expand(const exprt &src)
         s2.insert(x);
         continue;
       }
+      std::vector<exprt> another_ecp; // this is an extra equivalence class partitioning
       for(int i=0; i<operands.size(); i++)
       {
         std::set<exprt> res;
         if(operands[i].id()==ID_lt
            or operands[i].id()==ID_gt)
         {
-          changed=true;
           res=autosac_atomic_expand(operands[i]);
+          for(auto &r: res)
+            if(not(r==operands[i]))
+              another_ecp.push_back(r);
         }
-        else res.insert(operands[i]);
+        else {
+          res.insert(operands[i]);
+          another_ecp.push_back(operands[i]);
+        }
         std::set<exprt> co=replacement_conjunction(res, operands, i);
         s2.insert(co.begin(), co.end());
       }
+      s2.insert(conjunction(another_ecp)); // this is an extra equivalence class partitioning
     }
     s1=s2;
   }
