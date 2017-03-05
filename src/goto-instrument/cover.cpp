@@ -375,7 +375,8 @@ bool enum_oper(const exprt& src)
 
 
 std::set<exprt> collect_mcdc_controlling(
-  const std::set<exprt> &decisions)
+  const std::set<exprt> &decisions,
+  const bool dec_ex=true)
 {
   std::set<exprt> result;
   
@@ -389,27 +390,22 @@ std::set<exprt> collect_mcdc_controlling(
        or e.id()==ID_ge
        or e.id()==ID_gt)
     {
-      auto res=autosac_atomic_expand(e);
+      std::set<exprt> res;
+      if(dec_ex)
+        res=autosac_atomic_expand(e);
       if(not res.empty())
         result.insert(res.begin(), res.end());
       else result.insert(e);
       e.make_not();
-      res=autosac_atomic_expand(e);
+      if(dec_ex)
+        res=autosac_atomic_expand(e);
       if(not res.empty())
         result.insert(res.begin(), res.end());
       else result.insert(e);
       continue; //return result;
     }
-    //std::set<exprt> res;
     if(d.operands().size() > 1)
       collect_mcdc_controlling_rec(d, { }, result);
-//for(auto &r: res)
-//    if(res.empty())
-//    {
-//      res.insert(d);
-//      res.insert(not_exprt(d));
-//    }
-//    result.insert(res.begin(), res.end());
     
   }
 
@@ -468,8 +464,7 @@ std::set<exprt> replacement_conjunction(
     for(std::size_t j=0; j<operands.size(); j++)
       if(i!=j)
         others.push_back(operands[j]);
-
-    others.push_back(y);
+      else others.push_back(y);
     exprt c=conjunction(others);
     result.insert(c);
   }
@@ -491,10 +486,11 @@ Function: collect_mcdc_controlling_nested
 \*******************************************************************/
 
 std::set<exprt> collect_mcdc_controlling_nested(
-  const std::set<exprt> &decisions)
+  const std::set<exprt> &decisions,
+   bool dec_ex=true)
 {
   // To obtain the 1st-level controlling conditions
-  std::set<exprt> controlling = collect_mcdc_controlling(decisions);
+  std::set<exprt> controlling = collect_mcdc_controlling(decisions, dec_ex);
 
   std::set<exprt> result;
   // For each controlling condition, to check if it contains
@@ -1404,7 +1400,10 @@ static std::set<exprt> bv_with_tolerance(const exprt& src,
   
   }
   if (result.empty()) return result;
-  else return {conjunction({src, *result.begin()})};
+  else 
+  {
+    return {conjunction({src, *result.begin()})};
+  }
 }
 
 std::set<exprt> autosac_atomic_expand(const exprt &src)
@@ -1620,7 +1619,7 @@ std::set<exprt> autosac_expand(const exprt &src)
       std::vector<exprt> operands;
       if(x.id()==ID_lt or x.id()==ID_gt)
        operands.push_back(x);
-      else if (not is_condition(x)) collect_operands(x, operands);
+      else if (not is_condition(x)) operands=x.operands(); //if (not is_condition(x)) collect_operands(x, operands);
       if(operands.empty())
       {
         s2.insert(x);
@@ -1636,17 +1635,11 @@ std::set<exprt> autosac_expand(const exprt &src)
           res=autosac_atomic_expand(operands[i]);
         }
         else res.insert(operands[i]);
-
         std::set<exprt> co=replacement_conjunction(res, operands, i);
         s2.insert(co.begin(), co.end());
-        //if(res.size() > 0) break;
       }
-      //if(not changed) s2.insert(x);
     }
-    //if(not changed)
-    //  break; //return s1;
     s1=s2;
-    //s2.clear();
   }
 
   return s1;
@@ -1753,13 +1746,13 @@ void de_specialize(const exprt& e, std::set<exprt>& res_neq0)
   
   if(e.id()==ID_symbol)
   {
-    //if(not(e.id()==ID_unsignedbv
-    //  || e.id()==ID_signedbv
-    //  || e.id()==ID_floatbv
-    //  || e.id()==ID_floatbv_typecast))
-    //{
-    //  return;
-    //}
+    if(not(e.type().id()==ID_unsignedbv
+      || e.type().id()==ID_signedbv
+      || e.type().id()==ID_floatbv
+      || e.type().id()==ID_floatbv_typecast))
+    {
+      return;
+    }
       exprt e1(ID_notequal);
       e1.type().id(ID_bool);
       signedbv_typet st;
@@ -2272,6 +2265,7 @@ std::vector<std::string> autosac_in_type_strs;
             for(auto &x: controlling)
             {
               std::set<exprt> res=autosac_expand(x);
+
               controlling2.insert(res.begin(), res.end());
             }
             controlling.swap(controlling2);
@@ -2511,7 +2505,11 @@ void collect_tenary_rec(
     std::set<exprt> e_res_copy;
     for(auto &x: e_res)
     {
+//std::cout << "x: " << from_expr(x) << std::endl;
       std::set<exprt> res=autosac_expand(x);
+//for(auto &y: res)
+//std::cout << " y: " << from_expr(y) << std::endl;
+//std::cout << std::endl;
       e_res_copy.insert(res.begin(), res.end());
     }
     e_res.swap(e_res_copy);
@@ -2536,7 +2534,8 @@ void collect_tenary_rec(
   const exprt &B=e.op1();
   const exprt &C=e.op2();
   // apply MC/DC on A
-  std::set<exprt> Ares=collect_mcdc_controlling_nested({A});
+  std::set<exprt> Ares=collect_mcdc_controlling_nested({A}, false);
+  //std::set<exprt> Ares=collect_mcdc_controlling_nested({A});
 
   if(Ares.empty())
   {
@@ -2544,6 +2543,10 @@ void collect_tenary_rec(
     Ares.insert(not_exprt(A));
   }
 
+//std::cout << "A: " << from_expr(A) << std::endl;
+//for(auto &y: Ares)
+//std::cout << " y: " << from_expr(y) << std::endl;
+//std::cout << std::endl;
   
 
   // Ares needs to be separated into Ares+ and Ares-
