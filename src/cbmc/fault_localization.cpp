@@ -25,6 +25,7 @@ Author: Peter Schrammel
 #include <util/prefix.h>
 #include <string>
 #include <algorithm>
+#include <iostream>
 
 
 
@@ -98,7 +99,7 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
         int lnum=atoi(it->source.pc->source_location.get_line().c_str());
         //lnum--;
         if(it->guard_literal.is_constant()) //lnum==curr_block_start or curr_block_start<0)
-            lpoints[it->guard_literal].info="[" + std::to_string(lnum-1) + "-" + std::to_string(lnum-1) + "]";
+            lpoints[it->guard_literal].info="[" + std::to_string(lnum) + "-" + std::to_string(lnum) + "]";
         else
         {
           int block_start=lnum, block_end=lnum;
@@ -125,7 +126,7 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
         	  //block_start=tmp; break;
         	}
           }
-          lpoints[it->guard_literal].info="[" + std::to_string(block_start-1)+"-"+std::to_string(block_end-1) + "]";
+          lpoints[it->guard_literal].info="[" + std::to_string(block_start)+"-"+std::to_string(block_end) + "]";
         }
          //lpoints[it->guard_literal].info="[" + std::to_string(curr_block_start-1)+"-"+std::to_string(lnum-1) + "]";
 
@@ -365,7 +366,6 @@ bool fault_localizationt::mc2(const lpointst &lpoints,
 	  lpoints_valuet &res)
 {
   bvt assumptions;
-
   //existing traces must be excluded
   for(auto &v: ex1)
   {
@@ -438,7 +438,7 @@ bool fault_localizationt::mc2(const lpointst &lpoints,
 bool fault_localizationt::mc(const lpointst &lpoints,
   	  const literalt &property,
   	  const std::vector<lpoints_valuet>& ex,
-		  lpoints_valuet &res)
+	  lpoints_valuet &res)
 {
   bvt assumptions;
 
@@ -479,6 +479,7 @@ bool fault_localizationt::mc(const lpointst &lpoints,
   {
     if(v_it->is_true())
       bv.push_back(l.first);
+
   	++v_it;
   }
   //existing test vector should not be excluded
@@ -491,7 +492,6 @@ bool fault_localizationt::mc(const lpointst &lpoints,
 
   assumptions.push_back(property);
 
-  //status() << "the guard literal: " << failed->guard_literal << ", sign: " << failed->guard_literal.sign() << ", property: " << property << eom;
 
   bmc.prop_conv.set_assumptions(assumptions);
 
@@ -507,7 +507,7 @@ bool fault_localizationt::mc(const lpointst &lpoints,
  		  res.push_back(tvt(tvt::tv_enumt::TV_TRUE));
  	  else res.push_back(tvt(tvt::tv_enumt::TV_FALSE));
  	}
-     return true;
+    return true;
    }
 
    return false;
@@ -517,6 +517,7 @@ bool fault_localizationt::mc(const lpointst &lpoints,
 
 bool fault_localizationt::mc(const lpointst &lpoints,
   	  const literalt &property,
+  	  const std::vector<lpoints_valuet>& p_values,
   	  const lpoints_valuet &inc,
 		  lpoints_valuet &res)
 {
@@ -702,45 +703,33 @@ Function: fault_localizationt::report()
 
 void fault_localizationt::report(irep_idt goal_id)
 {
-	//if(covered==goal_map.size())
-	//{
-	   	if(F_values.size()>0 and P_values.size()==0)
-	   	{
-	      lpointst &lpoints = lpoints_map[failed_goal];
+  if(goal_id==ID_nil)
+	goal_id=failed->source.pc->source_location.get_property_id();
 
+  std::string desc=goal_map[goal_id].description;
+  if(desc.find("passing")!=std::string::npos) return;
 
-	   	          //if(!F_values.empty() and !P_values.empty())
-	   	          {
-	   	          	  clean_traces(lpoints);
-	   	              compute_spectra(cleaned_lpoints);
-	   	              measure_sb(cleaned_lpoints);
-	   	              compute_ppv(cleaned_lpoints);
-	   	              pfl(cleaned_lpoints);
-	   	          }
+  pfl_framework(goal_id);
+  desc=dict_goals[goal_id];
+  pfl_coret &core=dict_cores[desc];
+  status() << eom << "[" + desc +  "] " + "fails" << "\n" << eom;
+  status() << "Most likely fault location (single bug optimal fault localization):\n";
+  for(int i=0; i<core.sb_lpoints.size(); i++)
+  {
+  	if(i==result_list) break;
+    status() << core.sb_lpoints[i].info << ", function " << core.sb_lpoints[i].target->function << ": " << core.sb_lpoints[i].score << eom;
+  }
 
+  status() << eom;
+  status() << "Most likely fault location (PFL):\n";
+  for(int i=0; i<core.pfl_lpoints.size(); i++)
+  {
+    if(i==result_list) break;
+    status() << core.pfl_lpoints[i].info << ", function " << core.pfl_lpoints[i].target->function << ": " << core.pfl_lpoints[i].score << eom;
+  }
 
-	   	          for(auto &l: cleaned_lpoints)
-	   	          {
-	   	             debug() << l.second.info << " ";
-	   	          }
-	   	          debug() << eom;
-
-	   	          for(auto &v: F_values)
-	   	          {
-	   	            for(auto &x: v)
-	   	              debug() << x.is_true() << " ";
-	   	            debug () << "-" << eom;
-	   	          }
-	   	          for(auto &v: P_values)
-	   	          {
-	   	            for(auto &x: v)
-	   	              debug() << x.is_true() << " ";
-	   	            debug () << "+" << eom;
-	   	          }
-
-	     }
-
-
+  status() << eom;
+/**
   if(goal_id==ID_nil)
     goal_id=failed->source.pc->source_location.get_property_id();
 
@@ -757,7 +746,8 @@ void fault_localizationt::report(irep_idt goal_id)
                    << eom;
     return;
   }
-
+  **/
+/**
   debug() << "Fault localization scores:" << eom;
   lpointt &max=lpoints.begin()->second;
   for(auto &l : lpoints)
@@ -780,8 +770,8 @@ void fault_localizationt::report(irep_idt goal_id)
   status() << "[" + info2 +  " at line "+ info +"] fails \n"
                    //<< "  " << info3 //max.target->source_location
                    << eom;
-  status() << "Most likely fault location (single bug optimal fault localization):\n";
-  for(int i=0; i<sb_lpoints.size(); i++)
+  status() << "Most likely fault location (single bug optimal fault localization):\n";**/
+/**  for(int i=0; i<sb_lpoints.size(); i++)
   {
 	if(i==result_list) break;
     status() << sb_lpoints[i].info << ", function " << sb_lpoints[i].target->function << ": " << sb_lpoints[i].score << eom;
@@ -795,7 +785,7 @@ void fault_localizationt::report(irep_idt goal_id)
   }
 
   status() << eom;
-
+**/
 }
 
 /*******************************************************************\
@@ -955,75 +945,89 @@ void fault_localizationt::goal_covered(
         collect_guards(lpoints);
         debug() << "the collection of guards: " << lpoints.size() << eom;
         for(auto &l: lpoints)
-        	debug() << l.first << " ";
+        	debug() << l.first << "--" << l.second.info << ", ";
         debug() << eom << eom;
 
         if(lpoints.empty())
           return;
         debug() << eom << "source location: " << failed->source.pc->source_location << eom << eom;
 
-        /**
-         * 1. the failing trace (F) must be built first
-         * 2. then the passing trace (P)
-         * 3. finally it is S
-         *
-         */
-        if(f_values.empty())
+
+        // We assume that a failing trace must contains the key world '__CPROVER_fault failing'
+        std::string desc=goal_map[goal_id].description;
+        if(desc.find("failing")!=std::string::npos)
         {
-           debug() << "<<<Generating failing traces>>>" << eom;
-           debug() << goal_map[goal_id].description << eom;
-           assert(has_prefix(goal_map[goal_id].description, "__CPROVER_fault failing traces"));
+           std::cout << "\n\n" << desc << "\n";
+           desc.replace(desc.find("failing"), 7, "");
+           std::cout << desc << "\n\n";
 
-
-           debug() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
+           v_lpoints_valuet failing;
            while(true)
            {
         	 bvt assumptions;
         	 bmc.prop_conv.set_assumptions(assumptions);
              lpoints_valuet res;
-        	 if(mc(lpoints, failed->guard_literal, f_values, res))
+        	 //if(mc(lpoints, failed->guard_literal, failing, res))
+             if(mc(lpoints, !failed->cond_literal, failing, res))
         	 {
-               f_values.push_back(res);
+               failing.push_back(res);
+               for(auto &r: res)
+            	   std::cout << r.is_true() << " ";
+               std::cout << "\n";
         	 }
         	 else break;
            }
-          // bvt assumptions;
-          // bmc.prop_conv.set_assumptions(assumptions);
+
 
            // extra failing traces
-           int c=f_values.size();
+           int c=failing.size();
            while(c++<trace_limit)
            {
-        	 debug() << "<<<<< c is " << c << eom;
              bvt assumptions;
              bmc.prop_conv.set_assumptions(assumptions);
              lpoints_valuet res;
-        	 if(mc2(lpoints, failed->guard_literal, f_values, f_extra_values, res))
+        	 if(mc2(lpoints, !failed->cond_literal, failing, {}, res))
         	 {
-               f_extra_values.push_back(res);
+               failing.push_back(res);
         	 }
         	 else break;
            }
+
+           dict_f_values[desc]=failing;
+           //dict_lpoints[desc]=lpoints;
+           pfl_coret core;
+           core.lpoints=lpoints;
+           dict_cores[desc]=core;
+           dict_goals[g.first]=desc;
+
+std::cout << "failing traces\n";
+for(auto &l: core.lpoints)
+{
+   std::cout << l.second.info << "; ";
+}
+for(auto &f: failing)
+{
+	std::cout <<"\n";
+	for(auto &ff: f)
+		std::cout << ff.is_true() << " ";
+	std::cout << "\n";
+}
 
 
            bvt assumptions;
            bmc.prop_conv.set_assumptions(assumptions);
 
         }
-        else //if(!f_values.empty())
+        else if(desc.find("passing")!=std::string::npos)
         {
-          debug() << "<<<Generating passing traces>>>" << eom;
-          debug() << goal_map[goal_id].description << eom;
-
-          assert(has_prefix(goal_map[goal_id].description, "__CPROVER_fault passing traces"));
-          //status() << "<<<Generating passing traces>>>" << eom;
-          debug() << c->source.pc->source_location << ": " << c->guard_literal << ", " << c->guard_literal.sign() << eom;
+          desc.replace(desc.find("passing"), 7, "");
+          v_lpoints_valuet passing, sing;
           while(true)
           {
        		lpoints_valuet res;
-       		if(mc(lpoints, failed->guard_literal, p_values, res))
+       		if(mc(lpoints, failed->cond_literal, passing, res))
        	    {
-              p_values.push_back(res);
+              passing.push_back(res);
        	    }
        	    else break;
           }
@@ -1031,6 +1035,9 @@ void fault_localizationt::goal_covered(
           bmc.prop_conv.set_assumptions(assumptions);
 
           debug() << "<<<Generating S>>>" << eom;
+          v_lpoints_valuet failing;
+          // simple if we encounter failing traces after failing traces
+          bool after_failing=(dict_f_values.find(desc)!=dict_f_values.end());
           lpoints_valuet cf, cp;
   	      cf.resize(lpoints.size());
   	      cp.resize(lpoints.size());
@@ -1039,11 +1046,22 @@ void fault_localizationt::goal_covered(
   	        cf[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
   	        cp[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
   	      }
-  	      common(f_values, cf);
-  	      common(p_values, cp);
+  	      if(after_failing)
+  	      {
+  	        common(failing, cf);
+  	      }
+  	      else
+  	      {
+  	        // we create a 'fake' cf
+  	  	    for(size_t i=0; i<lpoints.size(); ++i)
+  	  	    {
+  	  	      cf[i]=tvt(tvt::tv_enumt::TV_TRUE);
+  	  	    }
+  	      }
+  	      common(passing, cp);
           for(std::size_t i=0; i<lpoints.size(); ++i)
           {
-        	if(!(cf[i].is_true() && !cp[i].is_true()))
+        	if(!(cf[i].is_true() && !cp[i].is_true())) //must be failing but not passing
         	  continue;
             lpoints_valuet v=cf;
             for(std::size_t j=0; j<lpoints.size(); ++j)
@@ -1052,83 +1070,94 @@ void fault_localizationt::goal_covered(
             }
 
        		lpoints_valuet res;
-       	    if(mc(lpoints, failed->guard_literal, v, res))
-       	    	s_values.push_back(res);
+       	    if(mc(lpoints, !failed->guard_literal, passing, v, res))
+       	    	passing.push_back(res);
           }
 
           // extra passing traces
-          int c=p_values.size()+s_values.size();
+          int c=passing.size(); //+sing.size();
 
-          std::vector<lpoints_valuet> ps;
-          ps.insert(ps.end(), p_values.begin(), p_values.end());
-          ps.insert(ps.end(), s_values.begin(), s_values.end());
 
           while(c++<trace_limit)
           {
 
             lpoints_valuet res;
-       	    if(mc2(lpoints, failed->guard_literal, ps, p_extra_values, res))
+       	    if(mc2(lpoints, !failed->cond_literal, passing, {}, res))
        	    {
-              p_extra_values.push_back(res);
+              passing.push_back(res);
        	    }
        	    else break;
 
           }
 
+          dict_p_values[desc]=passing;
+
+          bmc.prop_conv.set_assumptions(assumptions);
+          std::cout << "passing traces\n";
+
+          for(auto &f: passing)
+          {
+          	std::cout <<"\n";
+          	for(auto &ff: f)
+          		std::cout << ff.is_true() << " ";
+          	std::cout << "\n";
+          }
+
         }
-
-
-
-        if(F_values.empty())
-        {
-          F_values.insert(F_values.end(), f_values.begin(), f_values.end());
-          F_values.insert(F_values.end(), f_extra_values.begin(), f_extra_values.end());
-        }
-        P_values.insert(P_values.end(), p_values.begin(), p_values.end());
-        P_values.insert(P_values.end(), s_values.begin(), s_values.end());
-        P_values.insert(P_values.end(), p_extra_values.begin(), p_extra_values.end());
-
-
-        if(!F_values.empty() and !P_values.empty())
-        {
-        	clean_traces(lpoints);
-            compute_spectra(cleaned_lpoints);
-            measure_sb(cleaned_lpoints);
-            compute_ppv(cleaned_lpoints);
-            pfl(cleaned_lpoints);
-        }
-
-        debug() << "\nThe coverage matrix" << eom;
-
-
-        for(auto &l: cleaned_lpoints)
-        {
-           debug() << l.second.info << " ";
-        }
-        debug() << eom;
-        for(auto &v: F_values)
-        {
-          for(auto &x: v)
-            debug() << x.is_true() << " ";
-          debug () << "-" << eom;
-        }
-        for(auto &v: P_values)
-        {
-          for(auto &x: v)
-            debug() << x.is_true() << " ";
-          debug () << "+" << eom;
-        }
-
-
-        debug () << eom;
-        return;
 
       }
 
     }
   }
 
+
 }
+
+
+void fault_localizationt::pfl_framework(const irep_idt goal)
+{
+
+  if(dict_goals.find(goal)==dict_goals.end())
+    return;
+  std::string desc=dict_goals[goal];
+  pfl_coret & core=dict_cores[desc];
+
+  core.F_values=dict_f_values[desc];
+
+
+  if(dict_goals.find(goal)==dict_goals.end())
+    core.P_values=v_lpoints_valuet(); // it may happen that there is no passing trace
+  else
+    core.P_values=dict_p_values[desc];
+
+  clean_traces(core);
+  compute_spectra(core);
+  measure_sb(core);
+  compute_ppv(core);
+  pfl(core);
+
+  std::cout << "----------------------\n";
+       for(auto &l: core.cleaned_lpoints)
+       {
+          debug() << l.second.info << " ";
+       }
+       debug() << eom;
+
+       for(auto &v: core.F_values)
+       {
+         for(auto &x: v)
+           debug() << x.is_true() << " ";
+         debug () << "-" << eom;
+       }
+       for(auto &v: core.P_values)
+       {
+         for(auto &x: v)
+           debug() << x.is_true() << " ";
+         debug () << "+" << eom;
+       }
+
+}
+
 
 /*******************************************************************\
 
@@ -1170,8 +1199,22 @@ void fault_localizationt::report(
 
 
 
-void fault_localizationt::compute_spectra(const lpointst& lpoints)
+void fault_localizationt::compute_spectra(pfl_coret &core)
 {
+  auto & F_values=core.F_values;
+  auto & P_values=core.P_values;
+  auto & lpoints=core.cleaned_lpoints;
+  //auto & cleaned_lpoints=core.cleaned_lpoints;
+  auto & sb_lpoints=core.sb_lpoints;
+  auto & pfl_lpoints=core.pfl_lpoints;
+  auto & ppv=core.ppv;
+  auto & ef = core.ef;
+  auto & ep = core.ep;
+  auto & nf = core.nf;
+  auto & np = core.np;
+
+
+
   // ther number of blocks
   int num=lpoints.size();
 
@@ -1196,8 +1239,19 @@ void fault_localizationt::compute_spectra(const lpointst& lpoints)
   }
 }
 
-void fault_localizationt::measure_sb(const lpointst& lpoints)
+void fault_localizationt::measure_sb(pfl_coret &core)
 {
+	  auto & F_values=core.F_values;
+	  auto & P_values=core.P_values;
+	  auto & lpoints=core.cleaned_lpoints;
+	  //auto & cleaned_lpoints=core.cleaned_lpoints;
+	  auto & sb_lpoints=core.sb_lpoints;
+	  auto & pfl_lpoints=core.pfl_lpoints;
+	  auto &ppv=core.ppv;
+	  auto & ef = core.ef;
+	  auto & ep = core.ep;
+	  auto & nf = core.nf;
+	  auto & np = core.np;
 
   debug() << "ef: \n";
   for(auto &x: ef)
@@ -1233,8 +1287,20 @@ void fault_localizationt::measure_sb(const lpointst& lpoints)
 	   {return a.score>b.score;});
 }
 
-void fault_localizationt::compute_ppv(const lpointst& lpoints)
+void fault_localizationt::compute_ppv(pfl_coret &core)
 {
+	  auto & F_values=core.F_values;
+	  auto & P_values=core.P_values;
+	  auto & lpoints=core.cleaned_lpoints;
+	  //auto & cleaned_lpoints=core.cleaned_lpoints;
+	  auto & sb_lpoints=core.sb_lpoints;
+	  auto & pfl_lpoints=core.pfl_lpoints;
+	  auto &ppv=core.ppv;
+	  auto & ef = core.ef;
+	  auto & ep = core.ep;
+	  auto & nf = core.nf;
+	  auto & np = core.np;
+
   // ther number of blocks
   int num=lpoints.size();
  // for(int i=0; i<num; ++i)
@@ -1257,8 +1323,21 @@ void fault_localizationt::compute_ppv(const lpointst& lpoints)
     debug() << eom;
 }
 
-void fault_localizationt::pfl(const lpointst& lpoints)
+void fault_localizationt::pfl(pfl_coret &core)
 {
+	  auto & F_values=core.F_values;
+	  auto & P_values=core.P_values;
+	  auto & lpoints=core.cleaned_lpoints;
+	  //auto & cleaned_lpoints=core.cleaned_lpoints;
+	  auto & sb_lpoints=core.sb_lpoints;
+	  auto & pfl_lpoints=core.pfl_lpoints;
+	  auto &ppv=core.ppv;
+	  auto & ef = core.ef;
+	  auto & ep = core.ep;
+	  auto & nf = core.nf;
+	  auto & np = core.np;
+
+
   for(auto&x : lpoints)
   {
     pfl_lpoints.push_back(x.second);
@@ -1289,11 +1368,20 @@ void fault_localizationt::pfl(const lpointst& lpoints)
 }
 
 
-void fault_localizationt::clean_traces(const lpointst &lpoints)
+void fault_localizationt::clean_traces(pfl_coret &core)
 {
+	  auto & F_values=core.F_values;
+	  auto & P_values=core.P_values;
+	  auto & lpoints=core.lpoints;
+	  auto & cleaned_lpoints=core.cleaned_lpoints;
+	  auto & sb_lpoints=core.sb_lpoints;
+	  auto & pfl_lpoints=core.pfl_lpoints;
+	  auto & ppv=core.ppv;
+	  auto & ef = core.ef;
+	  auto & ep = core.ep;
+	  auto & nf = core.nf;
+	  auto & np = core.np;
 
-  //cleaned_lpoints=lpoints;
-  //return;
 
   int i=-1;
   for(auto &v: lpoints)
@@ -1352,13 +1440,22 @@ void fault_localizationt::clean_traces(const lpointst &lpoints)
 
 
   // this is for merging unwound bodies of the same block
-  merge();
+  merge(core);
 
 }
 
-void fault_localizationt::merge()
+void fault_localizationt::merge(pfl_coret &core)
 {
-
+	  auto & F_values=core.F_values;
+	  auto & P_values=core.P_values;
+	  auto & cleaned_lpoints=core.cleaned_lpoints;
+	  auto & sb_lpoints=core.sb_lpoints;
+	  auto & pfl_lpoints=core.pfl_lpoints;
+	  auto &ppv=core.ppv;
+	  auto & ef = core.ef;
+	  auto & ep = core.ep;
+	  auto & nf = core.nf;
+	  auto & np = core.np;
   lpointst lpoints; //=cleaned_lpoints;
 
   int i=-1;

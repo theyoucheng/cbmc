@@ -89,34 +89,45 @@ protected:
   void localize_linear(lpointst &lpoints);
 
 
-  std::vector<lpoints_valuet> f_values, p_values, s_values;
-  std::vector<lpoints_valuet> f_extra_values, p_extra_values;
+  //std::vector<lpoints_valuet> f_values, p_values, s_values;
+  //std::vector<lpoints_valuet> f_extra_values, p_extra_values;
   int trace_limit;
   int result_list=10;
-  std::vector<lpoints_valuet> F_values, P_values;
-  int covered=0;
-  irep_idt failed_goal;
+  typedef std::vector<lpoints_valuet> v_lpoints_valuet;
+  //std::vector<lpoints_valuet> F_values, P_values;
+  //v_lpoints_valuet F_values, P_values;
+  std::map<std::string, v_lpoints_valuet> dict_f_values, dict_p_values;
+  std::map<irep_idt, std::string> dict_goals;
+  typedef struct
+  {
+    lpointst lpoints;
+    std::vector<int> ef, ep, nf, np;
+    lpointst cleaned_lpoints;
+    std::vector<lpointt> sb_lpoints;
+    std::vector<double> ppv;
+    std::vector<lpointt> pfl_lpoints;
+    v_lpoints_valuet F_values, P_values;
+  } pfl_coret;
+
+  void compute_spectra(pfl_coret &core);
+  void clean_traces(pfl_coret &core);
+  void measure_sb(pfl_coret &core);
+  void compute_ppv(pfl_coret &core);
+  void pfl(pfl_coret &core);
+  void merge(pfl_coret &core);
+
+  std::map<std::string, pfl_coret> dict_cores;
 
 
-  std::vector<int> ef, ep, nf, np;
-  void compute_spectra(const lpointst& lpoints);
 
-  lpointst cleaned_lpoints;
-  void clean_traces(const lpointst &lpoints);
+  void pfl_framework(const irep_idt goal);
 
   int locate_first(const lpointt& lp, const lpointst& lps);
-  void merge();
 
 
-  // sb: single bug optimal
-  std::vector<lpointt> sb_lpoints;
-  void measure_sb(const lpointst& lpoints);
-  // PFL
-  std::vector<double> ppv;
-  void compute_ppv(const lpointst &lpoints);
-  std::vector<lpointt> pfl_lpoints;
-  void pfl(const lpointst& lpoints);
 
+  int covered=0;
+  irep_idt failed_goal;
 
 
   bool mc(const lpointst &lpoints,
@@ -128,10 +139,13 @@ protected:
     	  const std::vector<lpoints_valuet>& ex1,
     	  const std::vector<lpoints_valuet>& ex2,
   		  lpoints_valuet &res);
+
   bool mc(const lpointst &lpoints,
     	  const literalt &property,
+    	  const std::vector<lpoints_valuet>& p_values,
     	  const lpoints_valuet & inc,
   		  lpoints_valuet &res);
+
   void common(const std::vector<lpoints_valuet> &vs, lpoints_valuet& v);
 
 
