@@ -202,7 +202,7 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
   {
   case ui_message_handlert::PLAIN:
     {
-      status() << "\n** Results:" << eom;
+ /**     status() << "\n** Results:" << eom;
 
       for(const auto & it : goal_map)
         status() << "[" << it.first << "] "
@@ -222,7 +222,7 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
                << cover_goals.iterations() << " iteration"
                << (cover_goals.iterations()==1?"":"s")
                << ")" << eom;
-    }
+    **/}
     break;
 
   case ui_message_handlert::XML_UI:

@@ -48,6 +48,7 @@ class optionst;
   "(nondet-static)" \
   "(version)" \
   "(cover):" \
+  "(sv-comp)" \
   "(mm):" \
   "(i386-linux)(i386-macos)(i386-win32)(win32)(winx64)(gcc)" \
   "(ppc-macos)(unsigned-char)" \

@@ -1000,19 +1000,6 @@ void fault_localizationt::goal_covered(
            dict_cores[desc]=core;
            dict_goals[g.first]=desc;
 
-std::cout << "failing traces\n";
-for(auto &l: core.lpoints)
-{
-   std::cout << l.second.info << "; ";
-}
-for(auto &f: failing)
-{
-	std::cout <<"\n";
-	for(auto &ff: f)
-		std::cout << ff.is_true() << " ";
-	std::cout << "\n";
-}
-
 
            bvt assumptions;
            bmc.prop_conv.set_assumptions(assumptions);
@@ -1093,15 +1080,7 @@ for(auto &f: failing)
           dict_p_values[desc]=passing;
 
           bmc.prop_conv.set_assumptions(assumptions);
-          std::cout << "passing traces\n";
 
-          for(auto &f: passing)
-          {
-          	std::cout <<"\n";
-          	for(auto &ff: f)
-          		std::cout << ff.is_true() << " ";
-          	std::cout << "\n";
-          }
 
         }
 
@@ -1186,6 +1165,7 @@ void fault_localizationt::report(
       {
         if(g.second.status!=goalt::statust::FAILURE) continue;
         report(g.first);
+
       }
     }
     break;

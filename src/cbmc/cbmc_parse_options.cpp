@@ -43,6 +43,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-instrument/full_slicer.h>
 #include <goto-instrument/nondet_static.h>
 #include <goto-instrument/cover.h>
+#include <goto-instrument/instrument_fl.h>
+
 
 #include <pointer-analysis/add_failed_symbols.h>
 
@@ -956,10 +958,21 @@ bool cbmc_parse_optionst::process_goto_program(
       goto_functions.update();
     }
 
+    if(cmdline.isset("localize-faults"))
+    {
+      bool svcomp=false;
+      if(cmdline.isset("sv-comp")) svcomp=true;
+
+      instrument_fl(symbol_table, goto_functions, svcomp);
+
+    }
+
+
     // remove skips
     remove_skip(goto_functions);
     goto_functions.update();
   }
+
 
   catch(const char *e)
   {
