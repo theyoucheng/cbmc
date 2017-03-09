@@ -943,10 +943,6 @@ void fault_localizationt::goal_covered(
 
         // collect lpoints
         collect_guards(lpoints);
-        debug() << "the collection of guards: " << lpoints.size() << eom;
-        for(auto &l: lpoints)
-        	debug() << l.first << "--" << l.second.info << ", ";
-        debug() << eom << eom;
 
         if(lpoints.empty())
           return;
@@ -957,9 +953,7 @@ void fault_localizationt::goal_covered(
         std::string desc=goal_map[goal_id].description;
         if(desc.find("failing")!=std::string::npos)
         {
-           std::cout << "\n\n" << desc << "\n";
            desc.replace(desc.find("failing"), 7, "");
-           std::cout << desc << "\n\n";
 
            v_lpoints_valuet failing;
            while(true)
@@ -1008,11 +1002,12 @@ void fault_localizationt::goal_covered(
         else if(desc.find("passing")!=std::string::npos)
         {
           desc.replace(desc.find("passing"), 7, "");
-          v_lpoints_valuet passing, sing;
+          v_lpoints_valuet passing;
+          std::cout <<"this is a passing trace " << desc << std::endl;
           while(true)
           {
        		lpoints_valuet res;
-       		if(mc(lpoints, failed->cond_literal, passing, res))
+       		if(mc(lpoints, !failed->cond_literal, passing, res))
        	    {
               passing.push_back(res);
        	    }
@@ -1021,8 +1016,7 @@ void fault_localizationt::goal_covered(
           bvt assumptions;
           bmc.prop_conv.set_assumptions(assumptions);
 
-          debug() << "<<<Generating S>>>" << eom;
-          v_lpoints_valuet failing;
+          //debug() << "<<<Generating S>>>" << eom;
           // simple if we encounter failing traces after failing traces
           bool after_failing=(dict_f_values.find(desc)!=dict_f_values.end());
           lpoints_valuet cf, cp;
@@ -1035,6 +1029,7 @@ void fault_localizationt::goal_covered(
   	      }
   	      if(after_failing)
   	      {
+  	        v_lpoints_valuet failing=dict_f_values[desc];
   	        common(failing, cf);
   	      }
   	      else
@@ -1080,6 +1075,8 @@ void fault_localizationt::goal_covered(
           dict_p_values[desc]=passing;
 
           bmc.prop_conv.set_assumptions(assumptions);
+
+
 
 
         }

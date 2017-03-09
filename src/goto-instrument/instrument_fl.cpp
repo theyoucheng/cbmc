@@ -42,12 +42,6 @@ void collect_decisions_rec2(const exprt &src, std::set<exprt> &dest)
       dest.insert(src);
     }
   }
-  //else if(src.id()==ID_if)
-  //{
-  //  exprt expr(src);
-  //  expand_ite_expr(expr);
-  //  dest.insert(expr);
-  //}
   else
   {
     for(const auto & op : src.operands())
@@ -55,7 +49,14 @@ void collect_decisions_rec2(const exprt &src, std::set<exprt> &dest)
   }
 }
 
-
+void collect_decisions_rec2(
+  const goto_programt::const_targett t,
+  std::set<exprt> &dest)
+{
+  if(t->is_assert()) collect_decisions_rec2(t->guard, dest);
+  else if(t->is_function_call()) collect_decisions_rec2(t->code, dest);
+  else assert(0);
+}
 
 void instrument_fl(
   const symbol_tablet &symbol_table,
@@ -70,39 +71,46 @@ void instrument_fl(
                 "<builtin-library-"))
     return;
 
-
   Forall_goto_program_instructions(i_it, goto_program)
   {
-	  if(i_it->is_function_call())
+	  if(i_it->is_function_call() && svcomp)
 	  {
 		  const code_function_callt &code_function_call=
 		    to_code_function_call(i_it->code);
 		  std::string func_name=to_symbol_expr(
 		    code_function_call.function()).get_identifier().c_str();
-		  if (func_name==std::string("__VERIFIER_assert"))
-		  {
-		    std::set<exprt> dest;
-		    collect_decisions_rec2(i_it->code, dest);
-		    if(dest.empty()) continue;
-		    exprt e=*dest.begin();
-		    std::string desc=i_it->source_location.as_string();
-		    // add the failing assertion
-            goto_program.insert_before_swap(i_it);
-            i_it->make_assertion(e);
-            i_it->source_location.set_comment("failing assertion: " + desc);
-
-            // add the passing assertion
-            goto_program.insert_before_swap(i_it);
-            i_it->make_assertion(not_exprt(e));
-            i_it->source_location.set_comment("passing assertion: " + desc);
-            i_it++;
-            i_it++;
-            i_it->make_skip();
-		  }
+		  if (!(func_name==std::string("__VERIFIER_assert")))
+			  continue;
 	  }
-	  else if (i_it->is_assert()) i_it->make_skip();
-  }
+	  else if (i_it->is_assert())
+	  {/**
+		  if(i_it->function==std::string("__VERIFIER_assert")&&svcomp)
+		  {
+		    i_it->make_skip();
+		    continue;
+		  }
+		  **/
+	  }
+	  else continue;
 
+	  std::set<exprt> dest;
+	  collect_decisions_rec2(i_it, dest);
+	  if(dest.empty()) continue;
+	  exprt e=*dest.begin();
+	  std::string desc=i_it->source_location.as_string();
+	  // add the failing assertion
+      goto_program.insert_before_swap(i_it);
+      i_it->make_assertion(e);
+      i_it->source_location.set_comment("failing assertion: " + desc);
+
+      // add the passing assertion
+      goto_program.insert_before_swap(i_it);
+      i_it->make_assertion(not_exprt(e));
+      i_it->source_location.set_comment("passing assertion: " + desc);
+      i_it++;
+      i_it++;
+      i_it->make_skip();
+  }
 }
 
 void instrument_fl(
