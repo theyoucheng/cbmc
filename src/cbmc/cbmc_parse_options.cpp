@@ -969,7 +969,7 @@ bool cbmc_parse_optionst::process_goto_program(
 
 
     // remove skips
-    remove_skip(goto_functions);
+    //remove_skip(goto_functions);
     goto_functions.update();
   }
 

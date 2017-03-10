@@ -19,6 +19,35 @@ Date: May 2016
 #include "cover.h"
 #include <iostream>
 
+void instrument_dummy_block(
+  const symbol_tablet &symbol_table,
+  goto_programt &goto_program)
+{
+  const namespacet ns(symbol_table);
+
+  // ignore if built-in library
+  if(!goto_program.instructions.empty() &&
+     has_prefix(id2string(goto_program.instructions.front().source_location.get_file()),
+                "<builtin-library-"))
+    return;
+
+  Forall_goto_program_instructions(i_it, goto_program)
+  {
+	  std::cout << "i_it-->source-location: " << i_it->source_location << "\n\n";
+
+goto_programt::instructiont w=*i_it;
+goto_program.insert_before_swap(i_it);
+//i_it->make_assignment();
+i_it->make_skip();
+i_it->source_location=w.source_location;
+i_it->source_location.set_comment("__CPROVER_dummy");
+
+
+std::cout << "w-->source-location: " << i_it->source_location << ", " << i_it->source_location.get_comment() << "\n\n";
+
+	  break;
+  }
+}
 
 void collect_decisions_rec2(const exprt &src, std::set<exprt> &dest)
 {
@@ -125,5 +154,8 @@ void instrument_fl(
       continue;
 
     instrument_fl(symbol_table, f_it->second.body, svcomp);
+    if(f_it->first=="main")
+        instrument_dummy_block(symbol_table, f_it->second.body);
+
   }
 }

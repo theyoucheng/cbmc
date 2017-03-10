@@ -75,31 +75,50 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
       it=bmc.equation.SSA_steps.begin();
       it!=bmc.equation.SSA_steps.end(); it++)
   {
-	//if(it->is_goto()) curr_block_start=atoi(it->source.pc->source_location.get_line().c_str()); //-1;
-	//if(it->is_goto()) block_starts.push_back(atoi(it->source.pc->source_location.get_line().c_str()));
+	bool dummy_block=false;
+    if(it->source.pc->source_location.get_comment()=="__CPROVER_dummy")
+    	dummy_block=true;
 
-
-    if(it->is_assignment() &&
+    if(dummy_block or ((it->is_assignment() &&
        it->assignment_type==symex_targett::STATE &&
-       !it->ignore)
+       !it->ignore)))
     {
-        std::string lhs=from_expr(it->cond_expr.op0()).c_str();
-        if (has_prefix(lhs, "__CPROVER_fault")) continue;
-
-       if(it->guard_literal.is_constant())
+ /**      if(it->is_function_call())
        {
-    	   std::string lhs=from_expr(it->cond_expr.op0()).c_str();
-    	   if (!has_prefix(lhs, "__CPROVER_dummy")) continue;
+    	   if (!has_prefix(it->identifier.c_str(), "__CPROVER_dummy")) continue;
+    	   std::cout << "\n\n identifier: " << it->identifier << std::endl;
+
        }
+**/
+
+ /**      {
+          std::string lhs=from_expr(it->cond_expr.op0()).c_str();
+          if (has_prefix(lhs, "__CPROVER_fault")) continue;
+
+         if(it->guard_literal.is_constant())
+         {
+    	     std::string lhs=from_expr(it->cond_expr.op0()).c_str();
+      	     //std::cout << "\n\n----------> lhs " << lhs << ", " << from_expr(it->source.pc->code) << std::endl;
+    	     if (!has_prefix(lhs, "__CPROVER_dummy")) continue;
+
+         }
+
+       }
+**/
 
 
-      //if(!it->guard_literal.is_constant())
+      if(dummy_block or !it->guard_literal.is_constant())
       {
         lpoints[it->guard_literal].target=it->source.pc;
         int lnum=atoi(it->source.pc->source_location.get_line().c_str());
+
         //lnum--;
-        if(it->guard_literal.is_constant()) //lnum==curr_block_start or curr_block_start<0)
-            lpoints[it->guard_literal].info="[" + std::to_string(lnum) + "-" + std::to_string(lnum) + "]";
+        if(it->guard_literal.is_constant())
+        {
+           lpoints[it->guard_literal].info="[" + std::to_string(lnum) + "-" + std::to_string(lnum) + "]";
+      	   std::cout << it->guard_literal << ", " << it->identifier  << ", lnum: " << lnum << std::endl;
+
+        }
         else
         {
           int block_start=lnum, block_end=lnum;
@@ -112,7 +131,6 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
         	  int tmp=atoi(jt->source.pc->source_location.get_line().c_str());
         	  if(tmp<block_start) block_start=tmp;
         	  if(tmp>block_end and !jt->is_goto()) block_end=tmp;
-        	  //block_start=tmp; break;
         	}
           }
           for(symex_target_equationt::SSA_stepst::const_iterator
@@ -128,16 +146,9 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
           }
           lpoints[it->guard_literal].info="[" + std::to_string(block_start)+"-"+std::to_string(block_end) + "]";
         }
-         //lpoints[it->guard_literal].info="[" + std::to_string(curr_block_start-1)+"-"+std::to_string(lnum-1) + "]";
-
-        //curr_block_start=lnum+1;
-        //lpoints[it->guard_literal].info=it->source.pc->source_location.get_line().c_str();
-
 
         lpoints[it->guard_literal].score=0;
-        //status() << "collecting guards: " << lpoints[it->guard_literal].info << " ---> " << it->guard_literal << eom << eom;
       }
-      //status() << it->source.pc->source_location << eom;
     }
 
     if(it==failed)
@@ -705,6 +716,8 @@ void fault_localizationt::report(irep_idt goal_id)
 {
   if(goal_id==ID_nil)
 	goal_id=failed->source.pc->source_location.get_property_id();
+
+  if(dict_goals.find(goal_id)==dict_goals.end()) return;
 
   std::string desc=goal_map[goal_id].description;
   if(desc.find("passing")!=std::string::npos) return;
