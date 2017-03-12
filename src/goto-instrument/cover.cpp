@@ -2168,7 +2168,7 @@ std::vector<std::string> autosac_in_type_strs;
         else // not AUTOSAC function
         {
           // do not handle 'if-then-else' generated during the convert
-          if(i_it->function==goto_program.instructions.begin()->function) continue;
+          if(source_func==i_it->function.c_str()) continue;
           //cond_dec.push_back(conditions1);
           //cond_dec.push_back(decisions1);
           //words.push_back("");
