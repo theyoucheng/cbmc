@@ -506,7 +506,6 @@ void goto_convertt::convert(
   const codet &code,
   goto_programt &dest)
 {
-std::cout << "----> goto_convertt::convert\n";
 
   const irep_idt &statement=code.get_statement();
 
@@ -560,7 +559,6 @@ std::cout << "----> goto_convertt::convert\n";
     convert_non_deterministic_goto(code, dest);
   else if(statement==ID_ifthenelse)
   {
-	  std::cout << "========> ifthenelse\n";
     convert_ifthenelse(to_code_ifthenelse(code), dest);
   }
   else if(statement==ID_specc_notify)
@@ -2147,7 +2145,6 @@ void goto_convertt::convert_ifthenelse(
   const code_ifthenelset &code,
   goto_programt &dest)
 {
-	std::cout << "((((((((((((()))))))))))))))\n";
   if(code.operands().size()!=3)
   {
     error().source_location=code.find_source_location();
@@ -2381,7 +2378,6 @@ void goto_convertt::generate_ifthenelse(
       tmp_v.instructions.begin(),
       tmp_w.instructions.begin(),
       guard});
-
   dest.destructive_append(tmp_v);
   dest.destructive_append(tmp_w);
 

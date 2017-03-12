@@ -323,7 +323,7 @@ void goto_convertt::clean_expr(
     generate_ifthenelse(
       if_expr.cond(), tmp_true, tmp_false,
       source_location, dest);
-
+    expr=if_expr;
     return;
   }
   else if(expr.id()==ID_comma)
