@@ -21,12 +21,14 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "goto_convert.h"
 #include "goto_convert_class.h"
 #include "destructor.h"
+#include <iostream>
 
 /*******************************************************************\
 
 Function: is_empty
 
   Inputs:
+
 
  Outputs:
 
@@ -504,6 +506,8 @@ void goto_convertt::convert(
   const codet &code,
   goto_programt &dest)
 {
+std::cout << "----> goto_convertt::convert\n";
+
   const irep_idt &statement=code.get_statement();
 
   if(statement==ID_block)
@@ -555,7 +559,10 @@ void goto_convertt::convert(
   else if(statement=="non-deterministic-goto")
     convert_non_deterministic_goto(code, dest);
   else if(statement==ID_ifthenelse)
+  {
+	  std::cout << "========> ifthenelse\n";
     convert_ifthenelse(to_code_ifthenelse(code), dest);
+  }
   else if(statement==ID_specc_notify)
     convert_specc_notify(code, dest);
   else if(statement==ID_specc_wait)
@@ -2140,6 +2147,7 @@ void goto_convertt::convert_ifthenelse(
   const code_ifthenelset &code,
   goto_programt &dest)
 {
+	std::cout << "((((((((((((()))))))))))))))\n";
   if(code.operands().size()!=3)
   {
     error().source_location=code.find_source_location();
@@ -2156,7 +2164,7 @@ void goto_convertt::convert_ifthenelse(
 
   // We do a bit of special treatment for && in the condition
   // in case cleaning would be needed otherwise.
-  if(code.cond().id()==ID_and &&
+/**  if(code.cond().id()==ID_and &&
      code.cond().operands().size()==2 &&
      (needs_cleaning(code.cond().op0()) || needs_cleaning(code.cond().op1())) &&
      !has_else)
@@ -2170,7 +2178,7 @@ void goto_convertt::convert_ifthenelse(
     new_if1.then_case()=code.then_case();
     new_if0.then_case()=new_if1;
     return convert_ifthenelse(new_if0, dest);
-  }
+  }**/
 
   // convert 'then'-branch
   goto_programt tmp_then;

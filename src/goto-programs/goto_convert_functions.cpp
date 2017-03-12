@@ -17,6 +17,7 @@ Date: June 2003
 
 #include "goto_convert_functions.h"
 #include "goto_inline.h"
+#include <iostream>
 
 /*******************************************************************\
 
@@ -214,11 +215,11 @@ void goto_convert_functionst::convert_function(const irep_idt &identifier)
   // make tmp variables local to function
   tmp_symbol_prefix=id2string(symbol.name)+"::$tmp::";
   temporary_counter=0;
-
+std::cout << "---> " << tmp_symbol_prefix << "\n";
   f.type=to_code_type(symbol.type);
+
   if(f.body_available())
     return; // already converted
-
   if(symbol.value.is_nil() ||
      symbol.value.id()=="compiled") /* goto_inline may have removed the body */
     return;
@@ -330,6 +331,8 @@ void goto_convert(
   goto_functionst &functions,
   message_handlert &message_handler)
 {
+	std::cout << "goto convert functions ---->\n\n";
+
   goto_convert_functionst goto_convert_functions(
     symbol_table, functions, message_handler);
 

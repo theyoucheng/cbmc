@@ -428,6 +428,8 @@ void goto_convertt::convert(
 {
   const irep_idt &statement=code.get_statement();
 
+  std::cout <<"\n convert: " << statement << "\n";
+
   if(statement==ID_block)
     convert_block(to_code_block(code), dest);
   else if(statement==ID_decl)
@@ -1481,6 +1483,8 @@ void goto_convertt::convert_return(
   const code_returnt &code,
   goto_programt &dest)
 {
+  std::cout << "<<<<<<<<<<-------------convert return--------------------->>>>>>>>\n\n";
+
   if(!targets.return_set)
   {
     err_location(code);
@@ -2027,6 +2031,8 @@ void goto_convertt::convert_ifthenelse(
   const code_ifthenelset &code,
   goto_programt &dest)
 {
+  std::cout << "<<<<<<<<<<---------------convert if-then-else ------------------->>>>>>>>\n\n";
+
   if(code.operands().size()!=3)
   {
     err_location(code);
@@ -2058,7 +2064,6 @@ void goto_convertt::convert_ifthenelse(
     new_if0.then_case()=new_if1;
     return convert_ifthenelse(new_if0, dest);
   }
-
   // convert 'then'-branch
   goto_programt tmp_then;
   convert(to_code(code.then_case()), tmp_then);
@@ -2613,6 +2618,9 @@ void goto_convert(
   goto_programt &dest,
   message_handlert &message_handler)
 {
+	  std::cout << "<<<<<<<<<<----------goto-convert in new-switch case------------------------>>>>>>>>\n\n";
+
+
   goto_convertt goto_convert(symbol_table, message_handler);
 
   try
