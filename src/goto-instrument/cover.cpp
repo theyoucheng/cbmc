@@ -25,6 +25,14 @@ static bool strong_in_type=false;
 static bool weakly_strong_in_type=false;
 static bool de_special=false;
 
+static bool is_quantified(const exprt& e)
+{
+  if(e.id()==ID_forall or e.id()==ID_exists)
+    return true;
+  for(auto &o: e.operands())
+    if(is_quantified(o)) return true;
+  return false;
+}
 
 class basic_blockst
 {
@@ -2336,11 +2344,16 @@ std::vector<std::string> autosac_in_type_strs;
 
               
             goto_program.insert_before_swap(i_it);
-            i_it->make_assertion(not_exprt(p));
-            //i_it->make_assertion(p);
-            i_it->source_location=source_location;
-            i_it->source_location.set_comment(description);
-            i_it->source_location.set_property_class("coverage");
+            if(is_quantified(p))
+              i_it->make_skip(); // traping quantifiers is an mysterious
+            else
+            {
+              i_it->make_assertion(not_exprt(p));
+              //i_it->make_assertion(p);
+              i_it->source_location=source_location;
+              i_it->source_location.set_comment(description);
+              i_it->source_location.set_property_class("coverage");
+            }
           }
           
           for(std::size_t i=0; i<both.size()*2+controlling.size(); i++)
