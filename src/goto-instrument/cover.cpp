@@ -1586,24 +1586,24 @@ std::set<exprt> autosac_expand(const exprt &src)
     {
       std::vector<exprt> operands;
       collect_operands(x, operands);
+      if(x.id()==ID_le or x.id()==ID_ge)
+      {
+        changed=true;
+        auto res=autosac_atomic_expand(x);
+        s2.insert(res.begin(), res.end());
+        operands.clear();
+      }
       for(int i=0; i<operands.size(); i++)
       {
         std::set<exprt> res;
-        if(operands[i].id()==ID_le
-           or operands[i].id()==ID_ge)
+        exprt op(operands[i]);
+        if(op.id()==ID_typecast) op=op.op0();
+        if(op.id()==ID_le
+           or op.id()==ID_ge)
         {
           changed=true;
-          res=autosac_atomic_expand(operands[i]);
+          res=autosac_atomic_expand(op);
         }
-        //if(operands[i].id()==ID_notequal)
-        //{
-        //  if(operands[i].op0().type().id()!=ID_bool
-        //     and operands[i].op1().type().id()!=ID_bool)
-        //  {
-        //     changed=true;
-        //     res=autosac_atomic_expand(operands[i]);
-        //  }
-        //}
 
         std::set<exprt> co=replacement_conjunction(res, operands, i);
         s2.insert(co.begin(), co.end());
@@ -2193,10 +2193,10 @@ std::vector<std::string> autosac_in_type_strs;
             if(not(source_func==""))
               tmp+=(std::string(" (func call ") + source_func + std::string(") "));
             autosac_words.push_back(tmp);
-            cond_dec=autosac_vect;
-            words=autosac_words;
-            autosac_vect.clear();
-            autosac_words.clear();
+            //cond_dec=autosac_vect;
+            //words=autosac_words;
+            //autosac_vect.clear();
+            //autosac_words.clear();
 
 
             //std::cout << "source location: " << i_it->source_location << std::endl;
@@ -2526,11 +2526,7 @@ void collect_tenary_rec(
     std::set<exprt> e_res_copy;
     for(auto &x: e_res)
     {
-//std::cout << "x: " << from_expr(x) << std::endl;
       std::set<exprt> res=autosac_expand(x);
-//for(auto &y: res)
-//std::cout << " y: " << from_expr(y) << std::endl;
-//std::cout << std::endl;
       e_res_copy.insert(res.begin(), res.end());
     }
     e_res.swap(e_res_copy);
@@ -2556,19 +2552,12 @@ void collect_tenary_rec(
   const exprt &C=e.op2();
   // apply MC/DC on A
   std::set<exprt> Ares=collect_mcdc_controlling_nested({A}, false);
-  //std::set<exprt> Ares=collect_mcdc_controlling_nested({A});
 
   if(Ares.empty())
   {
     Ares.insert(A);
     Ares.insert(not_exprt(A));
   }
-
-//std::cout << "A: " << from_expr(A) << std::endl;
-//for(auto &y: Ares)
-//std::cout << " y: " << from_expr(y) << std::endl;
-//std::cout << std::endl;
-  
 
   // Ares needs to be separated into Ares+ and Ares-
   std::set<exprt> Ares_true, Ares_false;
