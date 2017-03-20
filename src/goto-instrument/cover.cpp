@@ -2193,10 +2193,11 @@ std::vector<std::string> autosac_in_type_strs;
             if(not(source_func==""))
               tmp+=(std::string(" (func call ") + source_func + std::string(") "));
             autosac_words.push_back(tmp);
-            //cond_dec=autosac_vect;
-            //words=autosac_words;
-            //autosac_vect.clear();
-            //autosac_words.clear();
+            // do not postpone the assertion instrumentation for inlined codes
+            cond_dec=autosac_vect;
+            words=autosac_words;
+            autosac_vect.clear();
+            autosac_words.clear();
 
 
             //std::cout << "source location: " << i_it->source_location << std::endl;
