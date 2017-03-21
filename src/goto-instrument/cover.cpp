@@ -2102,7 +2102,7 @@ std::vector<std::string> autosac_in_type_strs;
           std::string desc=autosac_description(i_it->code, autosac_pre_done);
           if(not (autosac_in_type or autosac_pre or autosac_post) and not(source_func==""))
             desc+=std::string(" (func call ") + source_func + std::string(") ");
-          if((not (strong_in_type or weakly_strong_in_type)) or (not is_autosac_in_type_function(i_it->code)))
+          if((not (strong_in_type or weakly_strong_in_type)) ) // or (not is_autosac_in_type_function(i_it->code)))
           {
             autosac_vect.push_back(conditions1);
             autosac_vect.push_back(decisions1);
