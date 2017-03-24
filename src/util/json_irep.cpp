@@ -147,24 +147,42 @@ Function: json_irept::convert_from_json
 
 void json_irept::convert_from_json(const jsont& in, irept &result) const
 {
-  std::vector<std::string> have_keys;
+  bool found_id=false;
   for(const auto& keyval : in.object)
-    have_keys.push_back(keyval.first);
-  std::sort(have_keys.begin(),have_keys.end());
-  if(have_keys!=std::vector<std::string>({"comment", "id", "namedSub", "sub"}))
-    throw "JSON irep is missing one of needed keys: 'id', 'sub', 'namedSub', 'comment'";
+  {
+    if(keyval.first=="id")
+      found_id=true;
+    else if(keyval.first!="sub" &&
+            keyval.first!="namedSub" &&
+            keyval.first!="comment")
+    {
+      throw "Found unexpected key in JSON input: '" + keyval.first + "'";
+    }
+  }
+
+  if(!found_id)
+    throw "Irep JSON representation must have a key 'id'";
 
   result.id(in["id"].value);
 
-  for(const auto& sub : in["sub"].array)
+  if(in.object.count("sub"))
   {
-    result.get_sub().push_back(irept());
-    convert_from_json(sub, result.get_sub().back());
+    for(const auto& sub : in["sub"].array)
+    {
+      result.get_sub().push_back(irept());
+      convert_from_json(sub, result.get_sub().back());
+    }
   }
 
-  for(const auto& named_sub : in["namedSub"].object)
-    convert_from_json(named_sub.second, result.get_named_sub()[named_sub.first]);
+  if(in.object.count("namedSub"))
+  {
+    for(const auto& named_sub : in["namedSub"].object)
+      convert_from_json(named_sub.second, result.get_named_sub()[named_sub.first]);
+  }
 
-  for(const auto& comment : in["comment"].object)
-    convert_from_json(comment.second, result.get_comments()[comment.first]);
+  if(in.object.count("comment"))
+  {
+    for(const auto& comment : in["comment"].object)
+      convert_from_json(comment.second, result.get_comments()[comment.first]);
+  }
 }
