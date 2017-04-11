@@ -78,34 +78,18 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
 	bool dummy_block=false;
     if(it->source.pc->source_location.get_comment()=="__CPROVER_dummy")
     	dummy_block=true;
-
+ /*   {
+      std::cout << "\n";
+      std::cout << "++++---> line " << it->source.pc->source_location.get_line().c_str() << "\n";
+      std::cout << "++++guard literal: " << it->guard_literal << ", cond literal: " << it->cond_literal <<"\n";
+      std::cout << "++++guard expr: " << from_expr(it->guard) << ", cond expr: " << from_expr(it->cond_expr) <<"\n";
+      std::cout << "\n";
+    }
+*/
     if(dummy_block or ((it->is_assignment() &&
        it->assignment_type==symex_targett::STATE &&
        !it->ignore)))
     {
- /**      if(it->is_function_call())
-       {
-    	   if (!has_prefix(it->identifier.c_str(), "__CPROVER_dummy")) continue;
-    	   std::cout << "\n\n identifier: " << it->identifier << std::endl;
-
-       }
-**/
-
- /**      {
-          std::string lhs=from_expr(it->cond_expr.op0()).c_str();
-          if (has_prefix(lhs, "__CPROVER_fault")) continue;
-
-         if(it->guard_literal.is_constant())
-         {
-    	     std::string lhs=from_expr(it->cond_expr.op0()).c_str();
-      	     //std::cout << "\n\n----------> lhs " << lhs << ", " << from_expr(it->source.pc->code) << std::endl;
-    	     if (!has_prefix(lhs, "__CPROVER_dummy")) continue;
-
-         }
-
-       }
-**/
-
 
       if(dummy_block or !it->guard_literal.is_constant())
       {
@@ -121,29 +105,34 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
         }
         else
         {
+          // to get the function in which 'it' is
+          std::string it_func=it->source.pc->source_location.as_string();
+          it_func=it_func.substr(it_func.find("function")+1);
+          it_func=it_func.substr(0, it_func.find(","));
+
           int block_start=lnum, block_end=lnum;
           for(symex_target_equationt::SSA_stepst::const_iterator
         	      jt=bmc.equation.SSA_steps.begin();
         	      jt!=bmc.equation.SSA_steps.end(); jt++)
           {
+        	if(jt==it) break;
         	if(jt->guard_literal==it->guard_literal)
         	{
-        	  int tmp=atoi(jt->source.pc->source_location.get_line().c_str());
-        	  if(tmp<block_start) block_start=tmp;
-        	  if(tmp>block_end and !jt->is_goto()) block_end=tmp;
+        	  // to get the function in which 'jt' is
+        	  std::string jt_func=jt->source.pc->source_location.as_string();
+              jt_func=jt_func.substr(jt_func.find("function")+1);
+        	  jt_func=jt_func.substr(0, jt_func.find(","));
+        	  if(!(jt_func==it_func)) continue;
+        	  std::string tmp_c=jt->source.pc->source_location.get_line().c_str();
+        	  if(! (tmp_c==""))
+        	  {
+        	    int tmp=atoi(tmp_c.c_str());
+        	    if(tmp<block_start) block_start=tmp;
+        	  }
         	}
+        	//else block_start=block_end;
           }
-          for(symex_target_equationt::SSA_stepst::const_iterator
-        	      jt=bmc.equation.SSA_steps.begin();
-        	      jt!=bmc.equation.SSA_steps.end(); jt++)
-          {
-        	if(jt->guard_literal!=it->guard_literal)
-        	{
-        	  int tmp=atoi(jt->source.pc->source_location.get_line().c_str());
-        	  if(tmp>block_start && tmp<block_end) block_end=tmp-1;
-        	  //block_start=tmp; break;
-        	}
-          }
+
           lpoints[it->guard_literal].info="[" + std::to_string(block_start)+"-"+std::to_string(block_end) + "]";
         }
 
@@ -154,6 +143,9 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
     if(it==failed)
       break;
   }
+  std::cout << "set of lpoints\n";
+  for(auto &x: lpoints)
+	  std::cout << x.first << ", " << x.second.info << "\n";
 }
 
 /*******************************************************************\
