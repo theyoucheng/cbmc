@@ -2247,9 +2247,24 @@ std::vector<std::string> autosac_in_type_strs;
         
           std::set<exprt> controlling;
           std::set<exprt> tenary_controlling;
+          bool in_typed_enum=false;
           for(auto &dec: decisions)
           {
-            std::set<exprt> ctrl=collect_mcdc_controlling_nested({dec});
+            std::set<exprt> ctrl;
+            std::string description=words.at(xx/2);
+            //std::cout << "collect mcdc controlling: " << from_expr(dec) << ", id: " << dec.id() << ", in type: " << description << "--> " << (description.find("in type")!=std::string::npos) << std::endl;
+            if(description.find("in type")!=std::string::npos and dec.id()==ID_or)
+            {
+              in_typed_enum=true;
+              for(auto &op: conditions)
+              {
+                //std::cout << "op: " << from_expr(op) << std::endl;
+                auto res=collect_mcdc_controlling({op}, false);
+                for(auto &r: res)
+                  if(r.id()!=ID_not) ctrl.insert(r);
+              }
+            }
+            else ctrl=collect_mcdc_controlling_nested({dec});
             exprt e_if;
             bool has_if=get_first_if(dec, e_if);
             if(ctrl.empty()&&!has_if)
@@ -2276,7 +2291,7 @@ std::vector<std::string> autosac_in_type_strs;
           }
 
         
-          if(autosac)
+          if(autosac&&!in_typed_enum)
           {
             std::set<exprt> controlling2;
             for(auto &x: controlling)
