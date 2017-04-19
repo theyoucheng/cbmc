@@ -1365,7 +1365,7 @@ static std::set<exprt> bv_with_tolerance(const exprt& src,
     if(not plus){
     // 0.99
     ieee_floatt f1;
-    f1.from_float(1-bv_toler);
+    f1.from_float(0.000000001); //1-bv_toler);
     ieee_float_spect dest_spec;
     floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
     dest_spec.from_type(fbv_type);
@@ -1376,7 +1376,8 @@ static std::set<exprt> bv_with_tolerance(const exprt& src,
     e3.type().id(src.type().id());
     e3.operands().push_back(src.op0());
 
-    exprt tole3(ID_mult, src.op0().type());
+    //exprt tole3(ID_mult, src.op0().type());
+    exprt tole3(ID_minus, src.op0().type());
     tole3.operands().push_back(src.op1());
     tole3.operands().push_back(p1);
     e3.operands().push_back(tole3);
@@ -1387,7 +1388,7 @@ static std::set<exprt> bv_with_tolerance(const exprt& src,
     else {
     // 1.01
     ieee_floatt f1;
-    f1.from_float(1+bv_toler);
+    f1.from_float(0.000000001); //1+bv_toler);
     ieee_float_spect dest_spec;
     floatbv_typet fbv_type=to_floatbv_type(src.op0().type());
     dest_spec.from_type(fbv_type);
@@ -1398,7 +1399,8 @@ static std::set<exprt> bv_with_tolerance(const exprt& src,
     e3.type().id(src.type().id());
     e3.operands().push_back(src.op0());
 
-    exprt tole3(ID_mult, src.op0().type());
+    //exprt tole3(ID_mult, src.op0().type());
+    exprt tole3(ID_plus, src.op0().type());
     tole3.operands().push_back(src.op1());
     tole3.operands().push_back(p1);
     e3.operands().push_back(tole3);
