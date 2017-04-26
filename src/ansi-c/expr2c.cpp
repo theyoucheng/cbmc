@@ -4498,6 +4498,33 @@ std::string expr2ct::convert_sizeof(
 
 /*******************************************************************\
 
+Function: expr2ct::convert_let
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+std::string expr2ct::convert_let(
+  const exprt &src,
+  unsigned &precedence)
+{
+  const auto &let_expr=to_let_expr(src);
+  std::string dest="let ";
+  dest+=convert(let_expr.symbol(), precedence);
+  dest+=" = ";
+  dest+=convert(let_expr.value(), precedence);
+  dest+=" in (";
+  dest+=convert(let_expr.where(), precedence);
+  dest+=")";
+  return dest;
+}
+
+/*******************************************************************\
+
 Function: expr2ct::convert
 
   Inputs:
@@ -5007,6 +5034,9 @@ std::string expr2ct::convert(
 
   else if(src.id()==ID_type)
     return convert(src.type());
+
+  else if(src.id()==ID_let)
+    return convert_let(src, precedence);
 
   // no C language expression for internal representation
   return convert_norep(src, precedence);
