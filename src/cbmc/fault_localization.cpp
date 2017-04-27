@@ -143,7 +143,7 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
     if(it==failed)
       break;
   }
-  std::cout << "set of lpoints\n";
+  std::cout << "set of lpoints: " << lpoints.size() << "\n";
   for(auto &x: lpoints)
 	  std::cout << x.first << ", " << x.second.info << "\n";
 }

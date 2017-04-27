@@ -195,14 +195,15 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
 {
   for(const auto & it : goal_map)
   {
-	if(has_prefix(it.second.description, "__CPROVER_fault passing traces"))
+      if(has_prefix(it.second.description, "passing assertion")
+         || has_prefix(it.second.description, "failing assertion"))
       return;
   }
   switch(bmc.ui)
   {
   case ui_message_handlert::PLAIN:
     {
- /**     status() << "\n** Results:" << eom;
+      status() << "\n** Results:" << eom;
 
       for(const auto & it : goal_map)
         status() << "[" << it.first << "] "
@@ -222,7 +223,7 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
                << cover_goals.iterations() << " iteration"
                << (cover_goals.iterations()==1?"":"s")
                << ")" << eom;
-    **/}
+    }
     break;
 
   case ui_message_handlert::XML_UI:
