@@ -1455,6 +1455,8 @@ void goto_checkt::check_rec(
   guardt &guard,
   bool address)
 {
+  const auto &type=ns.follow(expr.type());
+
   // we don't look into quantifiers
   if(expr.id()==ID_exists || expr.id()==ID_forall)
     return;
@@ -1555,7 +1557,7 @@ void goto_checkt::check_rec(
     exprt access_ub=nil_exprt();
 
     exprt member_offset=member_offset_expr(member, ns);
-    exprt size=size_of_expr(expr.type(), ns);
+    exprt size=size_of_expr(type, ns);
 
     if(member_offset.is_not_nil() && size.is_not_nil())
       access_ub=plus_exprt(member_offset, size);
@@ -1576,9 +1578,9 @@ void goto_checkt::check_rec(
   {
     div_by_zero_check(to_div_expr(expr), guard);
 
-    if(expr.type().id()==ID_signedbv)
+    if(type.id()==ID_signedbv)
       integer_overflow_check(expr, guard);
-    else if(expr.type().id()==ID_floatbv)
+    else if(type.id()==ID_floatbv)
     {
       nan_check(expr, guard);
       float_overflow_check(expr, guard);
@@ -1596,8 +1598,8 @@ void goto_checkt::check_rec(
           expr.id()==ID_mult ||
           expr.id()==ID_unary_minus)
   {
-    if(expr.type().id()==ID_signedbv ||
-       expr.type().id()==ID_unsignedbv)
+    if(type.id()==ID_signedbv ||
+       type.id()==ID_unsignedbv)
     {
       if(expr.operands().size()==2 &&
          expr.op0().type().id()==ID_pointer)
@@ -1605,12 +1607,12 @@ void goto_checkt::check_rec(
       else
         integer_overflow_check(expr, guard);
     }
-    else if(expr.type().id()==ID_floatbv)
+    else if(type.id()==ID_floatbv)
     {
       nan_check(expr, guard);
       float_overflow_check(expr, guard);
     }
-    else if(expr.type().id()==ID_pointer)
+    else if(type.id()==ID_pointer)
     {
       pointer_overflow_check(expr, guard);
     }
@@ -1628,7 +1630,7 @@ void goto_checkt::check_rec(
       to_dereference_expr(expr),
       guard,
       nil_exprt(),
-      size_of_expr(expr.type(), ns));
+      size_of_expr(type, ns));
 }
 
 /*******************************************************************\
