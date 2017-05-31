@@ -3,7 +3,8 @@ SRC = cbmc_main.cpp cbmc_parse_options.cpp bmc.cpp cbmc_dimacs.cpp \
       bv_cbmc.cpp symex_bmc.cpp show_vcc.cpp cbmc_solvers.cpp \
       xml_interface.cpp bmc_cover.cpp all_properties.cpp \
       symex_bmc_incremental_one_loop.cpp bmc_incremental_one_loop.cpp \
-      symex_bmc_incremental.cpp bmc_incremental.cpp fault_localization.cpp
+      symex_bmc_incremental.cpp bmc_incremental.cpp fault_localization.cpp \
+      fault_localization_pfl.cpp
 
 OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../cpp/cpp$(LIBEXT) \

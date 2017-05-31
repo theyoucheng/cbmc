@@ -21,6 +21,7 @@ Author: Peter Schrammel
 
 #include "fault_localization.h"
 #include "counterexample_beautification.h"
+#include <iostream>
 
 /*******************************************************************\
 
@@ -234,8 +235,15 @@ void fault_localizationt::run(irep_idt goal_id)
   status() << "Localizing fault" << eom;
 
   // pick localization method
-  //  if(options.get_option("localize-faults-method")=="TBD")
-  localize_linear(lpoints);
+  if(options.get_option("localize-faults-method")=="pfl")
+  {
+    pflt pfl(lpoints, bmc, failed->cond_literal);
+    std::cout << "the set of points:\n";
+    for(auto &l: lpoints)
+    	std::cout << l.first << ", " << l.second.target->source_location << "\n";
+    pfl();
+  }
+  else localize_linear(lpoints);
 
   //clear assumptions
   bvt assumptions;
