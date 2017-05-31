@@ -87,13 +87,9 @@ protected:
     lpointst &P; // this is the program under analysis
     bmct &bmc;
     pflt(lpointst &P_, bmct &bmc_, const literalt &property_)
-      : property(property_), P(P_), bmc(bmc_)
-    {
-      //bmc.equation.new_activation_literal(bmc.prop_conv);
-      //activation_literal=bmc.equation.current_activation_literal();
-    }
-    std::vector<lpoints_valuet> failing_traces, passing_traces; // , s_traces;
-    //std::vector<lpoints_valuet> extra_failing_traces, extra_passing_traces;
+      : property(property_), P(P_), bmc(bmc_) {}
+    std::vector<lpoints_valuet> failing_traces, passing_traces;
+
     // The "mc" function  in David Landsberg's probabilistic fault
     // localization algoritam. "mc" tries to find a trace that
     // violates "phi", which does not cover any block in "X"
@@ -104,6 +100,7 @@ protected:
       const lpoints_valuet &X,
       const lpoints_valuet &Y,
       std::vector<lpoints_valuet> &traces);
+
     lpoints_valuet common(const std::vector<lpoints_valuet> &lvs);
     lpoints_valuet complement(
       const lpoints_valuet &v1,
@@ -117,6 +114,12 @@ protected:
     bool in_traces(
       const lpoints_valuet &v,
 	  const std::vector<lpoints_valuet> &traces);
+
+    // a set of steps to compute the fault probability
+    std::vector<int> ef, ep, nf, np;
+    std::vector<double> ppv;
+    // 1) to remove unnecessary blocks
+    void simplify_traces();
   };
 
   symex_target_equationt::SSA_stepst::const_iterator get_failed_property();

@@ -255,6 +255,8 @@ void fault_localizationt::pflt::operator()()
     if(!in_traces(s, passing_traces))
       passing_traces.push_back(s);
   }
+
+  simplify_traces();
 }
 
 /*******************************************************************\
@@ -440,4 +442,95 @@ bool fault_localizationt::pflt::in_traces(
   for(auto &t: traces)
     if(trace_equal(t, v)) return true;
   return false;
+}
+
+/*******************************************************************\
+
+Function: fault_localizationt::pflt:simplify_traces
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void fault_localizationt::pflt::simplify_traces()
+{
+  lpointst new_P;
+  int i=0;
+  for(auto &p: P)
+  {
+    bool all_false=true;
+    for(auto &t: failing_traces)
+    {
+      if(t[i].is_true())
+      {
+        all_false=false;
+        break;
+      }
+    }
+    bool all_true=true;
+    for(auto &t: passing_traces)
+    {
+      if(t[i].is_false())
+      {
+        all_true=false;
+        break;
+      }
+    }
+    std::cout << "**i=" << i << ", " << all_false << ", " << all_true << "\n";
+    if(all_false || all_true)
+    {
+      for(auto &t: failing_traces)
+        t[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
+      for(auto &t: passing_traces)
+        t[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
+    }
+    else new_P.insert(p);
+
+    ++i;
+  }
+  // to update "traces" and "lpoints"
+  for(auto &t: failing_traces)
+  {
+    auto it=t.begin();
+    while(it!=t.end())
+    {
+      if(it->is_unknown())
+    	  it=t.erase(it);
+      else it++;
+    }
+  }
+  for(auto &t: passing_traces)
+  {
+    auto it=t.begin();
+    while(it!=t.end())
+    {
+      if(it->is_unknown())
+    	  it=t.erase(it);
+      else it++;
+    }
+  }
+  P=new_P;
+  std::cout << "**after simplification\n";
+  for(auto &p: P)
+  {
+    std::cout << p.first << ", " << p.second.target->source_location << "\n";
+  }
+  std::cout << "passing traces: \n";
+  for(auto &x: failing_traces)
+    {
+      for(auto &y: x)
+        std::cout << y.is_true() << " ";
+      std::cout << "\n";
+    }
+    std::cout << "passing traces: \n";
+    for(auto &x: passing_traces)
+    {
+      for(auto &y: x)
+        std::cout << y.is_true() << " ";
+      std::cout << "\n";
+    }
 }
