@@ -272,14 +272,14 @@ void fault_localizationt::pflt::operator()()
     if(!get_a_trace(property, passing_traces))
       break;
   }
-  std::cout << "failing traces (after extension): \n";
+  std::cout << "failing traces: \n";
   for(auto &x: failing_traces)
   {
     for(auto &y: x)
       std::cout << y.is_true() << " ";
       std::cout << "\n";
   }
-  std::cout << "passing traces (after extension): \n";
+  std::cout << "passing traces: \n";
   for(auto &x: passing_traces)
   {
     for(auto &y: x)
@@ -605,19 +605,19 @@ void fault_localizationt::pflt::simplify_traces()
   failing_traces=new_failing_traces;
   passing_traces=new_passing_traces;
 
-  std::cout << "*** after simplification (blocks) *** \n";
+  std::cout << "\n*** after simplification (blocks) *** \n";
   for(auto &p: P)
   {
     std::cout << p.first << ", " << p.second.target->source_location << "\n";
   }
-  std::cout << "failing traces: \n";
+  std::cout << "\nfailing traces: \n";
   for(auto &x: failing_traces)
     {
       for(auto &y: x)
         std::cout << y.is_true() << " ";
       std::cout << "\n";
     }
-    std::cout << "passing traces: \n";
+    std::cout << "\npassing traces: \n";
     for(auto &x: passing_traces)
     {
       for(auto &y: x)
@@ -653,6 +653,23 @@ void fault_localizationt::pflt::compute_spectra()
       if(t[i].is_true())  ep[i]++;
       else np[i]++;
   }
+  std::cout << "\n***after compute spectra***\n";
+  std::cout << "**ef:\n";
+  for(auto &p: ef)
+    std::cout << p << " ";
+  std::cout << "\n";
+  std::cout << "**ep:\n";
+  for(auto &p: ep)
+    std::cout << p << " ";
+  std::cout << "\n";
+  std::cout << "**nf:\n";
+  for(auto &p: nf)
+    std::cout << p << " ";
+  std::cout << "\n";
+  std::cout << "**np:\n";
+  for(auto &p: np)
+    std::cout << p << " ";
+  std::cout << "\n";
 }
 
 /*******************************************************************\
@@ -697,6 +714,10 @@ void fault_localizationt::pflt::compute_ppv()
     if(ef[i]>0) score=ef[i]/(ef[i]+ep[i]+0.0);
     ppv.push_back(score);
   }
+  std::cout << "\n***after compute ppv***\n";
+  for(auto &p: ppv)
+    std::cout << p << " ";
+  std::cout << "\n\n";
 }
 
 /*******************************************************************\
@@ -732,4 +753,8 @@ void fault_localizationt::pflt::compute_probability()
     x.second.score=Prob[i];
     ++i;
   }
+  std::cout << "\n***after compute probability***\n";
+  for(auto &p: Prob)
+    std::cout << p << " ";
+  std::cout << "\n\n";
 }
