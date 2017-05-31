@@ -287,6 +287,9 @@ void fault_localizationt::pflt::operator()()
   // to compute the probability
   simplify_traces();
   compute_spectra();
+  measure_sb();
+  compute_ppv();
+  compute_probability();
 }
 
 /*******************************************************************\
@@ -642,5 +645,84 @@ void fault_localizationt::pflt::compute_spectra()
     for(auto &t: passing_traces)
       if(t[i].is_true())  ep[i]++;
       else np[i]++;
+  }
+}
+
+/*******************************************************************\
+
+Function: fault_localizationt::pflt:measure_sb
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void fault_localizationt::pflt::measure_sb()
+{
+  std::size_t i=0;
+  for(auto &p: P)
+  {
+    p.second.score=ef[i]-(ep[i]/(ep[i]+np[i]+1.0));
+    ++i;
+  }
+}
+
+/*******************************************************************\
+
+Function: fault_localizationt::pflt:compute_ppv
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void fault_localizationt::pflt::compute_ppv()
+{
+  for(std::size_t i=0; i<ef.size(); ++i)
+  {
+    double score=0;
+    if(ef[i]>0) score=ef[i]/(ef[i]+ep[i]+0.0);
+    ppv.push_back(score);
+  }
+}
+
+/*******************************************************************\
+
+Function: fault_localizationt::pflt:compute_probability
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void fault_localizationt::pflt::compute_probability()
+{
+  std::vector<double> Prob(P.size(), 0);
+
+  for(auto &t: failing_traces)
+  {
+    double den=0;
+    for(std::size_t i=0; i<t.size(); ++i)
+      if(t[i].is_true()) den += ppv[i];
+
+    for(std::size_t i=0; i<t.size(); ++i)
+      if(t[i].is_true())
+        Prob[i]=(Prob[i]+ppv[i]/den)-Prob[i]*(ppv[i]/den);
+  }
+
+  std::size_t i=0;
+  for(auto &x: P)
+  {
+    x.second.score=Prob[i];
+    ++i;
   }
 }

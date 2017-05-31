@@ -125,6 +125,9 @@ protected:
     // 1) to remove unnecessary blocks
     void simplify_traces();
     void compute_spectra();
+    void measure_sb();
+    void compute_ppv();
+    void compute_probability();
   };
 
   symex_target_equationt::SSA_stepst::const_iterator get_failed_property();
