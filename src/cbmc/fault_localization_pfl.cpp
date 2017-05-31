@@ -249,6 +249,7 @@ void fault_localizationt::pflt::operator()()
       std::cout << y.is_true() << " ";
     std::cout << "\n";
   }
+
   // merge s_traces into passing_traces
   for(auto &s: s_traces)
   {
@@ -256,6 +257,34 @@ void fault_localizationt::pflt::operator()()
       passing_traces.push_back(s);
   }
 
+  // to obtain some extra traces
+  while(failing_traces.size()<max_traces)
+  {
+    if(!get_a_trace(!property, failing_traces))
+      break;
+  }
+
+  while(passing_traces.size()<max_traces)
+  {
+    if(!get_a_trace(property, passing_traces))
+      break;
+  }
+  std::cout << "failing traces (after extension): \n";
+  for(auto &x: failing_traces)
+  {
+    for(auto &y: x)
+      std::cout << y.is_true() << " ";
+      std::cout << "\n";
+  }
+  std::cout << "passing traces (after extension): \n";
+  for(auto &x: passing_traces)
+  {
+    for(auto &y: x)
+      std::cout << y.is_true() << " ";
+    std::cout << "\n";
+  }
+
+  // to compute the probability
   simplify_traces();
 }
 
@@ -289,6 +318,47 @@ bool fault_localizationt::pflt::get_a_trace(
         trace.push_back(tvt(tvt::tv_enumt::TV_TRUE));
       else trace.push_back(tvt(tvt::tv_enumt::TV_FALSE));
     }
+    return true;
+  }
+  return false;
+}
+
+/*******************************************************************\
+
+Function: fault_localizationt::pflt:get_a_trace
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool fault_localizationt::pflt::get_a_trace(
+  const literalt &assumption_,
+  std::vector<lpoints_valuet> &traces)
+{
+  bvt assumptions;
+  assumptions.push_back(assumption_);
+  // existing traces are excluded
+  for(auto &t: traces)
+  {
+    literalt l=trace_literal_and(t);
+    assumptions.push_back(!l);
+  }
+  assumptions.push_back(bmc.equation.current_activation_literal());
+  bmc.prop_conv.set_assumptions(assumptions);
+  if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
+  {
+    lpoints_valuet trace;
+    for(auto &p: P)
+    {
+      if(bmc.prop_conv.l_get(p.first).is_true())
+        trace.push_back(tvt(tvt::tv_enumt::TV_TRUE));
+      else trace.push_back(tvt(tvt::tv_enumt::TV_FALSE));
+    }
+    traces.push_back(trace);
     return true;
   }
   return false;
@@ -364,7 +434,6 @@ literalt fault_localizationt::pflt::trace_literal_and(
     bv.push_back(expr);
   }
 
-  std::cout << "trace_literal_and expr: " << from_expr(conjunction(bv)) << "\n";
   return bmc.prop_conv.convert(conjunction(bv));
 }
 
@@ -514,7 +583,18 @@ void fault_localizationt::pflt::simplify_traces()
     }
   }
   P=new_P;
-  std::cout << "**after simplification\n";
+  // remove redundancy
+  std::vector<lpoints_valuet> new_failing_traces, new_passing_traces;
+  for(auto &t: failing_traces)
+    if(!in_traces(t, new_failing_traces))
+      new_failing_traces.push_back(t);
+  for(auto &t: passing_traces)
+    if(!in_traces(t, new_passing_traces))
+      new_passing_traces.push_back(t);
+  failing_traces=new_failing_traces;
+  passing_traces=new_passing_traces;
+
+  std::cout << "**after simplification (blocks): \n";
   for(auto &p: P)
   {
     std::cout << p.first << ", " << p.second.target->source_location << "\n";

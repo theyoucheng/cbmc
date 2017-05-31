@@ -82,6 +82,7 @@ protected:
 
   struct pflt
   {
+	int max_traces=10;
     literalt activation_literal;
     const literalt &property; // the failed cond
     lpointst &P; // this is the program under analysis
@@ -108,6 +109,9 @@ protected:
     bool empty(const lpoints_valuet &v);
     void operator()();
     bool get_a_trace(const literalt &assumption_, lpoints_valuet &trace);
+    bool get_a_trace(
+      const literalt &assumption_,
+	  std::vector<lpoints_valuet> &traces);
     literalt trace_literal_and(const lpoints_valuet &trace);
     literalt trace_positive_literal_and(const lpoints_valuet &trace);
     bool trace_equal(const lpoints_valuet &v1, const lpoints_valuet &v2);
