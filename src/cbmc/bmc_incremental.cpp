@@ -9,6 +9,7 @@ Author: Peter Schrammel, Daniel Kroening, kroening@kroening.com
 #include <limits>
 
 #include <goto-symex/slice.h>
+#include "fault_localization.h"
 
 #include "bmc_incremental.h"
 
@@ -58,6 +59,13 @@ safety_checkert::resultt bmc_incrementalt::step(
     resultt result=show(goto_functions);
     if(result!=UNKNOWN)
       return result;
+
+    if(options.get_option("localize-faults")!="")
+    {
+      fault_localizationt fault_localization(
+        goto_functions, *this, options);
+      return fault_localization();
+    }
 
     // any properties to check at all?
     if(symex().remaining_vccs==0)
