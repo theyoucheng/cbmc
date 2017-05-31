@@ -124,6 +124,7 @@ protected:
     std::vector<double> ppv;
     // 1) to remove unnecessary blocks
     void simplify_traces();
+    void compute_spectra();
   };
 
   symex_target_equationt::SSA_stepst::const_iterator get_failed_property();

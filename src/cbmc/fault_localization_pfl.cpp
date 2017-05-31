@@ -286,6 +286,7 @@ void fault_localizationt::pflt::operator()()
 
   // to compute the probability
   simplify_traces();
+  compute_spectra();
 }
 
 /*******************************************************************\
@@ -613,4 +614,33 @@ void fault_localizationt::pflt::simplify_traces()
         std::cout << y.is_true() << " ";
       std::cout << "\n";
     }
+}
+
+/*******************************************************************\
+
+Function: fault_localizationt::pflt:compute_spectra
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void fault_localizationt::pflt::compute_spectra()
+{
+  for(std::size_t i=0; i<P.size(); ++i)
+  {
+    ef.push_back(0);
+    ep.push_back(0);
+    nf.push_back(0);
+    np.push_back(0);
+    for(auto &t: failing_traces)
+      if(t[i].is_true())  ef[i]++;
+      else nf[i]++;
+    for(auto &t: passing_traces)
+      if(t[i].is_true())  ep[i]++;
+      else np[i]++;
+  }
 }
