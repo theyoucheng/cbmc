@@ -69,7 +69,7 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
        it->assignment_type==symex_targett::STATE &&
        !it->ignore)
     {
-      if(!it->guard_literal.is_constant())
+      //if(!it->guard_literal.is_constant())
       {
         lpoints[it->guard_literal].target=it->source.pc;
         lpoints[it->guard_literal].score=0;
@@ -278,17 +278,32 @@ void fault_localizationt::report(irep_idt goal_id)
   }
 
   debug() << "Fault localization scores:" << eom;
-  lpointt &max=lpoints.begin()->second;
-  for(auto &l : lpoints)
+  if(options.get_option("localize-faults-method")=="pfl")
   {
-    debug() << l.second.target->source_location
-            << "\n  score: " << l.second.score << eom;
-    if(max.score<l.second.score)
-      max=l.second;
+    std::vector<lpointt> lpoints_vect;
+    for(auto &x: lpoints) lpoints_vect.push_back(x.second);
+    sort(lpoints_vect.begin(),
+    	 lpoints_vect.end(),
+    	 [](const lpointt& a, const lpointt& b)
+    	 {return a.score>b.score;});
+    status() << "["+id2string(goal_id)+"]: \n";
+    for(auto &x: lpoints_vect)
+      status() << x.target->source_location << " score: " << x.score << eom;
   }
-  status() << "["+id2string(goal_id)+"]: \n"
-                   << "  " << max.target->source_location
-                   << eom;
+  else
+  {
+    lpointt &max=lpoints.begin()->second;
+    for(auto &l : lpoints)
+    {
+      debug() << l.second.target->source_location
+              << "\n  score: " << l.second.score << eom;
+      if(max.score<l.second.score)
+        max=l.second;
+    }
+    status() << "["+id2string(goal_id)+"]: \n"
+                     << "  " << max.target->source_location
+                     << eom;
+  }
 }
 
 /*******************************************************************\

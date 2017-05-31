@@ -287,7 +287,7 @@ void fault_localizationt::pflt::operator()()
   // to compute the probability
   simplify_traces();
   compute_spectra();
-  measure_sb();
+  //measure_sb();
   compute_ppv();
   compute_probability();
 }

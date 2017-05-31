@@ -54,7 +54,7 @@ protected:
   struct lpointt
   {
     goto_programt::const_targett target;
-    unsigned score;
+    double score;
   };
   typedef std::map<literalt, lpointt> lpointst;
   typedef std::map<irep_idt, lpointst> lpoints_mapt;
