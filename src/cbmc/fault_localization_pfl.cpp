@@ -544,17 +544,18 @@ void fault_localizationt::pflt::simplify_traces()
         break;
       }
     }
-    bool all_true=true;
-    for(auto &t: passing_traces)
-    {
-      if(t[i].is_false())
-      {
-        all_true=false;
-        break;
-      }
-    }
-    std::cout << "**i=" << i << ", " << all_false << ", " << all_true << "\n";
-    if(all_false || all_true)
+    // bool all_true=true;
+    // for(auto &t: passing_traces)
+    // {
+    //   if(t[i].is_false())
+    //   {
+    //     all_true=false;
+    //     break;
+    //   }
+    // }
+    // std::cout << "**i=" << i << ", " << all_false << ", " << all_true << "\n";
+    // if(all_false || all_true)
+    if(all_false)
     {
       for(auto &t: failing_traces)
         t[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
