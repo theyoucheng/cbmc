@@ -27,15 +27,16 @@ bool fault_localizationt::pflt::mc(
   const lpoints_valuet &Y,
   std::vector<lpoints_valuet> &traces)
 {
+  if(phi==const_literal(true)) return false;
   if(empty(X) && empty(Y)) return false;
-  std::cout << "***here we are inside mc...\n";
+  std::cout << "\n***here we are inside mc...\n";
   std::cout << "**X: \n";
   for(auto &x: X)
-	  std::cout << x.is_true() << " ";
+    std::cout << x.is_true() << " ";
   std::cout << "\n";
   std::cout << "**Y: \n";
   for(auto &x: Y)
-	  std::cout << x.is_true() << " ";
+    std::cout << x.is_true() << " ";
   std::cout << "\n";
   bvt assumptions;
   // 1) violation of the "property"
@@ -46,7 +47,10 @@ bool fault_localizationt::pflt::mc(
   auto it=P.begin();
   if(!empty(X))
   {
-	assumptions.push_back(!trace_positive_literal_and(X));
+    literalt l=trace_positive_literal_and(X);
+    std::cout << "**!l: " << (!l) << "\n";
+    if(l==const_literal(true)) return false;
+    assumptions.push_back(!l);
   }
   // 3) including blocks
   it=P.begin();
@@ -83,10 +87,10 @@ bool fault_localizationt::pflt::mc(
       else trace.push_back(tvt(tvt::tv_enumt::TV_FALSE));
     }
     traces.push_back(trace);
-    std::cout << "the mc trace returned\n";
-    for(auto &t: trace)
-    	std::cout << t.is_true() << " ";
-    std::cout << "\n";
+    //std::cout << "the mc trace returned\n";
+    //for(auto &t: trace)
+    //	std::cout << t.is_true() << " ";
+    //std::cout << "\n";
     return true;
   }
   std::cout << "-----> mc not satisfied\n";
@@ -131,7 +135,6 @@ Function: fault_localizationt::pflt:common
 fault_localizationt::lpoints_valuet fault_localizationt::pflt::common(
   const std::vector<lpoints_valuet> &lvs)
 {
-  std::cout << "we are in common\n";
   for(auto &v: lvs)
   {
     for(auto &x: v)
@@ -192,7 +195,7 @@ void fault_localizationt::pflt::operator()()
     for(auto &f: f_trace)
     	std::cout << f.is_true() << " ";
     //std::cout << trace_literal(f_trace) << " ";
-    std::cout << "\n";
+    std::cout << "\n\n";
     do
     {
       bmc.prop_conv.set_assumptions({});
@@ -308,9 +311,10 @@ bool fault_localizationt::pflt::get_a_trace(
   const literalt &assumption_,
   lpoints_valuet &trace)
 {
+  if(assumption_==const_literal(false))
+    return false;
   bvt assumptions;
   assumptions.push_back(assumption_);
-  //bmc.equation.new_activation_literal(bmc.prop_conv);
   assumptions.push_back(bmc.equation.current_activation_literal());
   bmc.prop_conv.set_assumptions(assumptions);
   if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
@@ -343,12 +347,15 @@ bool fault_localizationt::pflt::get_a_trace(
   const literalt &assumption_,
   std::vector<lpoints_valuet> &traces)
 {
+  if(assumption_==const_literal(false))
+    return false;
   bvt assumptions;
   assumptions.push_back(assumption_);
   // existing traces are excluded
   for(auto &t: traces)
   {
     literalt l=trace_literal_and(t);
+    if(l==const_literal(true)) return false;
     assumptions.push_back(!l);
   }
   assumptions.push_back(bmc.equation.current_activation_literal());
@@ -384,7 +391,6 @@ fault_localizationt::lpoints_valuet fault_localizationt::pflt::complement(
   const lpoints_valuet &v1,
   const lpoints_valuet &v2)
 {
-  std::cout << "we are in complement\n";
   for(auto &x: v1)
 	  std::cout << x.is_true() << " ";
   std::cout << "\n";
@@ -599,12 +605,12 @@ void fault_localizationt::pflt::simplify_traces()
   failing_traces=new_failing_traces;
   passing_traces=new_passing_traces;
 
-  std::cout << "**after simplification (blocks): \n";
+  std::cout << "*** after simplification (blocks) *** \n";
   for(auto &p: P)
   {
     std::cout << p.first << ", " << p.second.target->source_location << "\n";
   }
-  std::cout << "passing traces: \n";
+  std::cout << "failing traces: \n";
   for(auto &x: failing_traces)
     {
       for(auto &y: x)

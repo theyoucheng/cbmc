@@ -837,7 +837,7 @@ void symex_target_equationt::convert_assertions(
     prop_conv.set_assumptions(activate_assertions);
   }
 
-  if(number_of_assertions==1)
+  if(number_of_assertions==-1)
   {
     for(auto &step : SSA_steps)
     {
