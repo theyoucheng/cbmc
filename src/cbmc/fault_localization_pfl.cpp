@@ -608,7 +608,10 @@ void fault_localizationt::pflt::simplify_traces()
   std::cout << "\n*** after simplification (blocks) *** \n";
   for(auto &p: P)
   {
-    std::cout << p.first << ", " << p.second.target->source_location << "\n";
+    std::cout << "[" << p.first << "] ";
+    for(auto &x:p.second.lines)
+      std::cout << "##" << x << " ";
+    std::cout << "\n";
   }
   std::cout << "\nfailing traces: \n";
   for(auto &x: failing_traces)

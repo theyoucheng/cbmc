@@ -73,6 +73,7 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
       {
         lpoints[it->guard_literal].target=it->source.pc;
         lpoints[it->guard_literal].score=0;
+        lpoints[it->guard_literal].lines.push_back(it->source.pc->source_location);
       }
     }
 
@@ -295,7 +296,10 @@ void fault_localizationt::report(irep_idt goal_id)
     int i=0;
     for(auto &x: lpoints_vect)
     {
-      status() << x.target->source_location << " score: " << x.score << eom;
+      status() << "[score: " << x.score << "] ";
+      for(auto &l:x.lines)
+        status() << "##" << l << " ";
+      status() << eom;
       if(++i==max_display) break;
     }
   }

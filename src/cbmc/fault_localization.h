@@ -55,6 +55,7 @@ protected:
   {
     goto_programt::const_targett target;
     double score;
+    std::vector<source_locationt> lines;
   };
   typedef std::map<literalt, lpointt> lpointst;
   typedef std::map<irep_idt, lpointst> lpoints_mapt;
