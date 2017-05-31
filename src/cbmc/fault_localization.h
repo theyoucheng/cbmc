@@ -92,7 +92,7 @@ protected:
       //bmc.equation.new_activation_literal(bmc.prop_conv);
       //activation_literal=bmc.equation.current_activation_literal();
     }
-    std::vector<lpoints_valuet> failing_traces, passing_traces, s_traces;
+    std::vector<lpoints_valuet> failing_traces, passing_traces; // , s_traces;
     //std::vector<lpoints_valuet> extra_failing_traces, extra_passing_traces;
     // The "mc" function  in David Landsberg's probabilistic fault
     // localization algoritam. "mc" tries to find a trace that

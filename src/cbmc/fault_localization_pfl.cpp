@@ -52,6 +52,16 @@ bool fault_localizationt::pflt::mc(
   it=P.begin();
   if(!empty(Y))
   {
+    // Existing traces shall be excluded.
+	// There is optimization, given that, according to Algorithm 4
+	// in David Landsberg's PhD thesis, only "passing traces" need
+	// to be considered
+	for(auto &t: passing_traces)
+	{
+      literalt l=trace_literal_and(t);
+      std::cout << "***trave literal and: " << l << std::endl;
+      assumptions.push_back(!l); break;
+	}
     for(auto &y : Y)
     {
       if(y.is_true()) assumptions.push_back(it->first);
@@ -205,6 +215,7 @@ void fault_localizationt::pflt::operator()()
     while(mc(!property, common(passing_traces), {}, passing_traces));
   }std::cout << "***size of passing traces: " << passing_traces.size() << "\n";
   // 3) to build the "set" of "s" traces
+  std::vector<lpoints_valuet> s_traces;
   lpoints_valuet v=complement(common(failing_traces), common(passing_traces));
   for(std::size_t i=0; i<P.size(); ++i)
   {
@@ -340,9 +351,11 @@ literalt fault_localizationt::pflt::trace_literal_and(
 	literal_exprt expr(x.first);
 	if(it->is_false())
 	  expr.make_not();
+	++it;
     bv.push_back(expr);
   }
 
+  std::cout << "trace_literal_and expr: " << from_expr(conjunction(bv)) << "\n";
   return bmc.prop_conv.convert(conjunction(bv));
 }
 
