@@ -551,7 +551,7 @@ int cbmc_parse_optionst::doit()
     return 1; // should contemplate EX_USAGE from sysexits.h
   }
 
-  if(options_exclusive("incremental", "unwind") ||
+  if(//options_exclusive("incremental", "unwind") ||
      options_exclusive("incremental", "incremental-check") ||
      options_inclusive("earliest-loop-exit", "incremental"))
   {

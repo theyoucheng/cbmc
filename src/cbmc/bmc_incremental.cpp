@@ -55,17 +55,9 @@ safety_checkert::resultt bmc_incrementalt::step(
     undo_slice(equation); // undo all previous slicings
 
     slice();
-
     resultt result=show(goto_functions);
     if(result!=UNKNOWN)
       return result;
-
-    if(options.get_option("localize-faults")!="")
-    {
-      fault_localizationt fault_localization(
-        goto_functions, *this, options);
-      return fault_localization();
-    }
 
     // any properties to check at all?
     if(symex().remaining_vccs==0)
@@ -142,6 +134,15 @@ safety_checkert::resultt bmc_incrementalt::run(
         symex().update_loop_info(earliest_loop_exit ? true : false);
     }
   }
+
+  if(result==safety_checkert::UNSAFE &&
+	 options.get_option("localize-faults")!="")
+  {
+    fault_localizationt fault_localization(
+      goto_functions, *this, options);
+    return fault_localization();
+  }
+
 
   return result;
 }
