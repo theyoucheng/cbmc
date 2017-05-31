@@ -113,6 +113,10 @@ protected:
     bool get_a_trace(const literalt &assumption_, lpoints_valuet &trace);
     literalt trace_literal_and(const lpoints_valuet &trace);
     literalt trace_positive_literal_and(const lpoints_valuet &trace);
+    bool trace_equal(const lpoints_valuet &v1, const lpoints_valuet &v2);
+    bool in_traces(
+      const lpoints_valuet &v,
+	  const std::vector<lpoints_valuet> &traces);
   };
 
   symex_target_equationt::SSA_stepst::const_iterator get_failed_property();

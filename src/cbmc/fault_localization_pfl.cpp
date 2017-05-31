@@ -56,12 +56,12 @@ bool fault_localizationt::pflt::mc(
 	// There is optimization, given that, according to Algorithm 4
 	// in David Landsberg's PhD thesis, only "passing traces" need
 	// to be considered
-	for(auto &t: passing_traces)
-	{
-      literalt l=trace_literal_and(t);
-      std::cout << "***trave literal and: " << l << std::endl;
-      assumptions.push_back(!l); break;
-	}
+	// for(auto &t: passing_traces)
+	// {
+    //  literalt l=trace_literal_and(t);
+    //  std::cout << "***trave literal and: " << l << std::endl;
+    //  assumptions.push_back(!l); break;
+	// }
     for(auto &y : Y)
     {
       if(y.is_true()) assumptions.push_back(it->first);
@@ -227,6 +227,7 @@ void fault_localizationt::pflt::operator()()
 
     mc(!property, {}, v_single_element, s_traces);
   }
+
   std::cout << "failing traces: \n";
   for(auto &x: failing_traces)
   {
@@ -247,6 +248,12 @@ void fault_localizationt::pflt::operator()()
     for(auto &y: x)
       std::cout << y.is_true() << " ";
     std::cout << "\n";
+  }
+  // merge s_traces into passing_traces
+  for(auto &s: s_traces)
+  {
+    if(!in_traces(s, passing_traces))
+      passing_traces.push_back(s);
   }
 }
 
@@ -390,4 +397,47 @@ literalt fault_localizationt::pflt::trace_positive_literal_and(
   }
 
   return bmc.prop_conv.convert(conjunction(bv));
+}
+
+/*******************************************************************\
+
+Function: fault_localizationt::pflt:trace_equal
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool fault_localizationt::pflt::trace_equal(
+  const lpoints_valuet &v1,
+  const lpoints_valuet &v2)
+{
+  assert(v1.size()==P.size() && v2.size()==P.size());
+  for(std::size_t i=0; i<P.size(); ++i)
+    if(v1[i]!=v2[i]) return false;
+  return true;
+}
+
+/*******************************************************************\
+
+Function: fault_localizationt::pflt:in_traces
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool fault_localizationt::pflt::in_traces(
+  const lpoints_valuet &v,
+  const std::vector<lpoints_valuet> &traces)
+{
+  for(auto &t: traces)
+    if(trace_equal(t, v)) return true;
+  return false;
 }
