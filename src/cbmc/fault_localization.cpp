@@ -241,6 +241,8 @@ void fault_localizationt::run(irep_idt goal_id)
     std::cout << "the set of points:\n";
     for(auto &l: lpoints)
     	std::cout << l.first << ", " << l.second.target->source_location << "\n";
+    if(options.get_option("localize-faults-max-traces")!="")
+      pfl.max_traces=atoi(options.get_option("localize-faults-max-traces").c_str());
     pfl();
   }
   else localize_linear(lpoints);
@@ -287,8 +289,15 @@ void fault_localizationt::report(irep_idt goal_id)
     	 [](const lpointt& a, const lpointt& b)
     	 {return a.score>b.score;});
     status() << "["+id2string(goal_id)+"]: \n";
+    int max_display=10;
+    if(options.get_option("localize-faults-max-display")!="")
+      max_display=atoi(options.get_option("localize-faults-max-display").c_str());
+    int i=0;
     for(auto &x: lpoints_vect)
+    {
       status() << x.target->source_location << " score: " << x.score << eom;
+      if(++i==max_display) break;
+    }
   }
   else
   {

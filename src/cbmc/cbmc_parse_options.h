@@ -60,6 +60,7 @@ class optionst;
   "(round-to-nearest)(round-to-plus-inf)(round-to-minus-inf)(round-to-zero)" \
   "(graphml-witness):" \
   "(localize-faults)(localize-faults-method):" \
+  "(localize-faults-max-traces):(localize-faults-max-display):" \
   "(floatbv)(all-claims)(all-properties)" // legacy, and will eventually disappear
 
 class cbmc_parse_optionst:

@@ -82,7 +82,7 @@ protected:
 
   struct pflt
   {
-	int max_traces=10;
+	int max_traces=0;
     literalt activation_literal;
     const literalt &property; // the failed cond
     lpointst &P; // this is the program under analysis
