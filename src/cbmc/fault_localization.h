@@ -55,7 +55,7 @@ protected:
   {
     goto_programt::const_targett target;
     double score;
-    std::vector<source_locationt> lines;
+    std::set<source_locationt> lines;
   };
   typedef std::map<literalt, lpointt> lpointst;
   typedef std::map<irep_idt, lpointst> lpoints_mapt;
@@ -88,8 +88,16 @@ protected:
     const literalt &property; // the failed cond
     lpointst &P; // this is the program under analysis
     bmct &bmc;
-    pflt(lpointst &P_, bmct &bmc_, const literalt &property_)
-      : property(property_), P(P_), bmc(bmc_) {}
+    const std::string &type;
+    pflt(
+      lpointst &P_,
+	  bmct &bmc_,
+	  const literalt &property_,
+	  const std::string &type_)
+      : property(property_), P(P_), bmc(bmc_), type(type_)
+    {
+      assert(type=="pfl" || type=="sbo");
+    }
     std::vector<lpoints_valuet> failing_traces, passing_traces;
 
     // The "mc" function  in David Landsberg's probabilistic fault
@@ -119,6 +127,7 @@ protected:
     bool in_traces(
       const lpoints_valuet &v,
 	  const std::vector<lpoints_valuet> &traces);
+    bool lpoint_equal(const lpointt &lp1, const lpointt &lp2);
 
     // a set of steps to compute the fault probability
     std::vector<int> ef, ep, nf, np;

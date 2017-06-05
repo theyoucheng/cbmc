@@ -73,7 +73,7 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
       {
         lpoints[it->guard_literal].target=it->source.pc;
         lpoints[it->guard_literal].score=0;
-        lpoints[it->guard_literal].lines.push_back(it->source.pc->source_location);
+        lpoints[it->guard_literal].lines.insert(it->source.pc->source_location);
       }
     }
 
@@ -235,13 +235,14 @@ void fault_localizationt::run(irep_idt goal_id)
 
   status() << "Localizing fault" << eom;
 
-  // pick localization method
-  if(options.get_option("localize-faults-method")=="pfl")
+  // pick localization
+  const std::string method=options.get_option("localize-faults-method");
+  if(method=="pfl" || method=="sbo")
   {
-    pflt pfl(lpoints, bmc, failed->cond_literal);
-    std::cout << "the set of points:\n";
-    for(auto &l: lpoints)
-    	std::cout << l.first << ", " << l.second.target->source_location << "\n";
+    pflt pfl(lpoints, bmc, failed->cond_literal, method);
+    //std::cout << "the set of points:\n";
+    //for(auto &l: lpoints)
+    	//std::cout << l.first << ", " << l.second.target->source_location << "\n";
     if(options.get_option("localize-faults-max-traces")!="")
       pfl.max_traces=atoi(options.get_option("localize-faults-max-traces").c_str());
     pfl();
@@ -281,7 +282,8 @@ void fault_localizationt::report(irep_idt goal_id)
   }
 
   debug() << "Fault localization scores:" << eom;
-  if(options.get_option("localize-faults-method")=="pfl")
+  const std::string &method=options.get_option("localize-faults-method");
+  if(method=="pfl" || method=="sbo")
   {
     std::vector<lpointt> lpoints_vect;
     for(auto &x: lpoints) lpoints_vect.push_back(x.second);
@@ -289,7 +291,11 @@ void fault_localizationt::report(irep_idt goal_id)
     	 lpoints_vect.end(),
     	 [](const lpointt& a, const lpointt& b)
     	 {return a.score>b.score;});
-    status() << "["+id2string(goal_id)+"]: \n";
+    status() << "["+id2string(goal_id)+"]: ";
+    if(method=="pfl")
+      status() << "Probabilistic Fault Localization\n";
+    else
+      status() << "Single Bug Optimal Fault Localization\n";
     int max_display=10;
     if(options.get_option("localize-faults-max-display")!="")
       max_display=atoi(options.get_option("localize-faults-max-display").c_str());
@@ -313,9 +319,8 @@ void fault_localizationt::report(irep_idt goal_id)
       if(max.score<l.second.score)
         max=l.second;
     }
-    status() << "["+id2string(goal_id)+"]: \n"
-                     << "  " << max.target->source_location
-                     << eom;
+    status() << "["+id2string(goal_id)+"]: Linear Fault Localization\n"
+             << "  " << max.target->source_location << eom;
   }
 }
 

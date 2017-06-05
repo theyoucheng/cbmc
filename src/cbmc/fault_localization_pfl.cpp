@@ -60,12 +60,18 @@ bool fault_localizationt::pflt::mc(
 	// There is optimization, given that, according to Algorithm 4
 	// in David Landsberg's PhD thesis, only "passing traces" need
 	// to be considered
-	// for(auto &t: passing_traces)
-	// {
-    //  literalt l=trace_literal_and(t);
-    //  std::cout << "***trave literal and: " << l << std::endl;
-    //  assumptions.push_back(!l); break;
-	// }
+	for(auto &t: passing_traces)
+	{
+      literalt l=trace_literal_and(t);
+      if(l==const_literal(true)) return false;
+      assumptions.push_back(!l);
+	}
+	for(auto &t: traces)
+	{
+      literalt l=trace_literal_and(t);
+      if(l==const_literal(true)) return false;
+      assumptions.push_back(!l);
+	}
     for(auto &y : Y)
     {
       if(y.is_true()) assumptions.push_back(it->first);
@@ -93,7 +99,6 @@ bool fault_localizationt::pflt::mc(
     //std::cout << "\n";
     return true;
   }
-  std::cout << "-----> mc not satisfied\n";
   return false;
 }
 
@@ -272,7 +277,17 @@ void fault_localizationt::pflt::operator()()
     if(!get_a_trace(property, passing_traces))
       break;
   }
-  std::cout << "failing traces: \n";
+  std::cout << "\nAfter adding some extra traces\n";
+  std::cout << "The set of blocks: \n";
+  for(auto &p: P)
+  {
+    std::cout << "[" << p.first << "] ";
+    for(auto &l: p.second.lines)
+      std::cout << "##" << l << " ";
+    std::cout << "\n";
+  }
+
+  std::cout << "\nfailing traces: \n";
   for(auto &x: failing_traces)
   {
     for(auto &y: x)
@@ -290,7 +305,8 @@ void fault_localizationt::pflt::operator()()
   // to compute the probability
   simplify_traces();
   compute_spectra();
-  //measure_sb();
+  measure_sb();
+  if(type=="sbo") return;
   compute_ppv();
   compute_probability();
 }
@@ -525,6 +541,37 @@ bool fault_localizationt::pflt::in_traces(
 
 /*******************************************************************\
 
+Function: fault_localizationt::pflt:lpoint_equal
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool fault_localizationt::pflt::lpoint_equal(
+  const lpointt &lp1,
+  const lpointt &lp2)
+{
+  if(lp1.lines.size()!=lp2.lines.size()) return false;
+
+  auto it1=lp1.lines.begin();
+  auto it2=lp1.lines.begin();
+  for(std::size_t i=0; i<lp1.lines.size(); ++i)
+  {
+    if(!(*it1==*it2))
+      return false;
+    ++it1;
+    ++it2;
+  }
+
+  return true;
+}
+
+/*******************************************************************\
+
 Function: fault_localizationt::pflt:simplify_traces
 
   Inputs:
@@ -538,7 +585,7 @@ Function: fault_localizationt::pflt:simplify_traces
 void fault_localizationt::pflt::simplify_traces()
 {
   lpointst new_P;
-  int i=0;
+  std::size_t i=0;
   for(auto &p: P)
   {
     bool all_false=true;
@@ -550,17 +597,6 @@ void fault_localizationt::pflt::simplify_traces()
         break;
       }
     }
-    // bool all_true=true;
-    // for(auto &t: passing_traces)
-    // {
-    //   if(t[i].is_false())
-    //   {
-    //     all_true=false;
-    //     break;
-    //   }
-    // }
-    // std::cout << "**i=" << i << ", " << all_false << ", " << all_true << "\n";
-    // if(all_false || all_true)
     if(all_false)
     {
       for(auto &t: failing_traces)
@@ -568,7 +604,8 @@ void fault_localizationt::pflt::simplify_traces()
       for(auto &t: passing_traces)
         t[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
     }
-    else new_P.insert(p);
+    else
+      new_P.insert(p);
 
     ++i;
   }
@@ -593,6 +630,58 @@ void fault_localizationt::pflt::simplify_traces()
       else it++;
     }
   }
+
+  // to merge identical blocks (due to loop unwinding) inside new_P
+  /**i=0;
+  P.clear();
+  for(auto &np_i: new_P)
+  {
+    std::size_t j=0;
+    for(auto &np_j: new_P)
+    {
+      if(lpoint_equal(np_i.second, np_j.second))
+        break;
+      j++;
+    }
+    if(i==j) P.insert(np_i);
+    else
+    {
+      for(auto &f: failing_traces)
+      {
+        if(f[j].is_true())
+          f[i]=tvt(tvt::tv_enumt::TV_TRUE);
+        f[j]=tvt(tvt::tv_enumt::TV_UNKNOWN);
+      }
+      for(auto &p: passing_traces)
+      {
+        if(p[j].is_true())
+          p[i]=tvt(tvt::tv_enumt::TV_TRUE);
+        p[j]=tvt(tvt::tv_enumt::TV_UNKNOWN);
+      }
+
+    }
+    i++;
+  }
+  for(auto &t: failing_traces)
+  {
+    auto it=t.begin();
+    while(it!=t.end())
+    {
+      if(it->is_unknown())
+    	  it=t.erase(it);
+      else it++;
+    }
+  }
+  for(auto &t: passing_traces)
+  {
+    auto it=t.begin();
+    while(it!=t.end())
+    {
+      if(it->is_unknown())
+    	  it=t.erase(it);
+      else it++;
+    }
+  }**/
   P=new_P;
   // remove redundancy
   std::vector<lpoints_valuet> new_failing_traces, new_passing_traces;
@@ -695,6 +784,10 @@ void fault_localizationt::pflt::measure_sb()
     p.second.score=ef[i]-(ep[i]/(ep[i]+np[i]+1.0));
     ++i;
   }
+  std::cout << "\n***after measure_sb***\n";
+    for(auto &p: P)
+      std::cout << p.second.score << " ";
+  std::cout << "\n\n";
 }
 
 /*******************************************************************\
