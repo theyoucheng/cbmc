@@ -43,6 +43,18 @@ bool fault_localizationt::pflt::mc(
   assumptions.push_back(!phi);
   assumptions.push_back(bmc.equation.current_activation_literal());
   std::cout << "**cond: " << !phi << "\n";
+  //for(auto &t: passing_traces)
+  //{
+  //  literalt l=trace_literal_and(t);
+  //  if(l==const_literal(true)) return false;
+  //  assumptions.push_back(!l);
+  //}
+  //for(auto &t: failing_traces)
+  //{
+  //  literalt l=trace_literal_and(t);
+  //  if(l==const_literal(true)) return false;
+  //  assumptions.push_back(!l);
+  //}
   // 2) excluding blocks
   auto it=P.begin();
   if(!empty(X))
@@ -57,21 +69,21 @@ bool fault_localizationt::pflt::mc(
   if(!empty(Y))
   {
     // Existing traces shall be excluded.
-	// There is optimization, given that, according to Algorithm 4
-	// in David Landsberg's PhD thesis, only "passing traces" need
-	// to be considered
-	for(auto &t: passing_traces)
-	{
+    // There is optimization, given that, according to Algorithm 4
+    // in David Landsberg's PhD thesis, only "passing traces" need
+    // to be considered
+    for(auto &t: passing_traces)
+    {
       literalt l=trace_literal_and(t);
       if(l==const_literal(true)) return false;
       assumptions.push_back(!l);
-	}
-	for(auto &t: traces)
-	{
+    }
+    for(auto &t: traces)
+    {
       literalt l=trace_literal_and(t);
       if(l==const_literal(true)) return false;
       assumptions.push_back(!l);
-	}
+    }
     for(auto &y : Y)
     {
       if(y.is_true()) assumptions.push_back(it->first);
@@ -332,6 +344,18 @@ bool fault_localizationt::pflt::get_a_trace(
   bvt assumptions;
   assumptions.push_back(assumption_);
   assumptions.push_back(bmc.equation.current_activation_literal());
+  //for(auto &t: passing_traces)
+  //{
+  //  literalt l=trace_literal_and(t);
+  //  if(l==const_literal(true)) return false;
+  //  assumptions.push_back(!l);
+  //}
+  //for(auto &t: failing_traces)
+  //{
+  //  literalt l=trace_literal_and(t);
+  //  if(l==const_literal(true)) return false;
+  //  assumptions.push_back(!l);
+  //}
   bmc.prop_conv.set_assumptions(assumptions);
   if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
   {
@@ -374,6 +398,18 @@ bool fault_localizationt::pflt::get_a_trace(
     if(l==const_literal(true)) return false;
     assumptions.push_back(!l);
   }
+  //for(auto &t: passing_traces)
+  //{
+  //  literalt l=trace_literal_and(t);
+  //  if(l==const_literal(true)) return false;
+  //  assumptions.push_back(!l);
+  //}
+  //for(auto &t: failing_traces)
+  //{
+  //  literalt l=trace_literal_and(t);
+  //  if(l==const_literal(true)) return false;
+  //  assumptions.push_back(!l);
+  //}
   assumptions.push_back(bmc.equation.current_activation_literal());
   bmc.prop_conv.set_assumptions(assumptions);
   if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
