@@ -22,6 +22,7 @@ Author: Peter Schrammel
 #include "fault_localization.h"
 #include "counterexample_beautification.h"
 #include <iostream>
+#include <algorithm>
 
 /*******************************************************************\
 
