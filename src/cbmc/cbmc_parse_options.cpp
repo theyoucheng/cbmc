@@ -191,7 +191,7 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("trace") ||
      cmdline.isset("stop-on-fail"))
-    options.set_option("trace", true);
+    ; //options.set_option("trace", true);
 
   if(cmdline.isset("localize-faults"))
     options.set_option("localize-faults", true);
