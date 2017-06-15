@@ -66,10 +66,14 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
       it=bmc.equation.SSA_steps.begin();
       it!=bmc.equation.SSA_steps.end(); it++)
   {
-    if(it->is_assignment() &&
-       it->assignment_type==symex_targett::STATE &&
-       !it->ignore)
+    if(it->is_goto() ||
+       (it->is_assignment() &&
+       it->assignment_type==symex_targett::STATE))
     {
+      if(it->ignore) continue;
+
+      std::cout  << it->guard_literal
+				 << ", " << it->cond_literal << "\n";
       //if(!it->guard_literal.is_constant())
       {
         lpoints[it->guard_literal].target=it->source.pc;
