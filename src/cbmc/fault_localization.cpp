@@ -278,13 +278,13 @@ void fault_localizationt::report(irep_idt goal_id)
 
   if(lpoints.empty())
   {
-    status() << "["+id2string(goal_id)+"]: \n"
+    std::cout << "["+id2string(goal_id)+"]: \n"
                    << "   unable to localize fault"
-                   << eom;
+                   << "\n";
     return;
   }
 
-  debug() << "Fault localization scores:" << eom;
+  std::cout << "Fault localization scores:" << "\n";
   const std::string &method=options.get_option("localize-faults-method");
   if(method=="pfl" || method=="sbo")
   {
@@ -294,21 +294,21 @@ void fault_localizationt::report(irep_idt goal_id)
     	 lpoints_vect.end(),
     	 [](const lpointt& a, const lpointt& b)
     	 {return a.score>b.score;});
-    status() << "["+id2string(goal_id)+"]: ";
+    std::cout << "["+id2string(goal_id)+"]: ";
     if(method=="pfl")
-      status() << "Probabilistic Fault Localization\n";
+      std::cout << "Probabilistic Fault Localization\n";
     else
-      status() << "Single Bug Optimal Fault Localization\n";
+      std::cout << "Single Bug Optimal Fault Localization\n";
     int max_display=10;
     if(options.get_option("localize-faults-max-display")!="")
       max_display=atoi(options.get_option("localize-faults-max-display").c_str());
     int i=0;
     for(auto &x: lpoints_vect)
     {
-      status() << "[score: " << x.score << "] ";
+      std::cout << "[score: " << x.score << "] ";
       for(auto &l:x.lines)
-        status() << "##" << l << " ";
-      status() << eom;
+        std::cout << "##" << l << " ";
+      std::cout << "\n";
       if(++i==max_display) break;
     }
   }
@@ -421,7 +421,7 @@ safety_checkert::resultt fault_localizationt::stop_on_fail(bool show_report)
 
     //localize faults
     run(ID_nil);
-    status() << "\n** Most likely fault location:" << eom;
+    std::cout << "\n** Most likely fault location:" << "\n";
     report(ID_nil);
 
     bmc.report_failure();
@@ -499,7 +499,7 @@ void fault_localizationt::report(
   case ui_message_handlert::PLAIN:
     if(cover_goals.number_covered()>0)
     {
-      status() << "\n** Most likely fault location:" << eom;
+      std::cout << "\n** Most likely fault location:" << "\n";
       for(auto &g : goal_map)
       {
         if(g.second.status!=goalt::statust::FAILURE) continue;
