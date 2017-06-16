@@ -303,10 +303,23 @@ void fault_localizationt::report(irep_idt goal_id)
     if(options.get_option("localize-faults-max-display")!="")
       max_display=atoi(options.get_option("localize-faults-max-display").c_str());
     int i=0;
-    for(auto &x: lpoints_vect)
+    for(auto it=lpoints_vect.begin(); it!=lpoints_vect.end(); ++it)
     {
-      std::cout << "[score: " << x.score << "] ";
-      for(auto &l:x.lines)
+      std::set<source_locationt> tmp;
+      for(auto &l: it->lines)
+      {
+        bool redundant=false;
+        for(auto jt=lpoints_vect.begin(); jt!=it; ++jt)
+          if(jt->lines.find(l)!=jt->lines.end())
+          {
+            redundant=true;
+            break;
+          }
+        if(!redundant) tmp.insert(l);
+      }
+      if(tmp.empty()) continue;
+      std::cout << "[score: " << it->score << "] ";
+      for(auto &l:tmp)
         std::cout << "##" << l << " ";
       std::cout << "\n";
       if(++i==max_display) break;
