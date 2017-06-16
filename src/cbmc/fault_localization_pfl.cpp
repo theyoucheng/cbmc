@@ -29,20 +29,10 @@ bool fault_localizationt::pflt::mc(
 {
   if(phi==const_literal(true)) return false;
   if(empty(X) && empty(Y)) return false;
-  std::cout << "\n***here we are inside mc...\n";
-  std::cout << "**X: \n";
-  for(auto &x: X)
-    std::cout << x.is_true() << " ";
-  std::cout << "\n";
-  std::cout << "**Y: \n";
-  for(auto &x: Y)
-    std::cout << x.is_true() << " ";
-  std::cout << "\n";
   bvt assumptions;
   // 1) violation of the "property"
   assumptions.push_back(!phi);
   assumptions.push_back(bmc.equation.current_activation_literal());
-  std::cout << "**cond: " << !phi << "\n";
   //for(auto &t: passing_traces)
   //{
   //  literalt l=trace_literal_and(t);
@@ -60,7 +50,6 @@ bool fault_localizationt::pflt::mc(
   if(!empty(X))
   {
     literalt l=trace_positive_literal_and(X);
-    std::cout << "**!l: " << (!l) << "\n";
     if(l==const_literal(true)) return false;
     assumptions.push_back(!l);
   }
@@ -90,10 +79,6 @@ bool fault_localizationt::pflt::mc(
       ++it;
     }
   }
-  std::cout << "***assumptions: \n";
-  for(auto &a: assumptions)
-    std::cout << a << " \n";
-  std::cout << "\n";
   bmc.prop_conv.set_assumptions(assumptions);
   if(bmc.prop_conv()==decision_proceduret::D_SATISFIABLE)
   {
@@ -105,10 +90,6 @@ bool fault_localizationt::pflt::mc(
       else trace.push_back(tvt(tvt::tv_enumt::TV_FALSE));
     }
     traces.push_back(trace);
-    //std::cout << "the mc trace returned\n";
-    //for(auto &t: trace)
-    //	std::cout << t.is_true() << " ";
-    //std::cout << "\n";
     return true;
   }
   return false;
@@ -152,12 +133,6 @@ Function: fault_localizationt::pflt:common
 fault_localizationt::lpoints_valuet fault_localizationt::pflt::common(
   const std::vector<lpoints_valuet> &lvs)
 {
-  for(auto &v: lvs)
-  {
-    for(auto &x: v)
-      std::cout << x.is_true() << " ";
-    std::cout << "\n";
-  }
   lpoints_valuet v;
   for(auto &lv: lvs)
     assert(lv.size()==P.size());
@@ -182,10 +157,6 @@ fault_localizationt::lpoints_valuet fault_localizationt::pflt::common(
     if(co) v.push_back(tvt(tvt::tv_enumt::TV_TRUE));
     else v.push_back(tvt(tvt::tv_enumt::TV_UNKNOWN));
   }
-  std::cout << "**result\n";
-  for(auto &x: v)
-    std::cout << x.is_true() << " ";
-  std::cout << "\n";
   return v;
 }
 
@@ -202,38 +173,29 @@ Function: fault_localizationt::pflt:operator
 \*******************************************************************/
 
 void fault_localizationt::pflt::operator()()
-{std::cout << "probabilistic fault localization\n";
+{
   // 1) to build the "set" of failing traces
   lpoints_valuet f_trace;
   if(get_a_trace(!property, f_trace))
   {
     failing_traces.push_back(f_trace);
-    std::cout << "the initial failing trace: \n";
-    for(auto &f: f_trace)
-    	std::cout << f.is_true() << " ";
-    //std::cout << trace_literal(f_trace) << " ";
-    std::cout << "\n\n";
     do
     {
       bmc.prop_conv.set_assumptions({});
     } while(mc(property, common(failing_traces), {}, failing_traces));
 
-  }std::cout << "***size of failing traces: " << failing_traces.size() << "\n";
+  }
   // 2) to build the "set" of passing traces
   lpoints_valuet p_trace;
   if(get_a_trace(property, p_trace))
   {
     passing_traces.push_back(p_trace);
-    std::cout << "**the initial passing trace: \n";
-    for(auto &f: p_trace)
-    	std::cout << f.is_true() << " ";
-    std::cout << "\n";
     do
     {
       bmc.prop_conv.set_assumptions({});
     }
     while(mc(!property, common(passing_traces), {}, passing_traces));
-  }std::cout << "***size of passing traces: " << passing_traces.size() << "\n";
+  }
   // 3) to build the "set" of "s" traces
   std::vector<lpoints_valuet> s_traces;
   lpoints_valuet v=complement(common(failing_traces), common(passing_traces));
@@ -247,8 +209,8 @@ void fault_localizationt::pflt::operator()()
 
     mc(!property, {}, v_single_element, s_traces);
   }
-
-  std::cout << "failing traces: \n";
+#if 0
+  std::cout << "failing traces:\n";
   for(auto &x: failing_traces)
   {
     for(auto &y: x)
@@ -269,7 +231,7 @@ void fault_localizationt::pflt::operator()()
       std::cout << y.is_true() << " ";
     std::cout << "\n";
   }
-
+#endif
   // merge s_traces into passing_traces
   for(auto &s: s_traces)
   {
@@ -289,11 +251,12 @@ void fault_localizationt::pflt::operator()()
     if(!get_a_trace(property, passing_traces))
       break;
   }
+#if 0
   std::cout << "\nAfter adding some extra traces\n";
   std::cout << "The set of blocks: \n";
   for(auto &p: P)
   {
-    std::cout << "[" << p.first << "] ";
+	std::cout << "[" << p.first << "] ";
     for(auto &l: p.second.lines)
       std::cout << "##" << l << " ";
     std::cout << "\n";
@@ -304,7 +267,7 @@ void fault_localizationt::pflt::operator()()
   {
     for(auto &y: x)
       std::cout << y.is_true() << " ";
-      std::cout << "\n";
+    std::cout << "\n";
   }
   std::cout << "passing traces: \n";
   for(auto &x: passing_traces)
@@ -313,7 +276,7 @@ void fault_localizationt::pflt::operator()()
       std::cout << y.is_true() << " ";
     std::cout << "\n";
   }
-
+#endif
   // to compute the probability
   simplify_traces();
   compute_spectra();
@@ -443,12 +406,6 @@ fault_localizationt::lpoints_valuet fault_localizationt::pflt::complement(
   const lpoints_valuet &v1,
   const lpoints_valuet &v2)
 {
-  for(auto &x: v1)
-	  std::cout << x.is_true() << " ";
-  std::cout << "\n";
-  for(auto &x: v2)
-	  std::cout << x.is_true() << " ";
-  std::cout << "\n";
   lpoints_valuet v;
   assert(v1.size()==P.size());
   assert(v2.size()==P.size());
@@ -456,10 +413,6 @@ fault_localizationt::lpoints_valuet fault_localizationt::pflt::complement(
     if(v1[i].is_true() && !v2[i].is_true())
       v.push_back(tvt(tvt::tv_enumt::TV_TRUE));
     else v.push_back(tvt(tvt::tv_enumt::TV_UNKNOWN));
-  std::cout << "**result: \n";
-  for(auto &x: v)
-	  std::cout << x.is_true() << " ";
-  std::cout << "\n";
   return v;
 }
 

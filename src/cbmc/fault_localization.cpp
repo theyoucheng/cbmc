@@ -72,8 +72,6 @@ void fault_localizationt::collect_guards(lpointst &lpoints)
     {
       if(it->ignore) continue;
 
-      std::cout  << it->guard_literal
-				 << ", " << it->cond_literal << "\n";
       //if(!it->guard_literal.is_constant())
       {
         lpoints[it->guard_literal].target=it->source.pc;
