@@ -133,6 +133,7 @@ protected:
     std::vector<int> ef, ep, nf, np;
     std::vector<double> ppv;
     // 1) to remove unnecessary blocks
+    void merge_traces();
     void simplify_traces();
     void compute_spectra();
     void measure_sb();
