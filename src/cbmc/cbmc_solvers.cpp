@@ -298,7 +298,7 @@ cbmc_solverst::solvert* cbmc_solverst::get_bv_refinement()
   // We offer the option to disable the SAT preprocessor
   if(options.get_bool_option("sat-preprocessor"))
   {
-    no_beautification();
+    //no_beautification();
     prop=new satcheckt();
   }
   else
