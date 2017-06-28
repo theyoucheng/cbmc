@@ -174,11 +174,13 @@ Function: fault_localizationt::pflt:operator
 
 void fault_localizationt::pflt::operator()()
 {
+
+  pre_merge();
+
   // 1) to build the "set" of failing traces
   lpoints_valuet f_trace;
   if(get_a_trace(!property, f_trace))
   {
-    std::cout << "yes, got a failing trace\n"; 
     failing_traces.push_back(f_trace);
     do
     {
@@ -186,8 +188,7 @@ void fault_localizationt::pflt::operator()()
     } while(mc(property, common(failing_traces), {}, failing_traces));
 
   }
-  else
-    std::cout << "no, did not get a failing trace\n"; 
+
   // 2) to build the "set" of passing traces
   lpoints_valuet p_trace;
   if(get_a_trace(property, p_trace))
@@ -212,7 +213,7 @@ void fault_localizationt::pflt::operator()()
 
     mc(!property, {}, v_single_element, s_traces);
   }
-#if 1
+#if 0
   std::cout << "failing traces:\n";
   for(auto &x: failing_traces)
   {
@@ -281,7 +282,7 @@ void fault_localizationt::pflt::operator()()
   }
 #endif
   // to compute the probability
-  merge_traces();
+  //merge_traces();
   simplify_traces();
   compute_spectra();
   measure_sb();
@@ -652,6 +653,80 @@ void fault_localizationt::pflt::merge_traces()
 
 /*******************************************************************\
 
+Function: fault_localizationt::pflt:merge_traces
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void fault_localizationt::pflt::pre_merge()
+{
+  // Because of loop unwinding, there exist multiple copies of
+  // the same LOC, and they have to be merged before applying
+  // fault localization
+  std::vector<std::vector<literalt> > merged_literals;
+  merged_literals.resize(P.size());
+
+  std::size_t i=0;
+  auto it=P.begin();
+  while(it!=P.end())
+  {
+	merged_literals[i].push_back(it->first);
+    auto &lines=it->second.lines;
+	auto lt=lines.begin();
+	while(lt!=lines.end())
+    {
+      std::size_t j=0;
+      for(auto jt=P.begin(); jt!=it; ++jt)
+      {
+        if(jt->second.lines.find(*lt)!=jt->second.lines.end())
+          break;
+        ++j;
+      }
+      if(j==i)
+      {
+        lt++;
+        continue;
+      }
+      lt=lines.erase(lt);
+      assert(j<i);
+      merged_literals[j].push_back(it->first);
+    }
+	//std::cout << "*** " << i << ", " << it->second.lines.size() << "\n";
+	++it;
+	++i;
+  }
+  lpointst P_new;
+  i=0;
+  for(auto &p: P)
+  {
+    if(p.second.lines.empty())
+    {
+      ++i;
+      continue;
+    }
+    std::vector<exprt> bv;
+    for(auto &l: merged_literals[i])
+      bv.push_back(literal_exprt(l));
+    assert(!bv.empty());
+    literalt m=bmc.prop_conv.convert(disjunction(bv));
+    //std::cout << "@@@ " << i << ", " << m << "\n";
+    if(P_new.find(m)!=P_new.end())
+      P_new[m].lines.insert(
+		p.second.lines.begin(),
+		p.second.lines.end());
+    else P_new[m]=p.second;
+    ++i;
+  }
+  P.swap(P_new);
+}
+
+/*******************************************************************\
+
 Function: fault_localizationt::pflt:simplify_traces
 
   Inputs:
@@ -711,57 +786,6 @@ void fault_localizationt::pflt::simplify_traces()
     }
   }
 
-  // to merge identical blocks (due to loop unwinding) inside new_P
-  /**i=0;
-  P.clear();
-  for(auto &np_i: new_P)
-  {
-    std::size_t j=0;
-    for(auto &np_j: new_P)
-    {
-      if(lpoint_equal(np_i.second, np_j.second))
-        break;
-      j++;
-    }
-    if(i==j) P.insert(np_i);
-    else
-    {
-      for(auto &f: failing_traces)
-      {
-        if(f[j].is_true())
-          f[i]=tvt(tvt::tv_enumt::TV_TRUE);
-        f[j]=tvt(tvt::tv_enumt::TV_UNKNOWN);
-      }
-      for(auto &p: passing_traces)
-      {
-        if(p[j].is_true())
-          p[i]=tvt(tvt::tv_enumt::TV_TRUE);
-        p[j]=tvt(tvt::tv_enumt::TV_UNKNOWN);
-      }
-
-    }
-    i++;
-  }
-  for(auto &t: failing_traces)
-  {
-    auto it=t.begin();
-    while(it!=t.end())
-    {
-      if(it->is_unknown())
-    	  it=t.erase(it);
-      else it++;
-    }
-  }
-  for(auto &t: passing_traces)
-  {
-    auto it=t.begin();
-    while(it!=t.end())
-    {
-      if(it->is_unknown())
-    	  it=t.erase(it);
-      else it++;
-    }
-  }**/
   P=new_P;
   // remove redundancy
   std::vector<lpoints_valuet> new_failing_traces, new_passing_traces;

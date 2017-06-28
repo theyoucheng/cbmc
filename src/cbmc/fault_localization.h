@@ -134,6 +134,7 @@ protected:
     std::vector<double> ppv;
     // 1) to remove unnecessary blocks
     void merge_traces();
+    void pre_merge();
     void simplify_traces();
     void compute_spectra();
     void measure_sb();
