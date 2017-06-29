@@ -61,18 +61,22 @@ bool fault_localizationt::pflt::mc(
     // There is optimization, given that, according to Algorithm 4
     // in David Landsberg's PhD thesis, only "passing traces" need
     // to be considered
+#if 0
     for(auto &t: passing_traces)
     {
       literalt l=trace_literal_and(t);
       if(l==const_literal(true)) return false;
       assumptions.push_back(!l);
     }
+#endif
+#if 0
     for(auto &t: traces)
     {
       literalt l=trace_literal_and(t);
       if(l==const_literal(true)) return false;
       assumptions.push_back(!l);
     }
+#endif
     for(auto &y : Y)
     {
       if(y.is_true()) assumptions.push_back(it->first);
@@ -188,7 +192,7 @@ void fault_localizationt::pflt::operator()()
     } while(mc(property, common(failing_traces), {}, failing_traces));
 
   }
-
+std::cout << "@@@ number of failing traces: " << failing_traces.size() << "\n";
   // 2) to build the "set" of passing traces
   lpoints_valuet p_trace;
   if(get_a_trace(property, p_trace))
@@ -200,6 +204,8 @@ void fault_localizationt::pflt::operator()()
     }
     while(mc(!property, common(passing_traces), {}, passing_traces));
   }
+  std::cout << "@@@ number of passing traces: " << passing_traces.size() << "\n";
+
   // 3) to build the "set" of "s" traces
   std::vector<lpoints_valuet> s_traces;
   lpoints_valuet v=complement(common(failing_traces), common(passing_traces));
@@ -213,6 +219,8 @@ void fault_localizationt::pflt::operator()()
 
     mc(!property, {}, v_single_element, s_traces);
   }
+  std::cout << "@@@ number of s traces: " <<s_traces.size() << "\n";
+
 #if 0
   std::cout << "failing traces:\n";
   for(auto &x: failing_traces)
