@@ -62,21 +62,29 @@ Function: fault_localizationt::collect_guards
 
 void fault_localizationt::collect_guards(lpointst &lpoints)
 {
+  std::vector<source_locationt> goto_lines;
+  std::set<literalt> collected_guards;
   for(symex_target_equationt::SSA_stepst::const_iterator
       it=bmc.equation.SSA_steps.begin();
       it!=bmc.equation.SSA_steps.end(); it++)
   {
-    if(it->is_goto() ||
-       (it->is_assignment() &&
-       it->assignment_type==symex_targett::STATE))
+    if(it->is_goto()) goto_lines.push_back(it->source.pc->source_location);
+    else if (it->is_assignment() &&
+      it->assignment_type==symex_targett::STATE)
     {
       if(it->ignore) continue;
 
-      //if(!it->guard_literal.is_constant())
       {
         lpoints[it->guard_literal].target=it->source.pc;
         lpoints[it->guard_literal].score=0;
+        if(!goto_lines.empty())
+          if(collected_guards.find(it->guard_literal)==collected_guards.end())
+          {
+            lpoints[it->guard_literal].lines.insert(goto_lines.back());
+            goto_lines.pop_back();
+          }
         lpoints[it->guard_literal].lines.insert(it->source.pc->source_location);
+        collected_guards.insert(it->guard_literal);
       }
     }
 
