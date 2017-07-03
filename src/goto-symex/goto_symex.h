@@ -108,6 +108,7 @@ public:
   std::set<guardt> all_guards;
   std::set<guardt> lotto_guards;
   bool lotto_find(const guardt &guard);
+  bool lotto_flag=false;
 
 protected:
   const namespacet &ns;

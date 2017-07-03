@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <analyses/dirty.h>
 
 #include "goto_symex.h"
+#include <util/prefix.h>
 #include <iostream>
 
 void goto_symext::new_name(symbolt &symbol)
@@ -124,7 +125,8 @@ void goto_symext::operator()(
     if(guard_skip)
     {
       std::cout << "&&& " << from_expr(state.guard) << "\n\n";
-      lotto_guards.insert(state.guard);
+      if(!state.guard.is_true() && !state.guard.is_false())
+        lotto_guards.insert(state.guard);
 #if 0
       std::cout << "\nCurrent lotto guards\n";
       for(auto &g: lotto_guards)
@@ -134,18 +136,20 @@ void goto_symext::operator()(
     }
 #if 1
     guard_skip=false;
-    lotto++;
-    if(state.source.pc->type==GOTO)
+    if(state.source.pc->type==GOTO &&
+      !has_prefix(state.source.pc->function.c_str(), "__CPROVER") &&
+	  !has_prefix(state.source.pc->function.c_str(), "__VERIFIER"))
     {
+      lotto++;
       //if(!state.guard.is_true() && !state.guard.is_false())
       {
 
         {
           srand(time(NULL));
           int rnd=rand()%lotto;
-          if(rnd>lotto/2)
+          if(rnd>lotto/2 && lotto>1)
           {
-            if(state.source.pc->function=="main")
+            //if(state.source.pc->function=="main")
             {
               if(!lotto_find(state.guard))
               {
@@ -266,7 +270,8 @@ void goto_symext::symex_step(
   }
 
 
-  if(lotto_find(state.guard) && state.source.pc->function=="main")
+  if(lotto_find(state.guard) &&
+    !has_prefix(state.source.pc->function.c_str(), "__CPROVER_"))
   {
 #if 0
 	std::cout << "\n@@@@\n";
@@ -281,7 +286,7 @@ void goto_symext::symex_step(
       if(!state.guard.is_false())
       {
         exprt tmp=instruction.guard;
-        tmp.make_true();
+        tmp.make_false();
         clean_expr(tmp, state, false);
         state.rename(tmp, ns);
         symex_assume(state, tmp);
