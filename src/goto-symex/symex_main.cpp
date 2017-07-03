@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <analyses/dirty.h>
 
 #include "goto_symex.h"
+#include <iostream>
 
 void goto_symext::new_name(symbolt &symbol)
 {
@@ -116,9 +117,50 @@ void goto_symext::operator()(
 
   assert(state.top().end_of_function->is_end_function());
 
+  guard_skip=false;
   while(!state.call_stack().empty())
   {
     symex_step(goto_functions, state);
+    if(guard_skip)
+    {
+      std::cout << "&&& " << from_expr(state.guard) << "\n\n";
+      lotto_guards.insert(state.guard);
+#if 0
+      std::cout << "\nCurrent lotto guards\n";
+      for(auto &g: lotto_guards)
+        std::cout << from_expr(g) << "## ";
+      std::cout << "\n";
+#endif
+    }
+#if 1
+    guard_skip=false;
+    lotto++;
+    if(state.source.pc->type==GOTO)
+    {
+      //if(!state.guard.is_true() && !state.guard.is_false())
+      {
+
+        {
+          srand(time(NULL));
+          int rnd=rand()%lotto;
+          if(rnd>lotto/2)
+          {
+            if(state.source.pc->function=="main")
+            {
+              if(!lotto_find(state.guard))
+              {
+                guard_skip=true;
+                std::cout << "#### goto " << state.source.pc->source_location
+              		  << from_expr(state.guard) << "\n";
+              }
+
+            }
+          }
+        }
+      }
+    }
+#endif
+    all_guards.insert(state.guard);
 
     // is there another thread to execute?
     if(state.call_stack().empty() &&
@@ -157,16 +199,46 @@ void goto_symext::operator()(const goto_functionst &goto_functions)
   operator()(goto_functions, body);
 }
 
+bool goto_symext::lotto_find(const guardt &guard)
+{
+  for(auto &g: lotto_guards)
+  {
+	if(g==guard) return true;
+    if(guard.operands().size()<g.operands().size())
+      continue;
+    if(guard.operands().empty() || g.operands().empty())
+      continue;
+    bool found=true;
+    auto it1=g.operands().begin();
+    auto it2=guard.operands().begin();
+    while(it1!=g.operands().end())
+    {
+      if(!(*it1==*it2))
+      {
+        found=false;
+        break;
+      }
+      ++it1;
+      ++it2;
+    }
+    if(found) return true;
+  }
+  return false;
+}
+
 /// do just one step
 void goto_symext::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
   #if 0
+  //if(state.source.pc->type==GOTO)
+  {
   std::cout << "\ninstruction type is " << state.source.pc->type << '\n';
   std::cout << "Location: " << state.source.pc->source_location << '\n';
   std::cout << "Guard: " << from_expr(ns, "", state.guard.as_expr()) << '\n';
   std::cout << "Code: " << from_expr(ns, "", state.source.pc->code) << '\n';
+  }
   #endif
 
   assert(!state.threads.empty());
@@ -176,6 +248,7 @@ void goto_symext::symex_step(
 
   merge_gotos(state);
 
+
   // depth exceeded?
   {
     unsigned max_depth=options.get_unsigned_int_option("depth");
@@ -184,6 +257,53 @@ void goto_symext::symex_step(
     state.depth++;
   }
 
+  if(0) //guard_skip)
+  {
+    std::cout << "\n@@@@\n";
+    std::cout << "Guard: " << from_expr(ns, "", state.guard.as_expr()) << '\n';
+	std::cout << "type: " << instruction.type << "\n";
+    std::cout << "Location: " << state.source.pc->source_location << "\n\n";
+  }
+
+
+  if(lotto_find(state.guard) && state.source.pc->function=="main")
+  {
+#if 0
+	std::cout << "\n@@@@\n";
+	std::cout << "Guard: " << from_expr(ns, "", state.guard.as_expr()) << '\n';
+	std::cout << "type: " << instruction.type << "\n";
+	std::cout << "Location: " << state.source.pc->source_location << "\n\n";
+#endif
+	if(instruction.type==GOTO)
+	{
+	  std::cout << "**chosen goto: " << state.source.pc->source_location
+			    << ", " << from_expr(state.guard) << "\n";
+      if(!state.guard.is_false())
+      {
+        exprt tmp=instruction.guard;
+        tmp.make_true();
+        clean_expr(tmp, state, false);
+        state.rename(tmp, ns);
+        symex_assume(state, tmp);
+      }
+      state.source.pc++;
+      return;
+	}
+	else if (instruction.type==ASSIGN)
+	{
+      std::cout << "**chosen assignment: " << state.source.pc->source_location
+    		  << ", " << from_expr(state.guard) << "\n";
+	  if(!state.guard.is_false())
+	  {
+	    exprt tmp=instruction.guard;
+	    clean_expr(tmp, state, false);
+	    state.rename(tmp, ns);
+	    symex_assume(state, tmp);
+	  }
+	  state.source.pc++;
+	  return;
+	}
+  }
   // actually do instruction
   switch(instruction.type)
   {

@@ -103,6 +103,12 @@ public:
   /// if we know the source language in use, irep_idt() otherwise.
   irep_idt language_mode;
 
+  int lotto=0;
+  bool guard_skip;
+  std::set<guardt> all_guards;
+  std::set<guardt> lotto_guards;
+  bool lotto_find(const guardt &guard);
+
 protected:
   const namespacet &ns;
   symex_targett &target;

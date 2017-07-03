@@ -16,6 +16,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "goto_symex.h"
 #include "goto_symex_state.h"
+#include <iostream>
 
 // #define USE_UPDATE
 
