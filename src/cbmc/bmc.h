@@ -50,6 +50,8 @@ public:
     symex().constant_propagation=options.get_bool_option("propagation");
     symex().record_coverage=
       !options.get_option("symex-coverage-report").empty();
+
+    auto equation2=equation;
   }
 
   virtual ~bmct() { }
@@ -146,6 +148,15 @@ protected:
   friend class bmc_all_propertiest;
   friend class bmc_covert;
   friend class fault_localizationt;
+
+  virtual resultt micro_step(const goto_functionst &goto_functions);
+  struct snapshott
+  {
+    //symex_target_equationt equation;
+    //prop_convt prop_conv;
+  };
+  snapshott snapshot;
+
 
 private:
   // We cannot use a reference member here

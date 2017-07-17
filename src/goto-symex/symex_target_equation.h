@@ -31,7 +31,8 @@ class prop_convt;
 class symex_target_equationt:public symex_targett
 {
 public:
-  explicit symex_target_equationt(const namespacet &_ns);
+  //explicit
+  symex_target_equationt(const namespacet &_ns);
   virtual ~symex_target_equationt();
 
   // read event
@@ -325,7 +326,8 @@ public:
   }
 
 protected:
-  const namespacet &ns;
+  //const namespacet &ns;
+  namespacet ns;
   unsigned io_count;
 
   // for enforcing sharing in the expressions stored

@@ -516,7 +516,6 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 
 }
 
-
 safety_checkert::resultt bmct::run(
   const goto_functionst &goto_functions)
 {
@@ -524,7 +523,8 @@ safety_checkert::resultt bmct::run(
   if(result!=safety_checkert::resultt::UNKNOWN)
     return result;
 
-  return step(goto_functions);
+  //return step(goto_functions);
+  return micro_step(goto_functions);
 }
 
 safety_checkert::resultt bmct::stop_on_fail(
@@ -598,4 +598,70 @@ void bmct::setup_unwind()
 
   if(options.get_option("unwind")!="")
     symex().set_unwind_limit(options.get_unsigned_int_option("unwind"));
+}
+
+safety_checkert::resultt bmct::micro_step(const goto_functionst &goto_functions)
+{
+  try
+  {
+    // perform symbolic execution
+    symex().micro_operator(goto_functions);
+
+    statistics() << "size of program expression: "
+                 << equation.SSA_steps.size()
+                 << " steps" << eom;
+
+    // perform slicing
+    slice();
+
+    //auto micro_equation=this->equation;
+
+    switch(run_decision_procedure(prop_conv))
+      {
+      case decision_proceduret::resultt::D_UNSATISFIABLE:
+        report_success();
+        output_graphml(resultt::SAFE, goto_functions);
+        return resultt::SAFE;
+
+      case decision_proceduret::resultt::D_SATISFIABLE:
+        if(options.get_bool_option("trace"))
+        {
+          if(options.get_bool_option("beautify"))
+            counterexample_beautificationt()(
+              dynamic_cast<bv_cbmct &>(prop_conv), equation, ns);
+
+          error_trace();
+          output_graphml(resultt::UNSAFE, goto_functions);
+        }
+
+        report_failure();
+        return resultt::UNSAFE;
+      default:
+        return safety_checkert::resultt::ERROR;
+      }
+
+  }
+  catch(std::string &error_str)
+    {
+      messaget message(get_message_handler());
+      message.error().source_location=symex().last_source_location;
+      message.error() << error_str << messaget::eom;
+
+      return safety_checkert::resultt::ERROR;
+    }
+
+    catch(const char *error_str)
+    {
+      messaget message(get_message_handler());
+      message.error().source_location=symex().last_source_location;
+      message.error() << error_str << messaget::eom;
+
+      return safety_checkert::resultt::ERROR;
+    }
+
+    catch(std::bad_alloc)
+    {
+      error() << "Out of memory" << eom;
+      return safety_checkert::resultt::ERROR;
+    }
 }

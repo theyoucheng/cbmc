@@ -104,6 +104,28 @@ public:
   /// if we know the source language in use, irep_idt() otherwise.
   irep_idt language_mode;
 
+  /** execute just one step */
+  virtual bool mock_symex_step(
+    const goto_functionst &goto_functions,
+    statet &state);
+
+  std::set<guardt> guards;
+
+  /** symex all at once, starting from entry point */
+    virtual void micro_operator(
+      const goto_functionst &goto_functions);
+
+    /** symex starting from given goto program */
+    //virtual void micro_operator(
+    //  const goto_functionst &goto_functions,
+    //  const goto_programt &goto_program);
+
+    /** start symex in a given state */
+    //virtual bool micro_operator(
+    //  statet &state,
+    //  const goto_functionst &goto_functions,
+    //  const goto_programt &goto_program);
+
 protected:
   const namespacet &ns;
   symex_targett &target;
