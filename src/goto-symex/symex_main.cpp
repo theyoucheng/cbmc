@@ -123,7 +123,7 @@ bool goto_symext::operator()(
 
   while(!state.call_stack().empty())
   {
-	guards.insert(state.guard);
+	guards.push_back(state.guard);
     //if(symex_step(goto_functions, state))
     if(mock_symex_step(goto_functions, state))
       return false;
@@ -589,5 +589,87 @@ void goto_symext::micro_operator(const goto_functionst &goto_functions)
 
   const goto_programt &body=it->second.body;
 
-  operator()(goto_functions, body);
+  micro_operator(goto_functions, body);
+}
+
+void goto_symext::micro_operator(
+  const goto_functionst &goto_functions,
+  const goto_programt &goto_program)
+{
+  statet state;
+  micro_operator(state, goto_functions, goto_program);
+}
+
+bool goto_symext::micro_operator(
+  statet &state,
+  const goto_functionst &goto_functions,
+  const goto_programt &goto_program)
+{
+  assert(!goto_program.instructions.empty());
+
+  if(state.symex_target==NULL)
+  {
+  state.source=symex_targett::sourcet(goto_program);
+  assert(!state.threads.empty());
+  assert(!state.call_stack().empty());
+  state.top().end_of_function=--goto_program.instructions.end();
+  state.top().calling_location.pc=state.top().end_of_function;
+  state.symex_target=&target;
+  state.dirty=new dirtyt(goto_functions);
+  }
+
+  assert(state.top().end_of_function->is_end_function());
+
+  while(!state.call_stack().empty())
+  {
+	guards.push_back(state.guard);
+    //if(symex_step(goto_functions, state))
+    if(mock_symex_step(goto_functions, state))
+      return false;
+
+    // is there another thread to execute?
+    if(state.call_stack().empty() &&
+       state.source.thread_nr+1<state.threads.size())
+    {
+      unsigned t=state.source.thread_nr+1;
+      // std::cout << "********* Now executing thread " << t << '\n';
+      state.switch_to_thread(t);
+    }
+  }
+
+  std::cout << "All guards: " << guards.size() << "\n";
+  for(auto &g:guards)
+  {
+    std::cout << from_expr(g) << "\n";
+  }
+  std::cout << "\n";
+
+  delete state.dirty;
+  state.dirty=0;
+  return true;
+}
+
+void goto_symext::alternate()
+{
+
+}
+
+void goto_symext::make_false(const exprt &p, exprt &expr)
+{
+  if(p==expr)
+  {
+    expr.make_false();
+    return;
+  }
+
+  for(auto &op: expr.operands())
+  {
+    make_false(p, op);
+    if(op.is_false() && expr.id()==ID_and)
+    {
+      expr.make_false();
+      return;
+    }
+  }
+
 }

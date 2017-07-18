@@ -614,7 +614,19 @@ safety_checkert::resultt bmct::micro_step(const goto_functionst &goto_functions)
     // perform slicing
     slice();
 
-    //auto micro_equation=this->equation;
+    auto old_equation=this->equation;
+
+    if(0&&run_decision_procedure(prop_conv)==decision_proceduret::resultt::D_UNSATISFIABLE)
+    {
+      this->equation=old_equation;
+      symex().alternate();
+    }
+
+    if(options.get_bool_option("show-vcc"))
+    {
+      show_vcc();
+      return safety_checkert::resultt::SAFE; // to indicate non-error
+    }
 
     switch(run_decision_procedure(prop_conv))
       {

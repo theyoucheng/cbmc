@@ -109,22 +109,27 @@ public:
     const goto_functionst &goto_functions,
     statet &state);
 
-  std::set<guardt> guards;
 
   /** symex all at once, starting from entry point */
     virtual void micro_operator(
       const goto_functionst &goto_functions);
 
     /** symex starting from given goto program */
-    //virtual void micro_operator(
-    //  const goto_functionst &goto_functions,
-    //  const goto_programt &goto_program);
+    virtual void micro_operator(
+      const goto_functionst &goto_functions,
+      const goto_programt &goto_program);
 
     /** start symex in a given state */
-    //virtual bool micro_operator(
-    //  statet &state,
-    //  const goto_functionst &goto_functions,
-    //  const goto_programt &goto_program);
+    virtual bool micro_operator(
+      statet &state,
+      const goto_functionst &goto_functions,
+      const goto_programt &goto_program);
+
+    void alternate();
+    std::vector<statet> state_vect;
+    std::vector<guardt> guards;
+    std::vector<guardt> skipped_guards;
+    void make_false(const exprt &p, exprt &expr);
 
 protected:
   const namespacet &ns;
