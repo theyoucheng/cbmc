@@ -109,6 +109,10 @@ public:
     const goto_functionst &goto_functions,
     statet &state);
 
+  virtual bool mock_assume_symex_step(
+      const goto_functionst &goto_functions,
+      statet &state);
+
 
   /** symex all at once, starting from entry point */
     virtual void micro_operator(
