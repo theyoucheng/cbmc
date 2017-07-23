@@ -127,9 +127,12 @@ public:
 
     void alternate();
     std::vector<statet> state_vect;
-    std::vector<guardt> guards;
-    std::vector<guardt> skipped_guards;
+    std::set<guardt> guards;
+    std::set<guardt> skipped_guards;
     void make_false(const exprt &p, exprt &expr);
+    bool end_of_a_clsuter();
+    statet curr_state;
+    //symex_targett curr_symex_target;
 
 protected:
   const namespacet &ns;

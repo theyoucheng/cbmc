@@ -142,6 +142,8 @@ bmct::run_decision_procedure(prop_convt &prop_conv)
 {
   status() << "Passing problem to "
            << prop_conv.decision_procedure_text() << eom;
+  std::cout << "Passing problem to "
+           << prop_conv.decision_procedure_text() << "\n";
 
   prop_conv.set_message_handler(get_message_handler());
 
@@ -602,8 +604,14 @@ void bmct::setup_unwind()
 
 safety_checkert::resultt bmct::micro_step(const goto_functionst &goto_functions)
 {
-  try
+  //int num=0;
+  safety_checkert::resultt result=safety_checkert::resultt::UNKNOWN;
+  while(1)
   {
+#if 1
+    prop_conv.set_all_frozen();
+    symex().total_vccs=0;
+    symex().remaining_vccs=0;
     // perform symbolic execution
     symex().micro_operator(goto_functions);
 
@@ -611,69 +619,39 @@ safety_checkert::resultt bmct::micro_step(const goto_functionst &goto_functions)
                  << equation.SSA_steps.size()
                  << " steps" << eom;
 
+    undo_slice(equation);
     // perform slicing
     slice();
 
-    auto old_equation=this->equation;
+    show(goto_functions);
 
-    if(0&&run_decision_procedure(prop_conv)==decision_proceduret::resultt::D_UNSATISFIABLE)
+    result=stop_on_fail(goto_functions, prop_conv);
+#if 0
+    std::cout << "\n-----> " << ++num << "\n";
+    std::cout << "result==UNKNOWN: " << (result==safety_checkert::resultt::UNKNOWN) << "\n";
+    std::cout << "result==UNSAFE: " << (result==safety_checkert::resultt::UNSAFE) << "\n";
+    std::cout << "result==SAFE: " << (result==safety_checkert::resultt::SAFE) << "\n";
+    std::cout << "total vccs: " << symex().total_vccs << "\n";
+    std::cout << "remaining_vccs: " << symex().remaining_vccs << "\n";
+    std::cout << "\n";
+#endif
+
+    if(result==safety_checkert::resultt::UNSAFE && symex().total_vccs>0)
     {
-      this->equation=old_equation;
-      symex().alternate();
+      break;
     }
 
-    if(options.get_bool_option("show-vcc"))
-    {
-      show_vcc();
-      return safety_checkert::resultt::SAFE; // to indicate non-error
-    }
-
-    switch(run_decision_procedure(prop_conv))
-      {
-      case decision_proceduret::resultt::D_UNSATISFIABLE:
-        report_success();
-        output_graphml(resultt::SAFE, goto_functions);
-        return resultt::SAFE;
-
-      case decision_proceduret::resultt::D_SATISFIABLE:
-        if(options.get_bool_option("trace"))
-        {
-          if(options.get_bool_option("beautify"))
-            counterexample_beautificationt()(
-              dynamic_cast<bv_cbmct &>(prop_conv), equation, ns);
-
-          error_trace();
-          output_graphml(resultt::UNSAFE, goto_functions);
-        }
-
-        report_failure();
-        return resultt::UNSAFE;
-      default:
-        return safety_checkert::resultt::ERROR;
-      }
-
+    if(symex().end_of_a_clsuter()) break;
+#endif
   }
-  catch(std::string &error_str)
-    {
-      messaget message(get_message_handler());
-      message.error().source_location=symex().last_source_location;
-      message.error() << error_str << messaget::eom;
+  if(options.get_bool_option("show-vcc"))
+  {
+    show_vcc();
+    return safety_checkert::resultt::SAFE; // to indicate non-error
+  }
 
-      return safety_checkert::resultt::ERROR;
-    }
-
-    catch(const char *error_str)
-    {
-      messaget message(get_message_handler());
-      message.error().source_location=symex().last_source_location;
-      message.error() << error_str << messaget::eom;
-
-      return safety_checkert::resultt::ERROR;
-    }
-
-    catch(std::bad_alloc)
-    {
-      error() << "Out of memory" << eom;
-      return safety_checkert::resultt::ERROR;
-    }
+  error_trace();
+  return result;
+  //if(result==safety_checkert::resultt::UNSAFE) return safety_checkert::resultt::ERROR;
+  //else return result;
 }

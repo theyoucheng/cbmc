@@ -123,7 +123,7 @@ bool goto_symext::operator()(
 
   while(!state.call_stack().empty())
   {
-	guards.push_back(state.guard);
+	guards.insert(state.guard);
     //if(symex_step(goto_functions, state))
     if(mock_symex_step(goto_functions, state))
       return false;
@@ -399,13 +399,25 @@ bool goto_symext::mock_symex_step(
     state.depth++;
   }
 
-  if(instruction.type==ASSIGN)
+  // let's see if this is skipped guard
+  bool skipped=false;
+  //std::cout << "*** checking: " << from_expr(state.guard) << "\n";
+  for(auto sit=skipped_guards.begin(); sit!=skipped_guards.end(); ++sit)
+    if(*sit==state.guard)
+    {
+      skipped=true;
+      break;
+    }
+  //std::cout << "skipped: " << skipped << "\n";
+
+  if(skipped)
   {
     if(!state.guard.is_false())
-      target.location(state.guard.as_expr(), state.source);
-    state.source.pc++;
-    return false;
+       target.location(state.guard.as_expr(), state.source);
+	state.source.pc++;
+	return false;
   }
+
 
   // actually do instruction
   switch(instruction.type)
@@ -588,7 +600,7 @@ void goto_symext::micro_operator(const goto_functionst &goto_functions)
     throw "the program has no entry point";
 
   const goto_programt &body=it->second.body;
-
+  std::cout << "=====> " << it->first << "\n";
   micro_operator(goto_functions, body);
 }
 
@@ -596,7 +608,7 @@ void goto_symext::micro_operator(
   const goto_functionst &goto_functions,
   const goto_programt &goto_program)
 {
-  statet state;
+  statet state=curr_state;
   micro_operator(state, goto_functions, goto_program);
 }
 
@@ -622,10 +634,20 @@ bool goto_symext::micro_operator(
 
   while(!state.call_stack().empty())
   {
-	guards.push_back(state.guard);
-    //if(symex_step(goto_functions, state))
+	guards.insert(state.guard);
+	state_vect.push_back(state);
+	bool entering_goto=(state.source.pc->type==GOTO);
     if(mock_symex_step(goto_functions, state))
       return false;
+    curr_state=state;
+    if(entering_goto && !state.guard.is_true() && !state.guard.is_false())
+    {
+      guardt skipped(state.guard);
+      skipped.make_not();
+      std::cout << "*** trying to skip: " << from_expr(skipped) << "\n";
+      skipped_guards.insert(skipped);
+      return true;
+    }
 
     // is there another thread to execute?
     if(state.call_stack().empty() &&
@@ -636,6 +658,14 @@ bool goto_symext::micro_operator(
       state.switch_to_thread(t);
     }
   }
+#if 0
+  std::cout << "All states: " << state_vect.size() << "\n";
+  for(auto &s: state_vect)
+  {
+    std::cout << s.call_stack().size() << " ## ";
+    std::cout << s.source.pc->source_location << " ## " << from_expr(s.source.pc->code) << "\n";
+  }
+  std::cout << "\n";
 
   std::cout << "All guards: " << guards.size() << "\n";
   for(auto &g:guards)
@@ -643,6 +673,7 @@ bool goto_symext::micro_operator(
     std::cout << from_expr(g) << "\n";
   }
   std::cout << "\n";
+#endif
 
   delete state.dirty;
   state.dirty=0;
@@ -671,5 +702,9 @@ void goto_symext::make_false(const exprt &p, exprt &expr)
       return;
     }
   }
+}
 
+bool goto_symext::end_of_a_clsuter()
+{
+  return curr_state.call_stack().empty();
 }
