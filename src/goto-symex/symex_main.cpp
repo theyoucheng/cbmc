@@ -640,7 +640,6 @@ bool goto_symext::micro_operator(
   }
 
 
-
   while(!state.call_stack().empty())
   {
 	guards.insert(state.guard);
@@ -740,7 +739,7 @@ bool goto_symext::mock_assume_symex_step(
   }
 
   assert(instruction.type==GOTO);
-  if(!state.guard.is_false())
+  if(0&&!state.guard.is_false())
   {
     exprt tmp=instruction.guard;
     tmp.make_not();
@@ -748,176 +747,8 @@ bool goto_symext::mock_assume_symex_step(
     state.rename(tmp, ns);
     symex_assume(state, tmp);
   }
-
-  // actually do instruction
-  switch(instruction.type)
-  {
-  case SKIP:
-    if(!state.guard.is_false())
-      target.location(state.guard.as_expr(), state.source);
-    state.source.pc++;
-    break;
-
-  case END_FUNCTION:
-    // do even if state.guard.is_false() to clear out frame created
-    // in symex_start_thread
-    symex_end_of_function(state);
-    state.source.pc++;
-    break;
-
-  case LOCATION:
-    if(!state.guard.is_false())
-      target.location(state.guard.as_expr(), state.source);
-    state.source.pc++;
-    break;
-
-  case GOTO:
-    return symex_goto(state);
-    break;
-
-  case ASSUME:
-    if(!state.guard.is_false())
-    {
-      exprt tmp=instruction.guard;
-      clean_expr(tmp, state, false);
-      state.rename(tmp, ns);
-      symex_assume(state, tmp);
-    }
-
-    state.source.pc++;
-    break;
-
-  case ASSERT:
-    if(!state.guard.is_false() && !ignore_assertions)
-    {
-      std::string msg=id2string(state.source.pc->source_location.get_comment());
-      if(msg=="")
-        msg="assertion";
-      exprt tmp(instruction.guard);
-      clean_expr(tmp, state, false);
-      vcc(tmp, msg, state);
-    }
-
-    state.source.pc++;
-    break;
-
-  case RETURN:
-    if(!state.guard.is_false())
-      return_assignment(state);
-
-    state.source.pc++;
-    break;
-
-  case ASSIGN:
-    if(!state.guard.is_false())
-      symex_assign_rec(state, to_code_assign(instruction.code));
-
-    state.source.pc++;
-    break;
-
-  case FUNCTION_CALL:
-    if(!state.guard.is_false())
-    {
-      code_function_callt deref_code=
-        to_code_function_call(instruction.code);
-
-      if(deref_code.lhs().is_not_nil())
-        clean_expr(deref_code.lhs(), state, true);
-
-      clean_expr(deref_code.function(), state, false);
-
-      Forall_expr(it, deref_code.arguments())
-        clean_expr(*it, state, false);
-
-      const irep_idt &identifier=
-        to_symbol_expr(deref_code.function()).get_identifier();
-      const goto_symex_statet::framet::loop_infot &loop_info =
-        state.top().loop_iterations[identifier];
-
-      if(!loop_info.fully_unwound)
-      {
-        goto_functionst::function_mapt::const_iterator it=
-          goto_functions.function_map.find(identifier);
-        assert(goto_functions.function_map.find(identifier)!=
-               goto_functions.function_map.end());
-
-        // interrupt for checking guard if in incremental mode
-        if(!state.guard.is_true() &&
-           // no need to check recursive call if function body is not available
-           it->second.body_available())
-        {
-          exprt guard=state.guard.as_expr();
-          bool do_break=
-            check_break(identifier, true, state, guard, loop_info.count);
-          if(do_break)
-            return true;
-        }
-        return symex_function_call(goto_functions, state, deref_code);
-      }
-      else
-        state.source.pc++;
-    }
-    else
-      state.source.pc++;
-    break;
-
-  case OTHER:
-    if(!state.guard.is_false())
-      symex_other(goto_functions, state);
-
-    state.source.pc++;
-    break;
-
-  case DECL:
-    if(!state.guard.is_false())
-      symex_decl(state);
-
-    state.source.pc++;
-    break;
-
-  case DEAD:
-    symex_dead(state);
-    state.source.pc++;
-    break;
-
-  case START_THREAD:
-    symex_start_thread(state);
-    state.source.pc++;
-    break;
-
-  case END_THREAD:
-    // behaves like assume(0);
-    if(!state.guard.is_false())
-      state.guard.add(false_exprt());
-    state.source.pc++;
-    break;
-
-  case ATOMIC_BEGIN:
-    symex_atomic_begin(state);
-    state.source.pc++;
-    break;
-
-  case ATOMIC_END:
-    symex_atomic_end(state);
-    state.source.pc++;
-    break;
-
-  case CATCH:
-    symex_catch(state);
-    state.source.pc++;
-    break;
-
-  case THROW:
-    symex_throw(state);
-    state.source.pc++;
-    break;
-
-  case NO_INSTRUCTION_TYPE:
-    throw "symex got NO_INSTRUCTION";
-
-  default:
-    throw "symex got unexpected instruction";
-  }
+  state.source.pc++;
   return false;
+  //return symex_goto(state);
 }
 
