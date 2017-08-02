@@ -43,6 +43,20 @@ class symex_bmc_clusteringt:
 
   std::vector<statet> states;
 
+  static int counter;
+
+  void record(statet &state);
+
+  void create_a_cluster(statet &state, symex_targett &equation);
+
+  std::map<std::string, statet> clusters;
+
+  statet &cluster(const std::string &id);
+
+  statet &cluster(const statet &state);
+
+  bool lotto() const;
+
 protected:
 
 

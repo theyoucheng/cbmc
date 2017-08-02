@@ -15,6 +15,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/source_location.h>
 #include <util/simplify_expr.h>
+#include <iostream>
 
 symex_bmct::symex_bmct(
   const namespacet &_ns,
@@ -32,7 +33,10 @@ void symex_bmct::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
+  //std::cout << "enter symex step\n";
   const source_locationt &source_location=state.source.pc->source_location;
+
+  //std::cout << "source location: " << source_location << "\n";
 
   if(!source_location.is_nil() && last_source_location!=source_location)
   {

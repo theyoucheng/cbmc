@@ -500,6 +500,8 @@ int cbmc_parse_optionst::doit()
   //bmct bmc(options, symbol_table, ui_message_handler, prop_conv);
   std::unique_ptr<bmct> bmc;
   if(options.get_bool_option("clustering"))
+  {
+    std::cout << "*** clustering is set *** \n";
     bmc=std::unique_ptr<bmct>(
       new bmc_clusteringt(
         options,
@@ -508,6 +510,7 @@ int cbmc_parse_optionst::doit()
         prop_conv,
         goto_functions,
         cbmc_solvers));
+  }
   else
     bmc=std::unique_ptr<bmct>(
       new bmct(options, symbol_table, ui_message_handler, prop_conv));

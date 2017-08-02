@@ -35,9 +35,13 @@ public:
   // distance from entry
   unsigned depth;
 
+  std::string id;
+
   guardt guard;
   symex_targett::sourcet source;
   symex_targett *symex_target;
+  //symex_targett *symex_equation;
+
 
   void initialize(const goto_functionst &goto_functions);
 

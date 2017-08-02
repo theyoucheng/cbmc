@@ -43,6 +43,8 @@ public:
       symex_clustering(ns, new_symbol_table, equation)
   {
     symex().constant_propagation=options.get_bool_option("propagation");
+    equations.push_back(equation);
+    symex().create_a_cluster(symex_state, equations[0]);
   }
 
   virtual ~bmc_clusteringt() { }
@@ -52,12 +54,7 @@ public:
   {
     return run(goto_functions);
   }
-  /*
-  virtual resultt initialize()
-  {
-    return bmct::initialize();
-  }
-  */
+
   virtual resultt step()
   {
     return step(goto_functions);
@@ -94,6 +91,10 @@ protected:
   bool reachable_if();
   bool reachable_else();
 
+  void show_state_vcc(const goto_symext::statet &state);
+  void show_state_vcc_plain(const goto_symext::statet &state, std::ostream &out);
+
+  std::vector<symex_target_equationt> equations;
 };
 
 #endif

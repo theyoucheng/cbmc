@@ -11,6 +11,15 @@ Author:
 #include <goto-symex/slice.h>
 #include <util/time_stopping.h>
 
+#include <langapi/mode.h>
+#include <langapi/languages.h>
+#include <langapi/language_util.h>
+
+#include <ansi-c/ansi_c_language.h>
+
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+
 #include "bmc_clustering.h"
 #include <iostream>
 
@@ -43,11 +52,20 @@ safety_checkert::resultt bmc_clusteringt::step(
     if(symex_state.source.pc->type==GOTO)
     {
       // Now, we face GOTO
-      if(reachable_if())
-        symex().add_goto_if_assumption(symex_state, goto_functions);
-      else if(reachable_else())
-        symex().add_goto_else_assumption(symex_state, goto_functions);
-      else assert(0);
+      bool lotto=symex().lotto();
+
+      if(lotto)
+      {
+        if(reachable_if())
+          symex().add_goto_if_assumption(symex_state, goto_functions);
+        else symex().add_goto_else_assumption(symex_state, goto_functions);
+      }
+      else
+      {
+        if(reachable_else())
+          symex().add_goto_else_assumption(symex_state, goto_functions);
+        else  symex().add_goto_if_assumption(symex_state, goto_functions);
+      }
     }
 
     statistics() << "size of program expression: "
@@ -57,6 +75,9 @@ safety_checkert::resultt bmc_clusteringt::step(
   }
 
   prop_conv.set_all_frozen();
+
+  symex_state=symex().cluster(symex_state);
+  equation=*(dynamic_cast<symex_target_equationt*>(symex().cluster(symex_state).symex_target));
 
   return all_properties(goto_functions, prop_conv);
   decision_proceduret::resultt result=run_decision_procedure(prop_conv);
@@ -89,7 +110,11 @@ safety_checkert::resultt bmc_clusteringt::run(
 
   if(options.get_bool_option("show-vcc"))
   {
-    show_vcc();
+
+    show_state_vcc(symex_state);
+
+    show_state_vcc(symex().cluster(symex_state));
+
     return safety_checkert::resultt::SAFE; // to indicate non-error
   }
 
@@ -120,21 +145,17 @@ bool bmc_clusteringt::reachable_if()
 
   std::size_t num=equation.SSA_steps.size();
   symex().mock_goto_if_condition(symex_state, goto_functions);
+
   if(num==equation.SSA_steps.size()) return false;
-
-  std::cout << "\n *** reachable if: " << tmp.count_ignored_SSA_steps() << "\n";
-  show_vcc();
-
-  //prop_conv.set_all_frozen();
-  //guardt g(symex_state.guard);
-  //g.make_not();
-  //prop_conv.set_to_true(g);
 
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
 
   // recover the analysis
   symex_state=backup_state;
   equation=tmp;
+
+  --symex().total_vccs;
+  --symex().remaining_vccs;
 
   return (result==decision_proceduret::resultt::D_SATISFIABLE);
 }
@@ -147,16 +168,17 @@ bool bmc_clusteringt::reachable_else()
 
   std::size_t num=equation.SSA_steps.size();
   symex().mock_goto_else_condition(symex_state, goto_functions);
-  if(num==equation.SSA_steps.size()) return false;
 
-  std::cout << "\n**** reachable else \n";
-  show_vcc();
+  if(num==equation.SSA_steps.size()) return false;
 
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
 
   // recover
   symex_state=backup_state;
   equation=tmp;
+
+  --symex().total_vccs;
+  --symex().remaining_vccs;
 
   return (result==decision_proceduret::resultt::D_SATISFIABLE);
 }
@@ -206,5 +228,90 @@ void bmc_clusteringt::do_conversion(prop_convt &prop_conv)
 
     forall_expr_list(it, bmc_constraints)
       prop_conv.set_to_true(*it);
+  }
+}
+
+void bmc_clusteringt::show_state_vcc(const goto_symext::statet &state)
+{
+  const std::string &filename=options.get_option("outfile");
+  bool have_file=!filename.empty() && filename!="-";
+
+  std::ofstream of;
+
+  if(have_file)
+  {
+    of.open(filename);
+    if(!of)
+      throw "failed to open file "+filename;
+  }
+
+  std::ostream &out=have_file?of:std::cout;
+
+  show_state_vcc_plain(state, out);
+
+  if(have_file)
+    of.close();
+}
+
+void bmc_clusteringt::show_state_vcc_plain(
+  const goto_symext::statet &state,
+  std::ostream &out)
+{
+  out << "\n" << "VERIFICATION CONDITIONS:" << "\n" << "\n";
+
+  languagest languages(ns, new_ansi_c_language());
+
+  bool has_threads=equation.has_threads();
+
+  symex_target_equationt *symex_target_equation=
+    dynamic_cast<symex_target_equationt*>(state.symex_target);
+
+  for(symex_target_equationt::SSA_stepst::iterator
+      s_it=symex_target_equation->SSA_steps.begin();
+      s_it!=symex_target_equation->SSA_steps.end();
+      s_it++)
+  {
+    if(!s_it->is_assert())
+      continue;
+
+    if(s_it->source.pc->source_location.is_not_nil())
+      out << s_it->source.pc->source_location << "\n";
+
+    if(s_it->comment!="")
+      out << s_it->comment << "\n";
+
+    symex_target_equationt::SSA_stepst::const_iterator
+      p_it=symex_target_equation->SSA_steps.begin();
+
+    // we show everything in case there are threads
+    symex_target_equationt::SSA_stepst::const_iterator
+      last_it=has_threads?symex_target_equation->SSA_steps.end():s_it;
+
+    for(unsigned count=1; p_it!=last_it; p_it++)
+      if(p_it->is_assume() || p_it->is_assignment() || p_it->is_constraint())
+      {
+        if(!p_it->ignore)
+        {
+          std::string string_value;
+          languages.from_expr(p_it->cond_expr, string_value);
+          out << "{-" << count << "} " << string_value << "\n";
+
+          #if 0
+          languages.from_expr(p_it->guard_expr, string_value);
+          out << "GUARD: " << string_value << "\n";
+          out << "\n";
+          #endif
+
+          count++;
+        }
+      }
+
+    out << "|--------------------------" << "\n";
+
+    std::string string_value;
+    languages.from_expr(s_it->cond_expr, string_value);
+    out << "{" << 1 << "} " << string_value << "\n";
+
+    out << "\n";
   }
 }

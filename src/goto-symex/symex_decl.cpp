@@ -95,7 +95,14 @@ void goto_symext::symex_decl(statet &state, const symbol_exprt &expr)
     state.top().hidden_function ||
     state.source.pc->source_location.get_hide();
 
-  target.decl(
+  //target.decl(
+  //  state.guard.as_expr(),
+  //  ssa,
+  //  state.source,
+  //  hidden?
+  //    symex_targett::assignment_typet::HIDDEN:
+  //    symex_targett::assignment_typet::STATE);
+  state.symex_target->decl(
     state.guard.as_expr(),
     ssa,
     state.source,

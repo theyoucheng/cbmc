@@ -260,7 +260,15 @@ void goto_symext::symex_assign_symbol(
   if(symbol.is_auxiliary)
     assignment_type=symex_targett::assignment_typet::HIDDEN;
 
-  target.assignment(
+  //target.assignment(
+  //  tmp_guard.as_expr(),
+  //  ssa_lhs,
+  //  ssa_full_lhs, add_to_lhs(full_lhs, ssa_lhs.get_original_expr()),
+  //  ssa_rhs,
+  //  state.source,
+  //  assignment_type);
+
+  state.symex_target->assignment(
     tmp_guard.as_expr(),
     ssa_lhs,
     ssa_full_lhs, add_to_lhs(full_lhs, ssa_lhs.get_original_expr()),

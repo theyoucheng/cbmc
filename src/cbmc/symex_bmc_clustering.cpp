@@ -26,6 +26,8 @@ Function: symex_bmc_incrementalt::symex_bmct
 
 \*******************************************************************/
 
+int symex_bmc_clusteringt::counter=0;
+
 symex_bmc_clusteringt::symex_bmc_clusteringt(
   const namespacet &_ns,
   symbol_tablet &_new_symbol_table,
@@ -51,26 +53,36 @@ void symex_bmc_clusteringt::operator()(
     state.symex_target=&target;
     state.dirty=new dirtyt(goto_functions);
     symex_transition(state, state.source.pc);
+
+    cluster(state).source=symex_targett::sourcet(goto_program);
+    assert(!cluster(state).threads.empty());
+    assert(!cluster(state).call_stack().empty());
+    cluster(state).top().end_of_function=--goto_program.instructions.end();
+    cluster(state).top().calling_location.pc=state.top().end_of_function;
+    //cluster(state).symex_target=&target;
+    cluster(state).dirty=new dirtyt(goto_functions);
+    symex_transition(cluster(state), cluster(state).source.pc);
   }
 
   assert(state.top().end_of_function->is_end_function());
+
+  assert(!state.id.empty());
 
   while(!state.call_stack().empty())
   {
     if(state.source.pc->type==GOTO)
     {
-      std::cout << "\n*** GOTO: " << state.source.pc->source_location << "\n";
-
       const auto &guard=state.source.pc->guard;
       if(!guard.is_true() && !guard.is_false())
       {
     	merge_gotos(state); // in case there is pending goto
+    	merge_gotos(cluster(state));
         return;
       }
     }
 
     symex_step(goto_functions, state);
-
+    symex_step(goto_functions, cluster(state));
   }
 
   delete state.dirty;
@@ -116,9 +128,15 @@ void symex_bmc_clusteringt::add_goto_if_assumption(
     tmp.make_not();
     state.rename(tmp, ns);
     symex_assume(state, tmp);
+    if(lotto())
+    {
+      cluster(state).rename(tmp, ns);
+      symex_assume(cluster(state), tmp);
+    }
   }
 
   symex_goto(state);
+  symex_goto(cluster(state));
 }
 
 void symex_bmc_clusteringt::mock_goto_else_condition(
@@ -166,7 +184,56 @@ void symex_bmc_clusteringt::add_goto_else_assumption(
     clean_expr(tmp, state, false);
     state.rename(tmp, ns);
     symex_assume(state, tmp);
+    if(lotto())
+    {
+      cluster(state).rename(tmp, ns);
+      symex_assume(cluster(state), tmp);
+    }
   }
 
   symex_goto(state);
+  symex_goto(cluster(state));
 }
+
+void symex_bmc_clusteringt::record(statet &state)
+{
+  std::string id="state"+std::to_string(counter);
+  state.id=id;
+  ++counter;
+}
+
+void symex_bmc_clusteringt::create_a_cluster(statet &state, symex_targett &equation)
+{
+  record(state);
+  //clusters.insert(std::pair<std::string, statet>(state.id, state));
+  clusters[state.id]=state;
+  std::cout << "***state address: " << state.symex_target << "\n";
+  std::cout << "***state address: " << cluster(state).symex_target << "\n";
+  //assert(!(&state==&cluster(state)));
+  clusters[state.id].symex_target=&equation;
+  std::cout << ">>>> state address: " << state.symex_target << "\n";
+  std::cout << ">>>> state address: " << cluster(state).symex_target << "\n";
+}
+
+goto_symext::statet& symex_bmc_clusteringt::cluster(const std::string &id)
+{
+  assert(clusters.find(id)!=clusters.end());
+  return clusters[id];
+}
+
+goto_symext::statet& symex_bmc_clusteringt::cluster(const statet &state)
+{
+  return cluster(state.id);
+}
+
+bool symex_bmc_clusteringt::lotto() const
+{
+  srand (time(NULL));
+
+  int a=rand()%100+1;
+
+  int b=rand()%a;
+
+  return (b>a/2);
+}
+
