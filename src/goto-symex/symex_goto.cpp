@@ -17,6 +17,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/std_expr.h>
 
 #include <analyses/dirty.h>
+#include <iostream>
 
 void goto_symext::symex_goto(statet &state)
 {
@@ -57,7 +58,7 @@ void goto_symext::symex_goto(statet &state)
     instruction.get_target();
 
   bool forward=!instruction.is_backwards_goto();
-
+  std::cout << "***symex_goto: forward=" << forward << "\n";
   if(!forward) // backwards?
   {
     // is it label: goto label; or while(cond); - popular in SV-COMP
@@ -88,6 +89,7 @@ void goto_symext::symex_goto(statet &state)
     // continue unwinding?
     if(get_unwind(state.source, unwind))
     {
+      std::cout << "get unwind++\n";
       // no!
       loop_bound_exceeded(state, new_guard);
 

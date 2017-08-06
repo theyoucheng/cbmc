@@ -40,7 +40,7 @@ public:
   guardt guard;
   symex_targett::sourcet source;
   symex_targett *symex_target;
-  //symex_targett *symex_equation;
+  std::size_t total_vccs, remaining_vccs;
 
 
   void initialize(const goto_functionst &goto_functions);

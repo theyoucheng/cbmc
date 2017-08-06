@@ -77,9 +77,6 @@ protected:
   virtual resultt run(const goto_functionst &goto_functions);
   virtual resultt step(const goto_functionst &goto_functions);
 
-  // unwinding
-  //virtual void setup_unwind();
-
  private:
 
   symex_bmc_clusteringt &symex()
@@ -95,6 +92,11 @@ protected:
   void show_state_vcc_plain(const goto_symext::statet &state, std::ostream &out);
 
   std::vector<symex_target_equationt> equations;
+
+  enum class state_resultt { D_SATISFIABLE, D_UNSATISFIABLE, D_ERROR, D_UNSAFE };
+
+  void setup_clustering_unwind();
+
 };
 
 #endif

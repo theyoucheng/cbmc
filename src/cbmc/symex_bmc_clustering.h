@@ -41,6 +41,10 @@ class symex_bmc_clusteringt:
       statet &state,
       const goto_functionst &goto_functions);
 
+  virtual void do_nothing(
+      statet &state,
+      const goto_functionst &goto_functions);
+
   std::vector<statet> states;
 
   static int counter;
@@ -56,6 +60,8 @@ class symex_bmc_clusteringt:
   statet &cluster(const statet &state);
 
   bool lotto() const;
+
+  virtual void symex_guard_goto(statet &state, const exprt &guard);
 
 protected:
 

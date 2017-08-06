@@ -113,10 +113,12 @@ bool symex_bmct::get_unwind(
 {
   const irep_idt id=goto_programt::loop_id(source.pc);
 
+
   // We use the most specific limit we have,
   // and 'infinity' when we have none.
 
   unsigned this_loop_limit=std::numeric_limits<unsigned>::max();
+
 
   loop_limitst &this_thread_limits=
     thread_loop_limits[source.thread_nr];
@@ -132,6 +134,12 @@ bool symex_bmct::get_unwind(
     else if(max_unwind_is_set)
       this_loop_limit=max_unwind;
   }
+
+  std::cout << "***get_unwind: " << id << ", max_unwind_is_set: "
+		    << max_unwind_is_set << ", " << this_loop_limit
+			<< ", max_unwind: " << max_unwind
+			<< "\n";
+
 
   bool abort=unwind>=this_loop_limit;
 

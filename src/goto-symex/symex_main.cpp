@@ -56,6 +56,7 @@ void goto_symext::vcc(
   statet &state)
 {
   total_vccs++;
+  state.total_vccs++;
 
   exprt expr=vcc_expr;
 
@@ -74,6 +75,7 @@ void goto_symext::vcc(
   state.guard.guard_expr(expr);
 
   remaining_vccs++;
+  state.remaining_vccs++;
   //target.assertion(state.guard.as_expr(), expr, msg, state.source);
   state.symex_target->assertion(state.guard.as_expr(), expr, msg, state.source);
 }

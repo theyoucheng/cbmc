@@ -10,6 +10,13 @@ Author:
 
 #include <goto-symex/slice.h>
 #include <util/time_stopping.h>
+#include <util/string2int.h>
+#include <util/source_location.h>
+#include <util/string_utils.h>
+#include <util/time_stopping.h>
+#include <util/message.h>
+#include <util/json.h>
+#include <util/cprover_prefix.h>
 
 #include <langapi/mode.h>
 #include <langapi/languages.h>
@@ -41,6 +48,8 @@ safety_checkert::resultt bmc_clusteringt::step(
   symex().total_vccs=0;
   symex().remaining_vccs=0;
 
+  setup_clustering_unwind();
+
   while(!symex_state.call_stack().empty())
   {
 
@@ -54,17 +63,32 @@ safety_checkert::resultt bmc_clusteringt::step(
       // Now, we face GOTO
       bool lotto=symex().lotto();
 
+      std::cout << "####  " << (symex_state.source.pc)->source_location << "\n";
+      std::cout << "#### loop id?: "
+    		    << symex_state.top().loop_iterations[goto_programt::loop_id(symex_state.source.pc)].count
+				<< ", "
+    		    << symex_state.top().loop_iterations[goto_programt::loop_id(symex_state.source.pc)].is_recursion
+				<< ", "
+				<< options.get_unsigned_int_option("unwind")
+				<< "\n";
+
       if(lotto)
       {
         if(reachable_if())
           symex().add_goto_if_assumption(symex_state, goto_functions);
-        else symex().add_goto_else_assumption(symex_state, goto_functions);
+        else if(reachable_else())
+          symex().add_goto_else_assumption(symex_state, goto_functions);
+        else symex().do_nothing(symex_state, goto_functions); //assert(0);
       }
       else
       {
         if(reachable_else())
+        {
           symex().add_goto_else_assumption(symex_state, goto_functions);
-        else  symex().add_goto_if_assumption(symex_state, goto_functions);
+        }
+        else  if(reachable_if())
+          symex().add_goto_if_assumption(symex_state, goto_functions);
+        else symex().do_nothing(symex_state, goto_functions); //assert(0);
       }
     }
 
@@ -76,8 +100,8 @@ safety_checkert::resultt bmc_clusteringt::step(
 
   prop_conv.set_all_frozen();
 
-  symex_state=symex().cluster(symex_state);
-  equation=*(dynamic_cast<symex_target_equationt*>(symex().cluster(symex_state).symex_target));
+  //symex_state=symex().cluster(symex_state);
+  //equation=*(dynamic_cast<symex_target_equationt*>(symex().cluster(symex_state).symex_target));
 
   return all_properties(goto_functions, prop_conv);
   decision_proceduret::resultt result=run_decision_procedure(prop_conv);
@@ -111,6 +135,7 @@ safety_checkert::resultt bmc_clusteringt::run(
   if(options.get_bool_option("show-vcc"))
   {
 
+    std::cout << "***symex state vcc: \n";
     show_state_vcc(symex_state);
 
     show_state_vcc(symex().cluster(symex_state));
@@ -139,6 +164,11 @@ decision_proceduret::resultt bmc_clusteringt::run_and_clear_decision_procedure()
 
 bool bmc_clusteringt::reachable_if()
 {
+
+  std::cout << "\n++++++++++++++++++++ reachable if +++++++++++++++++\n";
+  std::cout << symex_state.source.pc->source_location << "\n";
+  std::cout << from_expr(symex_state.source.pc->code) << "\n";
+
   // make a snapshot
   goto_symext::statet backup_state=symex_state;
   auto tmp=equation;
@@ -147,7 +177,7 @@ bool bmc_clusteringt::reachable_if()
   symex().mock_goto_if_condition(symex_state, goto_functions);
 
   if(num==equation.SSA_steps.size()) return false;
-
+  show_vcc();
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
 
   // recover the analysis
@@ -162,13 +192,17 @@ bool bmc_clusteringt::reachable_if()
 
 bool bmc_clusteringt::reachable_else()
 {
+  std::cout << "\n++++++++++++++++++++ reachable else +++++++++++++++++\n";
+  std::cout << symex_state.source.pc->source_location << "\n";
+  std::cout << from_expr(symex_state.source.pc->code) << "\n";
+
   // make a snapshot
   goto_symext::statet backup_state=symex_state;
   auto tmp=equation;
 
   std::size_t num=equation.SSA_steps.size();
   symex().mock_goto_else_condition(symex_state, goto_functions);
-
+  show_vcc();
   if(num==equation.SSA_steps.size()) return false;
 
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
@@ -315,3 +349,41 @@ void bmc_clusteringt::show_state_vcc_plain(
     out << "\n";
   }
 }
+
+void bmc_clusteringt::setup_clustering_unwind()
+{
+  const std::string &set=options.get_option("unwindset");
+  std::vector<std::string> unwindset_loops;
+  split_string(set, ',', unwindset_loops, true, true);
+
+  for(auto &val : unwindset_loops)
+  {
+    unsigned thread_nr=0;
+    bool thread_nr_set=false;
+
+    if(!val.empty() &&
+       isdigit(val[0]) &&
+       val.find(":")!=std::string::npos)
+    {
+      std::string nr=val.substr(0, val.find(":"));
+      thread_nr=unsafe_string2unsigned(nr);
+      thread_nr_set=true;
+      val.erase(0, nr.size()+1);
+    }
+
+    if(val.rfind(":")!=std::string::npos)
+    {
+      std::string id=val.substr(0, val.rfind(":"));
+      long uw=unsafe_string2int(val.substr(val.rfind(":")+1));
+
+      if(thread_nr_set)
+        symex().set_unwind_thread_loop_limit(thread_nr, id, uw);
+      else
+        symex().set_unwind_loop_limit(id, uw);
+    }
+  }
+
+  if(options.get_option("unwind")!="")
+    symex().set_unwind_limit(options.get_unsigned_int_option("unwind"));
+}
+

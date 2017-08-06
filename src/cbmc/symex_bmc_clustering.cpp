@@ -102,6 +102,8 @@ void symex_bmc_clusteringt::mock_goto_if_condition(
 
     clean_expr(tmp, state, false);
     vcc(tmp, msg, state);
+
+    std::cout << "mock goto-if condition: " << from_expr(tmp) << "\n";
   }
 }
 
@@ -128,7 +130,7 @@ void symex_bmc_clusteringt::add_goto_if_assumption(
     tmp.make_not();
     state.rename(tmp, ns);
     symex_assume(state, tmp);
-    if(lotto())
+    if(0&&lotto())
     {
       cluster(state).rename(tmp, ns);
       symex_assume(cluster(state), tmp);
@@ -136,7 +138,7 @@ void symex_bmc_clusteringt::add_goto_if_assumption(
   }
 
   symex_goto(state);
-  symex_goto(cluster(state));
+  //symex_goto(cluster(state));
 }
 
 void symex_bmc_clusteringt::mock_goto_else_condition(
@@ -153,6 +155,8 @@ void symex_bmc_clusteringt::mock_goto_else_condition(
     tmp.make_not();
     clean_expr(tmp, state, false);
     vcc(tmp, msg, state);
+
+    std::cout << "mock goto-else condition: " << from_expr(tmp) << "\n";
   }
 }
 
@@ -184,15 +188,16 @@ void symex_bmc_clusteringt::add_goto_else_assumption(
     clean_expr(tmp, state, false);
     state.rename(tmp, ns);
     symex_assume(state, tmp);
-    if(lotto())
+    if(0&&lotto())
     {
       cluster(state).rename(tmp, ns);
-      symex_assume(cluster(state), tmp);
+      //symex_assume(cluster(state), tmp);
     }
   }
 
-  symex_goto(state);
-  symex_goto(cluster(state));
+  //symex_goto(state);
+  symex_guard_goto(state, false_exprt()); //not_exprt(state.source.pc->guard));
+  //symex_goto(cluster(state));
 }
 
 void symex_bmc_clusteringt::record(statet &state)
@@ -237,3 +242,227 @@ bool symex_bmc_clusteringt::lotto() const
   return (b>a/2);
 }
 
+void symex_bmc_clusteringt::do_nothing(
+    statet &state,
+    const goto_functionst &goto_functions)
+{
+  #if 0
+  std::cout << "\ninstruction type is " << state.source.pc->type << '\n';
+  std::cout << "Location: " << state.source.pc->source_location << '\n';
+  std::cout << "Guard: " << from_expr(ns, "", state.guard.as_expr()) << '\n';
+  std::cout << "Code: " << from_expr(ns, "", state.source.pc->code) << '\n';
+  #endif
+
+  assert(!state.threads.empty());
+  assert(!state.call_stack().empty());
+
+  // depth exceeded?
+  {
+    unsigned max_depth=options.get_unsigned_int_option("depth");
+    if(max_depth!=0 && state.depth>max_depth)
+      state.guard.add(false_exprt());
+    state.depth++;
+  }
+
+  symex_goto(state);
+  symex_goto(cluster(state));
+}
+
+void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
+{
+  const goto_programt::instructiont &instruction=*state.source.pc;
+  statet::framet &frame=state.top();
+
+  //exprt old_guard=guard; //instruction.guard;
+  exprt old_guard=true_exprt(); //instruction.guard;
+  clean_expr(old_guard, state, false);
+
+  std::cout << "*** old_guard: " << from_expr(old_guard) << "\n";
+
+
+  exprt new_guard=old_guard;
+  state.rename(new_guard, ns);
+  do_simplify(new_guard);
+
+  std::cout << "*** new_guard: " << from_expr(new_guard) << "\n";
+  std::cout << "*** state guard: " << from_expr(state.guard) << "\n";
+
+  if(new_guard.is_false() ||
+     state.guard.is_false())
+  {
+    if(!state.guard.is_false())
+    {
+      //target.location(state.guard.as_expr(), state.source);
+      state.symex_target->location(state.guard.as_expr(), state.source);
+    }
+    symex_transition(state);
+    //goto_programt::const_targett goto_target=
+    //  instruction.get_target();
+    //symex_transition(state, goto_target, true);
+
+
+    return; // nothing to do
+  }
+
+  //target.goto_instruction(state.guard.as_expr(), new_guard, state.source);
+  state.symex_target->goto_instruction(state.guard.as_expr(), new_guard, state.source);
+
+  assert(!instruction.targets.empty());
+
+  // we only do deterministic gotos for now
+  if(instruction.targets.size()!=1)
+    throw "no support for non-deterministic gotos";
+
+  goto_programt::const_targett goto_target=
+    instruction.get_target();
+
+  std::cout << "***instruction targets size: " << instruction.targets.size() << "\n";
+
+  bool forward=!instruction.is_backwards_goto();
+  std::cout << "***symex_goto: forward=" << forward << "\n";
+  if(!forward) // backwards?
+  {
+    // is it label: goto label; or while(cond); - popular in SV-COMP
+    if(goto_target==state.source.pc ||
+       (instruction.incoming_edges.size()==1 &&
+        *instruction.incoming_edges.begin()==goto_target))
+    {
+      // generate assume(false) or a suitable negation if this
+      // instruction is a conditional goto
+      exprt negated_cond;
+
+      if(new_guard.is_true())
+        negated_cond=false_exprt();
+      else
+        negated_cond=not_exprt(new_guard);
+
+      symex_assume(state, negated_cond);
+
+      // next instruction
+      symex_transition(state);
+      //symex_transition(state, goto_target, true);
+      return;
+    }
+
+    unsigned &unwind=
+      frame.loop_iterations[goto_programt::loop_id(state.source.pc)].count;
+    unwind++;
+
+    // continue unwinding?
+    if(get_unwind(state.source, unwind))
+    {
+      //std::cout << "get unwind++\n";
+      // no!
+      loop_bound_exceeded(state, new_guard);
+
+      // next instruction
+      symex_transition(state);
+      //symex_transition(state, goto_target, true);
+      return;
+    }
+
+    if(new_guard.is_true())
+    {
+      symex_transition(state, goto_target, true);
+      return; // nothing else to do
+    }
+  }
+
+  goto_programt::const_targett new_state_pc, state_pc;
+  symex_targett::sourcet original_source=state.source;
+
+  if(forward)
+  {
+    new_state_pc=goto_target;
+    state_pc=state.source.pc;
+    state_pc++;
+
+    // skip dead instructions
+    if(new_guard.is_true())
+      while(state_pc!=goto_target && !state_pc->is_target())
+        ++state_pc;
+
+    if(state_pc==goto_target)
+    {
+      symex_transition(state, goto_target);
+      //symex_transition(state, goto_target, true);
+      return; // nothing else to do
+    }
+  }
+  else
+  {
+    new_state_pc=state.source.pc;
+    new_state_pc++;
+    state_pc=goto_target;
+  }
+
+  // put into state-queue
+  statet::goto_state_listt &goto_state_list=
+    state.top().goto_state_map[new_state_pc];
+
+  goto_state_list.push_back(statet::goto_statet(state));
+  statet::goto_statet &new_state=goto_state_list.back();
+
+  symex_transition(state, state_pc, !forward);
+  //symex_transition(state, goto_target, true);
+
+  // adjust guards
+  if(new_guard.is_true())
+  {
+    state.guard.make_false();
+  }
+  else
+  {
+    // produce new guard symbol
+    exprt guard_expr;
+
+    if(new_guard.id()==ID_symbol ||
+       (new_guard.id()==ID_not &&
+        new_guard.operands().size()==1 &&
+        new_guard.op0().id()==ID_symbol))
+      guard_expr=new_guard;
+    else
+    {
+      symbol_exprt guard_symbol_expr=
+        symbol_exprt(guard_identifier, bool_typet());
+      exprt new_rhs=new_guard;
+      new_rhs.make_not();
+
+      ssa_exprt new_lhs(guard_symbol_expr);
+      state.rename(new_lhs, ns, goto_symex_statet::L1);
+      state.assignment(new_lhs, new_rhs, ns, true, false);
+
+      guardt guard;
+
+      //target.assignment(
+      //  guard.as_expr(),
+      //  new_lhs, new_lhs, guard_symbol_expr,
+      //  new_rhs,
+      //  original_source,
+      //  symex_targett::assignment_typet::GUARD);
+      state.symex_target->assignment(
+        guard.as_expr(),
+        new_lhs, new_lhs, guard_symbol_expr,
+        new_rhs,
+        original_source,
+        symex_targett::assignment_typet::GUARD);
+
+      guard_expr=guard_symbol_expr;
+      guard_expr.make_not();
+      state.rename(guard_expr, ns);
+    }
+
+    if(forward)
+    {
+      new_state.guard.add(guard_expr);
+      guard_expr.make_not();
+      state.guard.add(guard_expr);
+    }
+    else
+    {
+      state.guard.add(guard_expr);
+      guard_expr.make_not();
+      new_state.guard.add(guard_expr);
+    }
+  }
+}
