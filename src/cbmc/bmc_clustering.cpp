@@ -104,6 +104,7 @@ safety_checkert::resultt bmc_clusteringt::step(
   //equation=*(dynamic_cast<symex_target_equationt*>(symex().cluster(symex_state).symex_target));
 
   return all_properties(goto_functions, prop_conv);
+#if 0
   decision_proceduret::resultt result=run_decision_procedure(prop_conv);
   if(result==decision_proceduret::resultt::D_SATISFIABLE)
     return safety_checkert::resultt::UNSAFE;
@@ -111,6 +112,7 @@ safety_checkert::resultt bmc_clusteringt::step(
     return safety_checkert::resultt::SAFE;
   else
     return safety_checkert::resultt::ERROR;
+#endif
 }
 
 /*******************************************************************\
@@ -150,8 +152,12 @@ decision_proceduret::resultt bmc_clusteringt::run_and_clear_decision_procedure()
 {
   prop_conv.set_all_frozen();
 
-  for(auto & it : equation.SSA_steps)
-    it.ignore=false;
+  //for(auto & it : equation.SSA_steps)
+  //  it.ignore=false;
+  auto last=equation.SSA_steps.end();
+  --last;
+  for(auto it=equation.SSA_steps.begin(); it!=last; it++)
+    if(it->is_assert()) it->ignore=true;
 
   // each time a different solver is created
   prop_convt &prop_conv2=cbmc_solvers.get_solver_local()->prop_conv();

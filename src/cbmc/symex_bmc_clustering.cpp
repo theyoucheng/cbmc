@@ -264,8 +264,10 @@ void symex_bmc_clusteringt::do_nothing(
     state.depth++;
   }
 
-  symex_goto(state);
-  symex_goto(cluster(state));
+  //symex_goto(state);
+  //symex_goto(cluster(state));
+  symex_end_of_function(state);
+  symex_transition(state);
 }
 
 void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
