@@ -42,6 +42,8 @@ public:
   symex_targett *symex_target;
   std::size_t total_vccs, remaining_vccs;
 
+  goto_functionst state_goto_functions;
+
 
   void initialize(const goto_functionst &goto_functions);
 

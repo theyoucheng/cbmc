@@ -76,23 +76,23 @@ public:
     parameter_identifiers=other.parameter_identifiers;
   }
 
-  goto_function_templatet(const goto_function_templatet &)=delete;
-  goto_function_templatet &operator=(const goto_function_templatet &)=delete;
+  //goto_function_templatet(const goto_function_templatet &)=delete;
+  //goto_function_templatet &operator=(const goto_function_templatet &)=delete;
 
-  goto_function_templatet(goto_function_templatet &&other):
-    body(std::move(other.body)),
-    type(std::move(other.type)),
-    parameter_identifiers(std::move(other.parameter_identifiers))
-  {
-  }
+  //goto_function_templatet(goto_function_templatet &&other):
+  //  body(std::move(other.body)),
+  //  type(std::move(other.type)),
+  //  parameter_identifiers(std::move(other.parameter_identifiers))
+  //{
+  //}
 
-  goto_function_templatet &operator=(goto_function_templatet &&other)
-  {
-    body=std::move(other.body);
-    type=std::move(other.type);
-    parameter_identifiers=std::move(other.parameter_identifiers);
-    return *this;
-  }
+  //goto_function_templatet &operator=(goto_function_templatet &&other)
+  //{
+  //  body=std::move(other.body);
+  //  type=std::move(other.type);
+  //  parameter_identifiers=std::move(other.parameter_identifiers);
+  //  return *this;
+  //}
 };
 
 template <class bodyT>
@@ -107,19 +107,19 @@ public:
   {
   }
 
-  goto_functions_templatet(const goto_functions_templatet &)=delete;
-  goto_functions_templatet &operator=(const goto_functions_templatet &)=delete;
+  //goto_functions_templatet(const goto_functions_templatet &)=delete;
+  //goto_functions_templatet &operator=(const goto_functions_templatet &)=delete;
 
-  goto_functions_templatet(goto_functions_templatet &&other):
-    function_map(std::move(other.function_map))
-  {
-  }
+  //goto_functions_templatet(goto_functions_templatet &&other):
+  //  function_map(std::move(other.function_map))
+  //{
+  //}
 
-  goto_functions_templatet &operator=(goto_functions_templatet &&other)
-  {
-    function_map=std::move(other.function_map);
-    return *this;
-  }
+  //goto_functions_templatet &operator=(goto_functions_templatet &&other)
+  //{
+  //  function_map=std::move(other.function_map);
+  //  return *this;
+  //}
 
   void clear()
   {

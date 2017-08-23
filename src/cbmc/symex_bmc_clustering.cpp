@@ -197,6 +197,7 @@ void symex_bmc_clusteringt::add_goto_else_assumption(
 
   //symex_goto(state);
   symex_guard_goto(state, false_exprt()); //not_exprt(state.source.pc->guard));
+  std::cout << "**state guard after guard goto: " << from_expr(state.guard) << "\n";
   //symex_goto(cluster(state));
 }
 
@@ -318,10 +319,7 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   goto_programt::const_targett goto_target=
     instruction.get_target();
 
-  std::cout << "***instruction targets size: " << instruction.targets.size() << "\n";
-
   bool forward=!instruction.is_backwards_goto();
-  std::cout << "***symex_goto: forward=" << forward << "\n";
   if(!forward) // backwards?
   {
     // is it label: goto label; or while(cond); - popular in SV-COMP
