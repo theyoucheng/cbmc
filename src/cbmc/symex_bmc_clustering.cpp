@@ -130,15 +130,10 @@ void symex_bmc_clusteringt::add_goto_if_assumption(
     tmp.make_not();
     state.rename(tmp, ns);
     symex_assume(state, tmp);
-    if(0&&lotto())
-    {
-      cluster(state).rename(tmp, ns);
-      symex_assume(cluster(state), tmp);
-    }
   }
 
-  symex_goto(state);
-  //symex_goto(cluster(state));
+  //state.state_pc->guard=false_exprt();
+  symex_guard_goto(state, false_exprt());
 }
 
 void symex_bmc_clusteringt::mock_goto_else_condition(
@@ -188,17 +183,11 @@ void symex_bmc_clusteringt::add_goto_else_assumption(
     clean_expr(tmp, state, false);
     state.rename(tmp, ns);
     symex_assume(state, tmp);
-    if(0&&lotto())
-    {
-      cluster(state).rename(tmp, ns);
-      //symex_assume(cluster(state), tmp);
-    }
+
   }
 
-  //symex_goto(state);
-  symex_guard_goto(state, false_exprt()); //not_exprt(state.source.pc->guard));
-  std::cout << "**state guard after guard goto: " << from_expr(state.guard) << "\n";
-  //symex_goto(cluster(state));
+  //state.state_pc->guard=true_exprt();
+  symex_guard_goto(state, true_exprt());
 }
 
 void symex_bmc_clusteringt::record(statet &state)
@@ -213,12 +202,12 @@ void symex_bmc_clusteringt::create_a_cluster(statet &state, symex_targett &equat
   record(state);
   //clusters.insert(std::pair<std::string, statet>(state.id, state));
   clusters[state.id]=state;
-  std::cout << "***state address: " << state.symex_target << "\n";
-  std::cout << "***state address: " << cluster(state).symex_target << "\n";
+  //std::cout << "***state address: " << state.symex_target << "\n";
+  //std::cout << "***state address: " << cluster(state).symex_target << "\n";
   //assert(!(&state==&cluster(state)));
   clusters[state.id].symex_target=&equation;
-  std::cout << ">>>> state address: " << state.symex_target << "\n";
-  std::cout << ">>>> state address: " << cluster(state).symex_target << "\n";
+  //std::cout << ">>>> state address: " << state.symex_target << "\n";
+  //std::cout << ">>>> state address: " << cluster(state).symex_target << "\n";
 }
 
 goto_symext::statet& symex_bmc_clusteringt::cluster(const std::string &id)
@@ -276,19 +265,12 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   const goto_programt::instructiont &instruction=*state.source.pc;
   statet::framet &frame=state.top();
 
-  //exprt old_guard=guard; //instruction.guard;
-  exprt old_guard=true_exprt(); //instruction.guard;
+  exprt old_guard=guard;
   clean_expr(old_guard, state, false);
-
-  std::cout << "*** old_guard: " << from_expr(old_guard) << "\n";
-
 
   exprt new_guard=old_guard;
   state.rename(new_guard, ns);
   do_simplify(new_guard);
-
-  std::cout << "*** new_guard: " << from_expr(new_guard) << "\n";
-  std::cout << "*** state guard: " << from_expr(state.guard) << "\n";
 
   if(new_guard.is_false() ||
      state.guard.is_false())
@@ -351,8 +333,6 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
     // continue unwinding?
     if(get_unwind(state.source, unwind))
     {
-      //std::cout << "get unwind++\n";
-      // no!
       loop_bound_exceeded(state, new_guard);
 
       // next instruction
@@ -376,16 +356,19 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
     new_state_pc=goto_target;
     state_pc=state.source.pc;
     state_pc++;
+    //state.state_pc++; //customized pc
 
     // skip dead instructions
     if(new_guard.is_true())
       while(state_pc!=goto_target && !state_pc->is_target())
+      {
         ++state_pc;
+        //++state.state_pc; //customized pc
+      }
 
     if(state_pc==goto_target)
     {
       symex_transition(state, goto_target);
-      //symex_transition(state, goto_target, true);
       return; // nothing else to do
     }
   }
@@ -393,6 +376,7 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   {
     new_state_pc=state.source.pc;
     new_state_pc++;
+    //state.state_pc++; // customized pc
     state_pc=goto_target;
   }
 

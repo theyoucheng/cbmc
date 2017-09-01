@@ -35,6 +35,7 @@ goto_symex_statet::goto_symex_statet():
 
 void goto_symex_statet::initialize(const goto_functionst &goto_functions)
 {
+  std::cout << "initializing...\n";
   goto_functionst::function_mapt::const_iterator it=
     goto_functions.function_map.find(goto_functionst::entry_point());
 
@@ -46,6 +47,16 @@ void goto_symex_statet::initialize(const goto_functionst &goto_functions)
   source=symex_targett::sourcet(body);
   top().end_of_function=--body.instructions.end();
   top().calling_location.pc=top().end_of_function;
+
+  state_goto_functions=goto_functions;
+  //for(auto &x: goto_functions.function_map)
+  //  std::cout << "xxx: " << x.first << "\n";
+  //for(auto &x: state_goto_functions.function_map)
+  //  std::cout << "yyy: " << x.first << "\n";
+  goto_functionst::function_mapt::iterator it2=
+    state_goto_functions.function_map.find(goto_functionst::entry_point());
+  //state_goto_program=it->second.body;
+  state_pc=(it2->second.body).instructions.begin();
 }
 
 void goto_symex_statet::level0t::operator()(

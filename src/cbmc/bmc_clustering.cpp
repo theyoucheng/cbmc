@@ -2,7 +2,7 @@
 
 Module: Clustering Symbolic Execution of ANSI-C
 
-Author: 
+Author:
 
 \*******************************************************************/
 
@@ -29,6 +29,11 @@ Author:
 
 #include "bmc_clustering.h"
 #include <iostream>
+#include <goto-programs/remove_returns.h>
+#include <goto-programs/show_goto_functions.h>
+#include <goto-instrument/dump_c.h>
+#include <goto-instrument/unwind.h>
+
 
 /*******************************************************************\
 
@@ -50,6 +55,8 @@ safety_checkert::resultt bmc_clusteringt::step(
 
   setup_clustering_unwind();
 
+  unsigned c=0;
+
   while(!symex_state.call_stack().empty())
   {
 
@@ -60,36 +67,115 @@ safety_checkert::resultt bmc_clusteringt::step(
 
     if(symex_state.source.pc->type==GOTO)
     {
-      // Now, we face GOTO
-      bool lotto=symex().lotto();
-
-      std::cout << "####  " << (symex_state.source.pc)->source_location << "\n";
-      std::cout << "#### loop id?: "
-    		    << symex_state.top().loop_iterations[goto_programt::loop_id(symex_state.source.pc)].count
-				<< ", "
-    		    << symex_state.top().loop_iterations[goto_programt::loop_id(symex_state.source.pc)].is_recursion
-				<< ", "
-				<< options.get_unsigned_int_option("unwind")
-				<< "\n";
-
-      if(lotto)
+      //std::cout << "A: " << from_expr(symex_state.state_pc->guard);
+      symex_state.state_pc=find_target(
+        symex_state.source.pc,
+	    symex_state.state_goto_functions);
+      //std::cout << "B: " << from_expr(symex_state.state_pc->guard);
+      bool is_loop=is_a_loop(symex_state.state_pc);
+#if 0
+      if(is_loop)
       {
-        if(reachable_if())
-          symex().add_goto_if_assumption(symex_state, goto_functions);
-        else if(reachable_else())
-          symex().add_goto_else_assumption(symex_state, goto_functions);
-        else symex().do_nothing(symex_state, goto_functions); //assert(0);
+        symex_state.state_goto_functions.update();
+        show_goto_functions(
+          ns,
+          ui_message_handlert::uit::PLAIN,
+	      symex_state.state_goto_functions);
+        goto_functionst::function_mapt::iterator func_it=
+          symex_state.state_goto_functions.function_map.find(symex_state.state_pc->function);
+        goto_unwindt goto_unwind;
+        goto_unwind.unwind(
+          func_it->second.body,
+          symex_state.state_pc,
+          symex_state.state_pc->get_target(),
+          1,
+          goto_unwindt::unwind_strategyt::CONTINUE);
+        std::cout << "after unwinding...\n";
+        symex_state.state_pc->make_skip();
+        symex_state.state_goto_functions.update();
+        show_goto_functions(
+          ns,
+          ui_message_handlert::uit::PLAIN,
+	      symex_state.state_goto_functions);
       }
-      else
+#endif
+      if(c++==10)
       {
-        if(reachable_else())
+        state_dump_c(symex_state);
+      }
+
+      if(reachable_if())
+      {
+        //std::cout << "C: " << from_expr(symex_state.state_pc->guard) << "\n";
+        symex().add_goto_if_assumption(symex_state, goto_functions);
+#if 0
+        goto_programt::instructiont::targett i_it=symex_state.state_pc;
+        goto_programt &state_goto_program=
+          symex_state.state_goto_functions.function_map.find(
+            symex_state.state_pc->function)->second.body;
+        state_goto_program.insert_after(i_it);
+        ++i_it;
+        i_it->make_assumption(not_exprt(symex_state.state_pc->guard));
+        i_it->source_location=symex_state.state_pc->source_location;
+        i_it->source_location.set_comment("if branch: "+from_expr(i_it->guard));
+#endif
+        if(is_loop) //else
         {
-          symex().add_goto_else_assumption(symex_state, goto_functions);
+          // unwind 1 more step
+          symex_state.state_goto_functions.update();
+          show_goto_functions(
+            ns,
+            ui_message_handlert::uit::PLAIN,
+    	    symex_state.state_goto_functions);
+          goto_functionst::function_mapt::iterator func_it=
+            symex_state.state_goto_functions.function_map.find(symex_state.state_pc->function);
+          goto_unwindt goto_unwind;
+          goto_unwind.unwind(
+            func_it->second.body,
+            symex_state.state_pc,
+            symex_state.state_pc->get_target(),
+            1,
+            goto_unwindt::unwind_strategyt::CONTINUE);
+          //std::cout << "after unwinding...\n";
+          //symex_state.state_pc->make_skip();
+          //symex_state.state_goto_functions.update();
+          //show_goto_functions(
+          //  ns,
+          //  ui_message_handlert::uit::PLAIN,
+    	  //  symex_state.state_goto_functions);
         }
-        else  if(reachable_if())
-          symex().add_goto_if_assumption(symex_state, goto_functions);
-        else symex().do_nothing(symex_state, goto_functions); //assert(0);
+        goto_programt::instructiont::targett i_it=symex_state.state_pc;
+        goto_programt &state_goto_program=
+          symex_state.state_goto_functions.function_map.find(
+            symex_state.state_pc->function)->second.body;
+        state_goto_program.insert_after(i_it);
+        ++i_it;
+        i_it->make_assumption(not_exprt(symex_state.state_pc->guard));
+        i_it->source_location=symex_state.state_pc->source_location;
+        i_it->source_location.set_comment("if branch: "+from_expr(i_it->guard));
+        symex_state.state_pc->make_skip();
+        symex_state.state_goto_functions.update();
       }
+      else if(reachable_else())
+      {
+        //symex_state.state_pc->guard=true_exprt();
+        symex().add_goto_else_assumption(symex_state, goto_functions);
+#if 1
+        goto_programt::instructiont::targett i_it=symex_state.state_pc;
+        goto_programt &state_goto_program=
+          symex_state.state_goto_functions.function_map.find(
+            symex_state.state_pc->function)->second.body;
+        state_goto_program.insert_after(i_it);
+        ++i_it;
+        i_it->make_assumption(symex_state.state_pc->guard);
+        i_it->source_location=symex_state.state_pc->source_location;
+        i_it->source_location.set_comment("else branch: "+from_expr(i_it->guard));
+        symex_state.state_pc->guard=true_exprt();
+        i_it->swap(*symex_state.state_pc);
+#endif
+      }
+      else assert(0);
+
     }
 
     statistics() << "size of program expression: "
@@ -97,6 +183,8 @@ safety_checkert::resultt bmc_clusteringt::step(
                  << " steps" << eom;
     std::cout << "tot_vccs: " << symex().total_vccs << "\n";
   }
+
+  //state_dump_c(symex_state);
 
   prop_conv.set_all_frozen();
 
@@ -131,6 +219,9 @@ safety_checkert::resultt bmc_clusteringt::run(
   const goto_functionst &goto_functions)
 {
   safety_checkert::resultt result;
+
+  symex_state.initialize(goto_functions);
+  update_goto_functions(symex_state.state_goto_functions);
 
   result=step(goto_functions);
 
@@ -391,5 +482,131 @@ void bmc_clusteringt::setup_clustering_unwind()
 
   if(options.get_option("unwind")!="")
     symex().set_unwind_limit(options.get_unsigned_int_option("unwind"));
+}
+
+goto_programt::instructiont::targett bmc_clusteringt::find_target(
+  goto_programt::instructionst::const_iterator target_it,
+  goto_functionst &goto_functions)
+{
+  std::cout << "*** find target: " << target_it->source_location << "\n";
+  //for(auto &x : goto_functions.function_map)
+  //  std::cout << "++ " << x.first << "\n";
+  goto_functionst::function_mapt::iterator func_it=
+    goto_functions.function_map.find(target_it->function);
+  //std::cout << "the function: " << func_it->first << "\n";
+
+  goto_programt::instructiont ins;
+  Forall_goto_program_instructions(it, func_it->second.body)
+  //auto it=symex_state.state_pc;
+  //++it;
+  //for(; it!=func_it->second.body.instructions.end(); ++it)
+  {
+	//std::cout << from_expr(it->guard) << ", " << from_expr(target_it->guard) << "\n";
+    if(target_it->code==it->code &&
+      target_it->source_location==it->source_location &&
+      target_it->type==it->type &&
+      target_it->guard==it->guard)
+    {
+      return it;
+      break;
+    }
+  }
+  assert(0);
+}
+
+void bmc_clusteringt::state_dump_c(goto_symext::statet &state)
+{
+  std::cout << "\n***to dump c***\n";
+  //const bool is_cpp=false; //cmdline.isset("dump-cpp");
+  //const bool h_libc=true; //!cmdline.isset("no-system-headers");
+  //const bool h_all=false; //cmdline.isset("use-all-headers");
+  //namespacet ns(symbol_table);
+
+  // restore RETURN instructions in case remove_returns had been
+  // applied
+  symbol_tablet stable=ns.get_symbol_table();
+  //goto_functionst gfunctions=state.state_goto_functions; //state.state_goto_functions;
+  //restore_returns(stable, gfunctions);
+  //update_goto_functions(gfunctions);
+  //std::cout << "dumped c" << "\n";
+  show_goto_functions(
+              ns, //namespacet(symbol_table),
+              ui_message_handlert::uit::PLAIN,
+  			state.state_goto_functions);
+
+
+  //goto_modelt goto_model;
+  //goto_model.goto_functions=state.state_goto_functions;
+  //update_goto_functions(goto_model.goto_functions);
+  //goto_model.symbol_table=stable;
+  //remove_returns(goto_model);
+
+  std::ofstream out("state_dump_c.c");
+  if(!out)
+  {
+    error() << "failed to write to `" << "state_dump_c.c" << "'";
+    return; //throw 10; //return 10;
+  }
+  (dump_c)(state.state_goto_functions, false, false, ns, out);
+  //  else
+  //    (is_cpp ? dump_cpp : dump_c)(
+  //      goto_functions, h_libc, h_all, ns, std::cout);
+  std::cout << "\n***after dump c***\n";
+
+}
+
+void bmc_clusteringt::update_goto_functions(goto_functionst &_goto_functions)
+{
+  for(auto &x: _goto_functions.function_map)
+  {
+    Forall_goto_program_instructions(it, x.second.body)
+	{
+	  if(it->targets.empty()) continue;
+	  if(!it->is_goto()) continue;
+	  // there is only one target
+	  bool found=false;
+	  goto_programt::instructionst::iterator target=it->targets.front();
+	  Forall_goto_program_instructions(jt, x.second.body)
+	  {
+	    if(target->code==jt->code &&
+	      target->source_location==jt->source_location &&
+		  target->type==jt->type &&
+		  target->guard==jt->guard)
+	    {
+	      it->set_target(jt);
+	      found=true;
+	      break;
+	    }
+	  }
+	  if(!found)
+	  {
+		std::cout << "***Not found...\n";
+	    it->make_skip();
+	  }
+	}
+  }
+  //_goto_functions.update();
+}
+#
+bool bmc_clusteringt::is_a_loop(const goto_programt::targett t1)
+{
+  if(!t1->is_goto()) return false;
+  goto_functionst::function_mapt::const_iterator func_it=
+      goto_functions.function_map.find(t1->function);
+  forall_goto_program_instructions(it, func_it->second.body)
+  {
+    if(it->is_backwards_goto())
+    {
+      std::cout << "There is one backwards loop\n";
+      std::cout << it->source_location << "\n";
+      std::cout << it->get_target()->source_location << "\n";
+
+      std::cout << t1->source_location << "\n";
+
+      if(it->get_target()->source_location==t1->source_location)
+        return true;
+    }
+  }
+  return false;
 }
 

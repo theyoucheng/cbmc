@@ -97,6 +97,16 @@ protected:
 
   void setup_clustering_unwind();
 
+  goto_programt::instructiont::targett find_target(
+    goto_programt::instructionst::const_iterator target_it,
+	goto_functionst &goto_functions);
+
+  void state_dump_c(goto_symext::statet &state);
+
+  void update_goto_functions(goto_functionst &_goto_functions);
+
+  bool is_a_loop(const goto_programt::targett t);
+
 };
 
 #endif

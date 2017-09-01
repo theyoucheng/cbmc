@@ -43,6 +43,8 @@ public:
   std::size_t total_vccs, remaining_vccs;
 
   goto_functionst state_goto_functions;
+  goto_programt::targett state_pc;
+  //goto_programt state_goto_program;
 
 
   void initialize(const goto_functionst &goto_functions);

@@ -36,6 +36,9 @@ OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../goto-instrument/full_slicer$(OBJEXT) \
       ../goto-instrument/nondet_static$(OBJEXT) \
       ../goto-instrument/cover$(OBJEXT) \
+      ../goto-instrument/dump_c$(OBJEXT) \
+      ../goto-instrument/unwind$(OBJEXT) \
+      ../goto-instrument/goto_program2code$(OBJEXT) \
       ../analyses/analyses$(LIBEXT) \
       ../langapi/langapi$(LIBEXT) \
       ../xmllang/xmllang$(LIBEXT) \
