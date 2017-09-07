@@ -16,6 +16,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/std_expr.h>
 #include <util/std_code.h>
 #include <util/base_type.h>
+#include <iostream>
 
 bool has_nondet(const exprt &dest)
 {
@@ -251,7 +252,9 @@ exprt wp(
   if(statement==ID_assign)
     return wp_assign(to_code_assign(code), post, ns);
   else if(statement==ID_assume)
+  {
     return wp_assume(to_code_assume(code), post, ns);
+  }
   else if(statement==ID_skip)
     return post;
   else if(statement==ID_decl)
@@ -269,5 +272,10 @@ exprt wp(
   else if(statement==ID_fence)
     return post; // ignored
   else
-    throw "sorry, wp("+id2string(statement)+"...) not implemented";
+  {
+	//return wp_assume(to_code_assume(code), post, ns);
+    //std::cout << "***wp: " << (statement==ID_goto) << "\n";
+    std::cout <<  "sorry, wp("+id2string(statement)+"...) not implemented";
+    throw 0;
+  }
 }

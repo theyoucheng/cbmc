@@ -52,16 +52,35 @@ safety_checkert::resultt bmc_clusteringt::step(
 
   while(!symex_state.call_stack().empty())
   {
-
+    std::cout << "xxxxxxxxxxxxxxxxxx\n";
     symex()(
       symex_state,
       goto_functions,
       goto_functions.function_map.at(goto_functions.entry_point()).body);
 
-    if(symex_state.source.pc->type==GOTO)
+    bool ended=symex_state.call_stack().empty();
+
+    //std::cout << "**before reachable: " << symex_state.source.pc->source_location << "\n";
+    if(ended)
+    {
+      symex().backtrack_learn(symex_state);
+      symex().print_learnt_map();
+    }
+
+    if(!reachable())
+    {
+      std::cout << "backtrack: \n";
+      throw(0); //continue;
+    }
+
+    if(symex_state.source.pc->type!=GOTO)
+    {
+      symex().mock_step(symex_state, goto_functions);
+      continue;
+    }
+    else //if(symex_state.source.pc->type==GOTO)
     {
       // Now, we face GOTO
-      bool lotto=symex().lotto();
 
       std::cout << "####  " << (symex_state.source.pc)->source_location << "\n";
       std::cout << "#### loop id?: "
@@ -72,24 +91,15 @@ safety_checkert::resultt bmc_clusteringt::step(
 				<< options.get_unsigned_int_option("unwind")
 				<< "\n";
 
-      if(lotto)
+      if(reachable_if())
       {
-        if(reachable_if())
-          symex().add_goto_if_assumption(symex_state, goto_functions);
-        else if(reachable_else())
-          symex().add_goto_else_assumption(symex_state, goto_functions);
-        else symex().do_nothing(symex_state, goto_functions); //assert(0);
+        symex().add_goto_if_assumption(symex_state, goto_functions);
       }
-      else
+      else if(reachable_else())
       {
-        if(reachable_else())
-        {
-          symex().add_goto_else_assumption(symex_state, goto_functions);
-        }
-        else  if(reachable_if())
-          symex().add_goto_if_assumption(symex_state, goto_functions);
-        else symex().do_nothing(symex_state, goto_functions); //assert(0);
+        symex().add_goto_else_assumption(symex_state, goto_functions);
       }
+      else assert(0);
     }
 
     statistics() << "size of program expression: "
@@ -100,19 +110,7 @@ safety_checkert::resultt bmc_clusteringt::step(
 
   prop_conv.set_all_frozen();
 
-  //symex_state=symex().cluster(symex_state);
-  //equation=*(dynamic_cast<symex_target_equationt*>(symex().cluster(symex_state).symex_target));
-
   return all_properties(goto_functions, prop_conv);
-#if 0
-  decision_proceduret::resultt result=run_decision_procedure(prop_conv);
-  if(result==decision_proceduret::resultt::D_SATISFIABLE)
-    return safety_checkert::resultt::UNSAFE;
-  else if(result==decision_proceduret::resultt::D_UNSATISFIABLE)
-    return safety_checkert::resultt::SAFE;
-  else
-    return safety_checkert::resultt::ERROR;
-#endif
 }
 
 /*******************************************************************\
@@ -168,6 +166,72 @@ decision_proceduret::resultt bmc_clusteringt::run_and_clear_decision_procedure()
   return result;
 }
 
+bool bmc_clusteringt::reachable_assert()
+{
+
+  std::cout << "\n++++++++++++++++++++ reachable assert +++++++++++++++++\n";
+  std::cout << symex_state.source.pc->source_location << "\n";
+  std::cout << from_expr(symex_state.source.pc->code) << "\n";
+
+  // make a snapshot
+  goto_symext::statet backup_state=symex_state;
+  auto tmp=equation;
+
+  std::size_t num=equation.SSA_steps.size();
+  symex().mock_step(symex_state, goto_functions);
+
+  if(num==equation.SSA_steps.size()) return false;
+  show_vcc();
+  decision_proceduret::resultt result=run_and_clear_decision_procedure();
+
+  // recover the analysis
+  symex_state=backup_state;
+  equation=tmp;
+
+  --symex().total_vccs;
+  --symex().remaining_vccs;
+
+  return (result==decision_proceduret::resultt::D_SATISFIABLE);
+}
+
+void bmc_clusteringt::clear(symex_target_equationt &equation)
+{
+  for(auto &x: equation.SSA_steps)
+    if(x.is_assert()) x.ignore=true;
+}
+
+
+bool bmc_clusteringt::reachable()
+{
+
+  std::cout << "\n++++++++++++++++++++ reachability analysis +++++++++++++++++\n";
+  //std::cout << symex_state.source.pc->source_location << "\n";
+  //std::cout << from_expr(symex_state.source.pc->code) << "\n";
+
+  // make a snapshot
+  goto_symext::statet backup_state=symex_state;
+  auto tmp=equation;
+
+  std::size_t num=equation.SSA_steps.size();
+  std::cout << "num: " << num << "\n";
+  clear(equation);
+  symex().mock_reach(symex_state, goto_functions);
+  std::cout << "--------\n";
+
+  if(num==equation.SSA_steps.size()) return false;
+  show_vcc();
+  decision_proceduret::resultt result=run_and_clear_decision_procedure();
+
+  // recover the analysis
+  symex_state=backup_state;
+  equation=tmp;
+
+  --symex().total_vccs;
+  --symex().remaining_vccs;
+
+  return (result==decision_proceduret::resultt::D_SATISFIABLE);
+}
+
 bool bmc_clusteringt::reachable_if()
 {
 
@@ -180,6 +244,7 @@ bool bmc_clusteringt::reachable_if()
   auto tmp=equation;
 
   std::size_t num=equation.SSA_steps.size();
+  clear(equation);
   symex().mock_goto_if_condition(symex_state, goto_functions);
 
   if(num==equation.SSA_steps.size()) return false;
@@ -207,10 +272,10 @@ bool bmc_clusteringt::reachable_else()
   auto tmp=equation;
 
   std::size_t num=equation.SSA_steps.size();
+  clear(equation);
   symex().mock_goto_else_condition(symex_state, goto_functions);
   show_vcc();
   if(num==equation.SSA_steps.size()) return false;
-
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
 
   // recover

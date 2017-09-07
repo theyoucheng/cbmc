@@ -28,6 +28,7 @@ public:
 
   struct sourcet
   {
+    bool if_branch=false;
     unsigned thread_nr;
     goto_programt::const_targett pc;
     bool is_set;

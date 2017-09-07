@@ -42,6 +42,13 @@ public:
   symex_targett *symex_target;
   std::size_t total_vccs, remaining_vccs;
 
+  //struct locationt
+  //{
+  //  symex_targett::sourcet source;
+  //  bool if_branch;
+  //};
+
+  std::list<symex_targett::sourcet> locations;
 
   void initialize(const goto_functionst &goto_functions);
 

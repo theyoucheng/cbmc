@@ -12,6 +12,8 @@ Author:
 
 #include "symex_bmc_clustering.h"
 #include <analyses/dirty.h>
+#include <goto-programs/wp.h>
+#include <util/prefix.h>
 #include <iostream>
 
 /*******************************************************************\
@@ -36,6 +38,19 @@ symex_bmc_clusteringt::symex_bmc_clusteringt(
 {
 }
 
+bool symex_bmc_clusteringt::learnt(const symex_targett::sourcet &source)
+{
+  if(!learning_symex) return false;
+  auto it=learnt_map.find(source);
+  if(it!=learnt_map.end())
+    return !it->second.is_false();
+  return false;
+  //for(auto it=learnt_map.begin(); it!=learnt_map.end(); ++it)
+  //  if(!(it->first.source<source || source<it->first.source))
+  //    return !it->second.is_false();
+  return false;
+}
+
 void symex_bmc_clusteringt::operator()(
   statet &state,
   const goto_functionst &goto_functions,
@@ -53,15 +68,6 @@ void symex_bmc_clusteringt::operator()(
     state.symex_target=&target;
     state.dirty=new dirtyt(goto_functions);
     symex_transition(state, state.source.pc);
-
-    cluster(state).source=symex_targett::sourcet(goto_program);
-    assert(!cluster(state).threads.empty());
-    assert(!cluster(state).call_stack().empty());
-    cluster(state).top().end_of_function=--goto_program.instructions.end();
-    cluster(state).top().calling_location.pc=state.top().end_of_function;
-    //cluster(state).symex_target=&target;
-    cluster(state).dirty=new dirtyt(goto_functions);
-    symex_transition(cluster(state), cluster(state).source.pc);
   }
 
   assert(state.top().end_of_function->is_end_function());
@@ -70,23 +76,151 @@ void symex_bmc_clusteringt::operator()(
 
   while(!state.call_stack().empty())
   {
+    state.locations.push_back(state.source);
+    if(learning_symex)
+    {
+      if(learnt_map.find(state.source)==learnt_map.end())
+        learnt_map[state.source]=false_exprt();
+    }
+    //std::cout << state.source.pc->source_location << "\n";
+    //std::cout << "xxxxxxxxxxxx" << (state.source.pc->type==GOTO) << "\n";
+
     if(state.source.pc->type==GOTO)
     {
       const auto &guard=state.source.pc->guard;
       if(!guard.is_true() && !guard.is_false())
       {
     	merge_gotos(state); // in case there is pending goto
-    	merge_gotos(cluster(state));
         return;
       }
     }
 
+    if(learnt(state.source))
+    {
+    //  std::cout << "****learnt: " << state.source.pc->source_location << "\n";
+      return;
+    }
+    //std::cout << "not learnt: " << state.source.pc->source_location << "\n";
+    std::cout << "before symex_step\n";
     symex_step(goto_functions, state);
-    symex_step(goto_functions, cluster(state));
+    std::cout << "after symex_step\n";
   }
-
+  std::cout << "out of the loop\n";
   delete state.dirty;
   state.dirty=0;
+  std::cout << "///////\n";
+}
+
+void symex_bmc_clusteringt::add_learnt_info(
+  statet &state,
+  const goto_functionst &goto_functions)
+{
+  for(auto &x: state.locations)
+  {
+    if(learnt_map[x].is_false()) continue;
+    std::cout << "Added learnt info: " << from_expr(learnt_map[x]) << ", "
+    		<< state.source.pc->source_location << "\n";
+    exprt tmp(learnt_map[x]);
+    tmp.make_not();
+    clean_expr(tmp, state, false);
+    vcc(tmp, "", state);
+  }
+}
+
+void symex_bmc_clusteringt::print_learnt_map()
+{
+  std::cout << "\n*** The map learnt ***\n";
+  for(auto &x: learnt_map)
+  {
+    if(x.second.is_false()) continue;
+    std::cout << x.first.pc->source_location;
+    std::cout << ": ";
+    std::cout << from_expr(x.second) << "\n";
+  }
+}
+
+void symex_bmc_clusteringt::backtrack_learn(statet &state)
+{
+  exprt learnt_expr=true_exprt();
+  std::cout << "map size: " << learnt_map.size() << "\n";
+  for(auto it=state.locations.rbegin(); it!=state.locations.rend(); ++it)
+  {
+    if(it->pc->type==ASSERT)
+      learnt_expr=and_exprt(learnt_expr, it->pc->guard);
+    else if(it->pc->type==ASSUME)
+      learnt_expr=or_exprt(learnt_expr, it->pc->guard);
+    else if(it->pc->type==GOTO)
+    {
+      codet code=it->pc->code;
+      code.set_statement(ID_assume);
+      code.operands().push_back(it->pc->guard);
+      if(it->if_branch) code.op0().make_not();
+      learnt_expr=wp(code, learnt_expr, ns);
+      exprt tmp(it->pc->guard);
+      if(it->if_branch) tmp.make_not();
+      learnt_expr=and_exprt(learnt_expr, tmp);
+      //learnt_expr=tmp; //implies_exprt(tmp, learnt_expr);
+    }
+    else if(it->pc->type==ASSIGN)
+    {
+      learnt_expr=wp(it->pc->code, learnt_expr, ns);
+      //std::cout << "\n***4 " << from_expr(learnt_expr)
+      //		  << it->pc->source_location << "\n\n";
+    }
+
+    //std::cout << "#" << it->pc->incoming_edges.size() << "\n";
+    if(it->pc->incoming_edges.size()>1)// && it->pc->type!=GOTO)
+    {
+      bool backwards_loop=false;
+      for(auto &in: it->pc->incoming_edges)
+        if(it->pc->location_number<in->location_number)
+        {
+          backwards_loop=true;
+          break;
+        }
+      if(backwards_loop)
+      {
+        std::cout << "backwards loop: " << it->pc->source_location << "\n";
+        continue;
+      }
+      std::cout << "Multiple inbound edges: " << it->pc->source_location << "\n";
+      std::cout << "***1 " << from_expr(learnt_map[*it]) << "\n";
+      std::cout << "***2 " << from_expr(learnt_expr) << "\n";
+      learnt_map[*it]=or_exprt(learnt_map[*it], learnt_expr);
+      std::cout << "***3 " << from_expr(learnt_expr) << "\n\n";
+      //state.rename(learnt_map[*it], ns);
+      do_simplify(learnt_map[*it]);
+    }
+    do_simplify(learnt_expr);
+  }
+}
+
+void symex_bmc_clusteringt::mock_step(
+  statet &state,
+  const goto_functionst &goto_functions)
+{
+  symex_step(goto_functions, state);
+}
+
+void symex_bmc_clusteringt::mock_reach(
+  statet &state,
+  const goto_functionst &goto_functions)
+{
+  if(!state.guard.is_false())
+  {
+    //std::string msg=id2string(state.source.pc->source_location.get_comment());
+	//if(msg=="")
+    //  msg="mock reach: ";
+    exprt tmp=false_exprt();
+
+    clean_expr(tmp, state, false);
+    vcc(tmp, "mock reach", state);
+
+    //std::cout << "mock reachability: " << state.source.pc->source_location << "\n";
+  }
+
+  if(learning_symex)
+    add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::mock_goto_if_condition(
@@ -105,6 +239,9 @@ void symex_bmc_clusteringt::mock_goto_if_condition(
 
     std::cout << "mock goto-if condition: " << from_expr(tmp) << "\n";
   }
+
+  if(learning_symex)
+    add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::add_goto_if_assumption(
@@ -130,15 +267,10 @@ void symex_bmc_clusteringt::add_goto_if_assumption(
     tmp.make_not();
     state.rename(tmp, ns);
     symex_assume(state, tmp);
-    if(0&&lotto())
-    {
-      cluster(state).rename(tmp, ns);
-      symex_assume(cluster(state), tmp);
-    }
   }
-
-  symex_goto(state);
-  //symex_goto(cluster(state));
+  symex_guard_goto(state, false_exprt());
+  assert(state.locations.back().pc->type==GOTO);
+  state.locations.back().if_branch=true;
 }
 
 void symex_bmc_clusteringt::mock_goto_else_condition(
@@ -158,6 +290,8 @@ void symex_bmc_clusteringt::mock_goto_else_condition(
 
     std::cout << "mock goto-else condition: " << from_expr(tmp) << "\n";
   }
+  if(learning_symex)
+    add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::add_goto_else_assumption(
@@ -188,16 +322,11 @@ void symex_bmc_clusteringt::add_goto_else_assumption(
     clean_expr(tmp, state, false);
     state.rename(tmp, ns);
     symex_assume(state, tmp);
-    if(0&&lotto())
-    {
-      cluster(state).rename(tmp, ns);
-      //symex_assume(cluster(state), tmp);
-    }
   }
 
-  //symex_goto(state);
-  symex_guard_goto(state, false_exprt()); //not_exprt(state.source.pc->guard));
-  //symex_goto(cluster(state));
+  symex_guard_goto(state, true_exprt());
+  assert(state.locations.back().pc->type==GOTO);
+  state.locations.back().if_branch=false;
 }
 
 void symex_bmc_clusteringt::record(statet &state)
@@ -275,19 +404,12 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   const goto_programt::instructiont &instruction=*state.source.pc;
   statet::framet &frame=state.top();
 
-  //exprt old_guard=guard; //instruction.guard;
-  exprt old_guard=true_exprt(); //instruction.guard;
+  exprt old_guard=guard;
   clean_expr(old_guard, state, false);
-
-  std::cout << "*** old_guard: " << from_expr(old_guard) << "\n";
-
 
   exprt new_guard=old_guard;
   state.rename(new_guard, ns);
   do_simplify(new_guard);
-
-  std::cout << "*** new_guard: " << from_expr(new_guard) << "\n";
-  std::cout << "*** state guard: " << from_expr(state.guard) << "\n";
 
   if(new_guard.is_false() ||
      state.guard.is_false())
@@ -318,10 +440,7 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   goto_programt::const_targett goto_target=
     instruction.get_target();
 
-  std::cout << "***instruction targets size: " << instruction.targets.size() << "\n";
-
   bool forward=!instruction.is_backwards_goto();
-  std::cout << "***symex_goto: forward=" << forward << "\n";
   if(!forward) // backwards?
   {
     // is it label: goto label; or while(cond); - popular in SV-COMP
@@ -353,8 +472,6 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
     // continue unwinding?
     if(get_unwind(state.source, unwind))
     {
-      //std::cout << "get unwind++\n";
-      // no!
       loop_bound_exceeded(state, new_guard);
 
       // next instruction
@@ -378,16 +495,19 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
     new_state_pc=goto_target;
     state_pc=state.source.pc;
     state_pc++;
+    //state.state_pc++; //customized pc
 
     // skip dead instructions
     if(new_guard.is_true())
       while(state_pc!=goto_target && !state_pc->is_target())
+      {
         ++state_pc;
+        //++state.state_pc; //customized pc
+      }
 
     if(state_pc==goto_target)
     {
       symex_transition(state, goto_target);
-      //symex_transition(state, goto_target, true);
       return; // nothing else to do
     }
   }
@@ -395,6 +515,7 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   {
     new_state_pc=state.source.pc;
     new_state_pc++;
+    //state.state_pc++; // customized pc
     state_pc=goto_target;
   }
 

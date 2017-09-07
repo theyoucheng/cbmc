@@ -87,6 +87,9 @@ protected:
   decision_proceduret::resultt run_and_clear_decision_procedure();
   bool reachable_if();
   bool reachable_else();
+  bool reachable_assert();
+  bool reachable();
+  void clear(symex_target_equationt &equation);
 
   void show_state_vcc(const goto_symext::statet &state);
   void show_state_vcc_plain(const goto_symext::statet &state, std::ostream &out);

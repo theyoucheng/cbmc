@@ -10,6 +10,7 @@ Author:
 #define CPROVER_CBMC_SYMEX_BMC_CLUSTERING_H
 
 #include "symex_bmc.h"
+#include <goto-symex/symex_target.h>
 
 class symex_bmc_clusteringt:
   public symex_bmct
@@ -26,6 +27,25 @@ class symex_bmc_clusteringt:
     const goto_programt &goto_program);
 
   virtual void mock_goto_if_condition(
+    statet &state,
+    const goto_functionst &goto_functions);
+
+  virtual void mock_step(
+    statet &state,
+    const goto_functionst &goto_functions);
+
+  virtual void mock_reach(
+    statet &state,
+    const goto_functionst &goto_functions);
+
+  virtual void backtrack_learn(statet &state);
+
+  virtual void print_learnt_map();
+
+
+  virtual bool learnt(const symex_targett::sourcet &source);
+
+  virtual void add_learnt_info(
     statet &state,
     const goto_functionst &goto_functions);
 
@@ -64,6 +84,10 @@ class symex_bmc_clusteringt:
   virtual void symex_guard_goto(statet &state, const exprt &guard);
 
 protected:
+
+  bool learning_symex=true;
+  typedef std::map<symex_targett::sourcet, exprt> learnt_mapt;
+  learnt_mapt learnt_map;
 
 
 };
