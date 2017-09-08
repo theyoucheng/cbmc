@@ -73,24 +73,28 @@ safety_checkert::resultt bmc_clusteringt::step(
       throw(0); //continue;
     }
 
-    if(symex_state.source.pc->type!=GOTO)
+    if(symex().learning_symex)
+      symex().add_latest_learnt_info(symex_state, goto_functions);
+
+    if(symex_state.source.pc->type==ASSERT)
+    {
+      if(violated_assert())
+      {
+         std::cout << "The property is violated: "
+          << symex_state.source.pc->source_location
+		  << "\n";
+         throw 0;
+      }
+      symex().mock_step(symex_state, goto_functions);
+      //continue;
+    }
+    else if(symex_state.source.pc->type!=GOTO)
     {
       symex().mock_step(symex_state, goto_functions);
-      continue;
+      //continue;
     }
     else //if(symex_state.source.pc->type==GOTO)
     {
-      // Now, we face GOTO
-
-      std::cout << "####  " << (symex_state.source.pc)->source_location << "\n";
-      std::cout << "#### loop id?: "
-    		    << symex_state.top().loop_iterations[goto_programt::loop_id(symex_state.source.pc)].count
-				<< ", "
-    		    << symex_state.top().loop_iterations[goto_programt::loop_id(symex_state.source.pc)].is_recursion
-				<< ", "
-				<< options.get_unsigned_int_option("unwind")
-				<< "\n";
-
       if(reachable_if())
       {
         symex().add_goto_if_assumption(symex_state, goto_functions);
@@ -102,6 +106,7 @@ safety_checkert::resultt bmc_clusteringt::step(
       else assert(0);
     }
 
+    continue;
     statistics() << "size of program expression: "
                  << equation.SSA_steps.size()
                  << " steps" << eom;
@@ -166,7 +171,7 @@ decision_proceduret::resultt bmc_clusteringt::run_and_clear_decision_procedure()
   return result;
 }
 
-bool bmc_clusteringt::reachable_assert()
+bool bmc_clusteringt::violated_assert()
 {
 
   std::cout << "\n++++++++++++++++++++ reachable assert +++++++++++++++++\n";
@@ -178,6 +183,7 @@ bool bmc_clusteringt::reachable_assert()
   auto tmp=equation;
 
   std::size_t num=equation.SSA_steps.size();
+  clear(equation);
   symex().mock_step(symex_state, goto_functions);
 
   if(num==equation.SSA_steps.size()) return false;
@@ -205,18 +211,14 @@ bool bmc_clusteringt::reachable()
 {
 
   std::cout << "\n++++++++++++++++++++ reachability analysis +++++++++++++++++\n";
-  //std::cout << symex_state.source.pc->source_location << "\n";
-  //std::cout << from_expr(symex_state.source.pc->code) << "\n";
 
   // make a snapshot
   goto_symext::statet backup_state=symex_state;
   auto tmp=equation;
 
   std::size_t num=equation.SSA_steps.size();
-  std::cout << "num: " << num << "\n";
   clear(equation);
   symex().mock_reach(symex_state, goto_functions);
-  std::cout << "--------\n";
 
   if(num==equation.SSA_steps.size()) return false;
   show_vcc();

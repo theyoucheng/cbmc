@@ -82,8 +82,6 @@ void symex_bmc_clusteringt::operator()(
       if(learnt_map.find(state.source)==learnt_map.end())
         learnt_map[state.source]=false_exprt();
     }
-    //std::cout << state.source.pc->source_location << "\n";
-    //std::cout << "xxxxxxxxxxxx" << (state.source.pc->type==GOTO) << "\n";
 
     if(state.source.pc->type==GOTO)
     {
@@ -94,13 +92,13 @@ void symex_bmc_clusteringt::operator()(
         return;
       }
     }
+    else if(state.source.pc->type==ASSERT) return;
 
     if(learnt(state.source))
     {
-    //  std::cout << "****learnt: " << state.source.pc->source_location << "\n";
       return;
     }
-    //std::cout << "not learnt: " << state.source.pc->source_location << "\n";
+
     std::cout << "before symex_step\n";
     symex_step(goto_functions, state);
     std::cout << "after symex_step\n";
@@ -111,13 +109,14 @@ void symex_bmc_clusteringt::operator()(
   std::cout << "///////\n";
 }
 
-void symex_bmc_clusteringt::add_learnt_info(
+void symex_bmc_clusteringt::add_latest_learnt_info(
   statet &state,
   const goto_functionst &goto_functions)
 {
-  for(auto &x: state.locations)
+  auto &x=state.locations.back();
+  //for(auto &x: state.locations)
   {
-    if(learnt_map[x].is_false()) continue;
+    if(learnt_map[x].is_false()) return; //continue;
     std::cout << "Added learnt info: " << from_expr(learnt_map[x]) << ", "
     		<< state.source.pc->source_location << "\n";
     exprt tmp(learnt_map[x]);
@@ -158,18 +157,27 @@ void symex_bmc_clusteringt::backtrack_learn(statet &state)
       learnt_expr=wp(code, learnt_expr, ns);
       exprt tmp(it->pc->guard);
       if(it->if_branch) tmp.make_not();
-      learnt_expr=and_exprt(learnt_expr, tmp);
-      //learnt_expr=tmp; //implies_exprt(tmp, learnt_expr);
+      //do_simplify(learnt_expr);
+      //std::cout << "from_expr: " << from_expr(learnt_expr) << "\n";
+      //std::cout << "** " << learnt_expr.operands().size() << "\n";
+      assert(learnt_expr.operands().size()==2);
+      // manually A==>B to (!A)||B
+      or_exprt or_expr;
+      or_expr.operands().push_back(learnt_expr.op0());
+      or_expr.operands().push_back(learnt_expr.op1());
+      or_expr.op0().make_not();
+      // manually (!A||B)&&C to !A&&C || B&&C
+      or_expr.op0()=and_exprt(or_expr.op0(), tmp);
+      or_expr.op1()=and_exprt(or_expr.op1(), tmp);
+      learnt_expr=or_expr;
+      //learnt_expr=and_exprt(learnt_expr, tmp);
     }
     else if(it->pc->type==ASSIGN)
     {
       learnt_expr=wp(it->pc->code, learnt_expr, ns);
-      //std::cout << "\n***4 " << from_expr(learnt_expr)
-      //		  << it->pc->source_location << "\n\n";
     }
 
-    //std::cout << "#" << it->pc->incoming_edges.size() << "\n";
-    if(it->pc->incoming_edges.size()>1)// && it->pc->type!=GOTO)
+    if(it->pc->incoming_edges.size()>1)
     {
       bool backwards_loop=false;
       for(auto &in: it->pc->incoming_edges)
@@ -183,16 +191,12 @@ void symex_bmc_clusteringt::backtrack_learn(statet &state)
         std::cout << "backwards loop: " << it->pc->source_location << "\n";
         continue;
       }
-      std::cout << "Multiple inbound edges: " << it->pc->source_location << "\n";
-      std::cout << "***1 " << from_expr(learnt_map[*it]) << "\n";
-      std::cout << "***2 " << from_expr(learnt_expr) << "\n";
       learnt_map[*it]=or_exprt(learnt_map[*it], learnt_expr);
-      std::cout << "***3 " << from_expr(learnt_expr) << "\n\n";
-      //state.rename(learnt_map[*it], ns);
-      do_simplify(learnt_map[*it]);
+      //do_simplify(learnt_map[*it]);
     }
-    do_simplify(learnt_expr);
+    //do_simplify(learnt_expr);
   }
+  for(auto &x: learnt_map) do_simplify(x.second);
 }
 
 void symex_bmc_clusteringt::mock_step(
@@ -208,19 +212,14 @@ void symex_bmc_clusteringt::mock_reach(
 {
   if(!state.guard.is_false())
   {
-    //std::string msg=id2string(state.source.pc->source_location.get_comment());
-	//if(msg=="")
-    //  msg="mock reach: ";
     exprt tmp=false_exprt();
 
     clean_expr(tmp, state, false);
     vcc(tmp, "mock reach", state);
-
-    //std::cout << "mock reachability: " << state.source.pc->source_location << "\n";
   }
 
-  if(learning_symex)
-    add_learnt_info(state, goto_functions);
+  //if(learning_symex)
+  //  add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::mock_goto_if_condition(
@@ -240,8 +239,8 @@ void symex_bmc_clusteringt::mock_goto_if_condition(
     std::cout << "mock goto-if condition: " << from_expr(tmp) << "\n";
   }
 
-  if(learning_symex)
-    add_learnt_info(state, goto_functions);
+  //if(learning_symex)
+  //  add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::add_goto_if_assumption(
@@ -290,8 +289,8 @@ void symex_bmc_clusteringt::mock_goto_else_condition(
 
     std::cout << "mock goto-else condition: " << from_expr(tmp) << "\n";
   }
-  if(learning_symex)
-    add_learnt_info(state, goto_functions);
+  //if(learning_symex)
+  //  add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::add_goto_else_assumption(

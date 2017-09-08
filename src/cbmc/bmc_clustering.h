@@ -87,7 +87,7 @@ protected:
   decision_proceduret::resultt run_and_clear_decision_procedure();
   bool reachable_if();
   bool reachable_else();
-  bool reachable_assert();
+  bool violated_assert();
   bool reachable();
   void clear(symex_target_equationt &equation);
 
