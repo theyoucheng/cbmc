@@ -154,7 +154,10 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
     options.set_option("trace", true);
 
   if(cmdline.isset("clustering"))
-      options.set_option("clustering", true);
+  {
+    options.set_option("clustering", true);
+	options.set_option("trace", true);
+  }
 
   if(cmdline.isset("localize-faults"))
     options.set_option("localize-faults", true);

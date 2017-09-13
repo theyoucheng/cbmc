@@ -28,6 +28,7 @@ Author:
 #include <time.h>       /* time */
 
 #include "bmc_clustering.h"
+#include <goto-symex/build_goto_trace.h>
 #include <iostream>
 
 /*******************************************************************\
@@ -38,7 +39,7 @@ Function: bmc_clusteringt::step
 
  Outputs:
 
- Purpose: run incremental BMC loop
+ Purpose: run goto-symex^2 loop
 
 \*******************************************************************/
 
@@ -50,27 +51,31 @@ safety_checkert::resultt bmc_clusteringt::step(
 
   setup_clustering_unwind();
 
+  bool restored_state=false;
   while(!symex_state.call_stack().empty())
   {
-    std::cout << "xxxxxxxxxxxxxxxxxx\n";
-    symex()(
-      symex_state,
-      goto_functions,
-      goto_functions.function_map.at(goto_functions.entry_point()).body);
-
-    bool ended=symex_state.call_stack().empty();
-
-    //std::cout << "**before reachable: " << symex_state.source.pc->source_location << "\n";
-    if(ended)
+    if(!restored_state)
     {
-      symex().backtrack_learn(symex_state);
-      symex().print_learnt_map();
+      symex()(
+        symex_state,
+        goto_functions,
+        goto_functions.function_map.at(goto_functions.entry_point()).body);
     }
+    restored_state=false;
 
-    if(!reachable())
+    if(symex_state.call_stack().empty())
     {
-      std::cout << "backtrack: \n";
-      throw(0); //continue;
+      if(symex().learning_symex)
+      {
+        symex().backtrack_learn(symex_state);
+        symex().print_learnt_map();
+      }
+      if(!symex().states.empty())
+      {
+        pick_up_a_new_state();
+        restored_state=true;
+      }
+      else break;
     }
 
     if(symex().learning_symex)
@@ -80,42 +85,56 @@ safety_checkert::resultt bmc_clusteringt::step(
     {
       if(violated_assert())
       {
-         std::cout << "The property is violated: "
-          << symex_state.source.pc->source_location
-		  << "\n";
-         throw 0;
+        goto_tracet &goto_trace=safety_checkert::error_trace;
+        build_goto_trace(equation, prop_conv, ns, goto_trace);
+        std::cout << "\n" << "Counterexample:" << "\n";
+        show_goto_trace(std::cout, ns, goto_trace);
+        return safety_checkert::resultt::UNSAFE;
       }
-      symex().mock_step(symex_state, goto_functions);
-      //continue;
     }
-    else if(symex_state.source.pc->type!=GOTO)
+    else
     {
-      symex().mock_step(symex_state, goto_functions);
-      //continue;
-    }
-    else //if(symex_state.source.pc->type==GOTO)
-    {
-      if(reachable_if())
+      goto_symext::statet state=symex_state;
+      // depth-first
+      if(!symex_state.locations.back().if_branch)
       {
-        symex().add_goto_if_assumption(symex_state, goto_functions);
-      }
-      else if(reachable_else())
-      {
-        symex().add_goto_else_assumption(symex_state, goto_functions);
-      }
-      else assert(0);
-    }
+        state.locations.back().if_branch=true;
+        if(reachable_if())
+        {
+          symex().states.push_back(state);
+          equations.push_back(equation);
+          symex().add_goto_if_assumption(symex_state, goto_functions);
+          continue;
+        }
 
+        if(reachable_else())
+        {
+          symex().add_goto_else_assumption(symex_state, goto_functions);
+          continue;
+        }
+        assert(0);
+      }
+      else
+      {
+    	if(reachable_else())
+    	{
+    	  symex().add_goto_else_assumption(symex_state, goto_functions);
+    	  continue;
+    	}
+        if(!symex().states.empty())
+        {
+          pick_up_a_new_state();
+          restored_state=true;
+        }
+        else break;
+      }
+    }
     continue;
-    statistics() << "size of program expression: "
-                 << equation.SSA_steps.size()
-                 << " steps" << eom;
-    std::cout << "tot_vccs: " << symex().total_vccs << "\n";
   }
 
-  prop_conv.set_all_frozen();
+  report_success();
 
-  return all_properties(goto_functions, prop_conv);
+  return safety_checkert::resultt::SAFE;
 }
 
 /*******************************************************************\
@@ -139,8 +158,6 @@ safety_checkert::resultt bmc_clusteringt::run(
 
   if(options.get_bool_option("show-vcc"))
   {
-
-    std::cout << "***symex state vcc: \n";
     show_state_vcc(symex_state);
 
     show_state_vcc(symex().cluster(symex_state));
@@ -155,12 +172,10 @@ decision_proceduret::resultt bmc_clusteringt::run_and_clear_decision_procedure()
 {
   prop_conv.set_all_frozen();
 
-  //for(auto & it : equation.SSA_steps)
-  //  it.ignore=false;
-  auto last=equation.SSA_steps.end();
-  --last;
-  for(auto it=equation.SSA_steps.begin(); it!=last; it++)
-    if(it->is_assert()) it->ignore=true;
+  //auto last=equation.SSA_steps.end();
+  //--last;
+  //for(auto it=equation.SSA_steps.begin(); it!=last; it++)
+  //  if(it->is_assert()) it->ignore=true;
 
   // each time a different solver is created
   prop_convt &prop_conv2=cbmc_solvers.get_solver_local()->prop_conv();
@@ -179,25 +194,27 @@ bool bmc_clusteringt::violated_assert()
   std::cout << from_expr(symex_state.source.pc->code) << "\n";
 
   // make a snapshot
-  goto_symext::statet backup_state=symex_state;
-  auto tmp=equation;
+  //goto_symext::statet backup_state=symex_state;
+  //auto tmp=equation;
 
   std::size_t num=equation.SSA_steps.size();
   clear(equation);
   symex().mock_step(symex_state, goto_functions);
 
   if(num==equation.SSA_steps.size()) return false;
-  show_vcc();
+  //show_vcc();
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
+  if(result==decision_proceduret::resultt::D_SATISFIABLE)
+    return true;
 
   // recover the analysis
-  symex_state=backup_state;
-  equation=tmp;
+  //symex_state=backup_state;
+  //equation=tmp;
 
   --symex().total_vccs;
   --symex().remaining_vccs;
 
-  return (result==decision_proceduret::resultt::D_SATISFIABLE);
+  return false;
 }
 
 void bmc_clusteringt::clear(symex_target_equationt &equation)
@@ -221,7 +238,7 @@ bool bmc_clusteringt::reachable()
   symex().mock_reach(symex_state, goto_functions);
 
   if(num==equation.SSA_steps.size()) return false;
-  show_vcc();
+  //show_vcc();
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
 
   // recover the analysis
@@ -236,10 +253,11 @@ bool bmc_clusteringt::reachable()
 
 bool bmc_clusteringt::reachable_if()
 {
-
-  std::cout << "\n++++++++++++++++++++ reachable if +++++++++++++++++\n";
+#if 1
+  std::cout << "\n(goto-symex^2): reachable if\n";
   std::cout << symex_state.source.pc->source_location << "\n";
   std::cout << from_expr(symex_state.source.pc->code) << "\n";
+#endif
 
   // make a snapshot
   goto_symext::statet backup_state=symex_state;
@@ -250,7 +268,6 @@ bool bmc_clusteringt::reachable_if()
   symex().mock_goto_if_condition(symex_state, goto_functions);
 
   if(num==equation.SSA_steps.size()) return false;
-  show_vcc();
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
 
   // recover the analysis
@@ -460,3 +477,11 @@ void bmc_clusteringt::setup_clustering_unwind()
     symex().set_unwind_limit(options.get_unsigned_int_option("unwind"));
 }
 
+void bmc_clusteringt::pick_up_a_new_state()
+{
+  symex_state=symex().states.back();
+  symex().states.pop_back();
+  equation=equations.back();
+  equations.pop_back();
+  symex().create_a_cluster(symex_state, equation);
+}

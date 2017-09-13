@@ -42,13 +42,8 @@ public:
   symex_targett *symex_target;
   std::size_t total_vccs, remaining_vccs;
 
-  //struct locationt
-  //{
-  //  symex_targett::sourcet source;
-  //  bool if_branch;
-  //};
-
   std::list<symex_targett::sourcet> locations;
+  //bool if_tested=false, else_tested=false;
 
   void initialize(const goto_functionst &goto_functions);
 
@@ -207,7 +202,8 @@ public:
     propagationt propagation;
     unsigned atomic_section_id;
 
-    explicit goto_statet(const goto_symex_statet &s):
+    //explicit
+	goto_statet(const goto_symex_statet &s):
       depth(s.depth),
       level2_current_names(s.level2.current_names),
       value_set(s.value_set),

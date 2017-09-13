@@ -76,6 +76,7 @@ protected:
   // overload
   virtual resultt run(const goto_functionst &goto_functions);
   virtual resultt step(const goto_functionst &goto_functions);
+  virtual void pick_up_a_new_state();
 
  private:
 

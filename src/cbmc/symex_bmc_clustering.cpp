@@ -48,7 +48,7 @@ bool symex_bmc_clusteringt::learnt(const symex_targett::sourcet &source)
   //for(auto it=learnt_map.begin(); it!=learnt_map.end(); ++it)
   //  if(!(it->first.source<source || source<it->first.source))
   //    return !it->second.is_false();
-  return false;
+  //return false;
 }
 
 void symex_bmc_clusteringt::operator()(
@@ -94,19 +94,11 @@ void symex_bmc_clusteringt::operator()(
     }
     else if(state.source.pc->type==ASSERT) return;
 
-    if(learnt(state.source))
-    {
-      return;
-    }
-
-    std::cout << "before symex_step\n";
     symex_step(goto_functions, state);
-    std::cout << "after symex_step\n";
   }
-  std::cout << "out of the loop\n";
-  delete state.dirty;
+
+  //delete state.dirty;
   state.dirty=0;
-  std::cout << "///////\n";
 }
 
 void symex_bmc_clusteringt::add_latest_learnt_info(
@@ -239,8 +231,6 @@ void symex_bmc_clusteringt::mock_goto_if_condition(
     std::cout << "mock goto-if condition: " << from_expr(tmp) << "\n";
   }
 
-  //if(learning_symex)
-  //  add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::add_goto_if_assumption(
@@ -338,14 +328,8 @@ void symex_bmc_clusteringt::record(statet &state)
 void symex_bmc_clusteringt::create_a_cluster(statet &state, symex_targett &equation)
 {
   record(state);
-  //clusters.insert(std::pair<std::string, statet>(state.id, state));
   clusters[state.id]=state;
-  std::cout << "***state address: " << state.symex_target << "\n";
-  std::cout << "***state address: " << cluster(state).symex_target << "\n";
-  //assert(!(&state==&cluster(state)));
   clusters[state.id].symex_target=&equation;
-  std::cout << ">>>> state address: " << state.symex_target << "\n";
-  std::cout << ">>>> state address: " << cluster(state).symex_target << "\n";
 }
 
 goto_symext::statet& symex_bmc_clusteringt::cluster(const std::string &id)
