@@ -18,7 +18,7 @@ Author:
 
 /*******************************************************************\
 
-Function: symex_bmc_incrementalt::symex_bmct
+Function: symex_bmc_clusteringt::symex_bmc_clusteringt
 
   Inputs:
 
@@ -38,31 +38,18 @@ symex_bmc_clusteringt::symex_bmc_clusteringt(
 {
 }
 
-bool symex_bmc_clusteringt::learnt(const symex_targett::sourcet &source)
-{
-  if(!learning_symex) return false;
-  auto it=learnt_map.find(source);
-  if(it!=learnt_map.end())
-    return !it->second.is_false();
-  return false;
-  //for(auto it=learnt_map.begin(); it!=learnt_map.end(); ++it)
-  //  if(!(it->first.source<source || source<it->first.source))
-  //    return !it->second.is_false();
-  //return false;
-}
-
 void symex_bmc_clusteringt::operator()(
   statet &state,
   const goto_functionst &goto_functions,
   const goto_programt &goto_program)
 {
-  assert(!goto_program.instructions.empty());
+  PRECONDITION(!goto_program.instructions.empty());
 
   if(state.symex_target==NULL)
   {
     state.source=symex_targett::sourcet(goto_program);
-    assert(!state.threads.empty());
-    assert(!state.call_stack().empty());
+    PRECONDITION(!state.threads.empty());
+    PRECONDITION(!state.call_stack().empty());
     state.top().end_of_function=--goto_program.instructions.end();
     state.top().calling_location.pc=state.top().end_of_function;
     state.symex_target=&target;
@@ -70,18 +57,13 @@ void symex_bmc_clusteringt::operator()(
     symex_transition(state, state.source.pc);
   }
 
-  assert(state.top().end_of_function->is_end_function());
+  PRECONDITION(state.top().end_of_function->is_end_function());
 
-  assert(!state.id.empty());
+  PRECONDITION(!state.id.empty());
 
   while(!state.call_stack().empty())
   {
     state.locations.push_back(state.source);
-    if(learning_symex)
-    {
-      if(learnt_map.find(state.source)==learnt_map.end())
-        learnt_map[state.source]=false_exprt();
-    }
 
     if(state.source.pc->type==GOTO)
     {
@@ -89,107 +71,17 @@ void symex_bmc_clusteringt::operator()(
 
       if(!guard.is_true() && !guard.is_false())
       {
-    	merge_gotos(state); // in case there is pending goto
+        merge_gotos(state); // in case there is pending goto
         return;
       }
     }
-    else if(state.source.pc->type==ASSERT) return;
+    else if(state.source.pc->type==ASSERT)
+      return;
 
     symex_step(goto_functions, state);
   }
 
-  //delete state.dirty;
   state.dirty=0;
-}
-
-void symex_bmc_clusteringt::add_latest_learnt_info(
-  statet &state,
-  const goto_functionst &goto_functions)
-{
-  auto &x=state.locations.back();
-  //for(auto &x: state.locations)
-  {
-    if(learnt_map[x].is_false()) return; //continue;
-    std::cout << "Added learnt info: " << from_expr(learnt_map[x]) << ", "
-    		<< state.source.pc->source_location << "\n";
-    exprt tmp(learnt_map[x]);
-    tmp.make_not();
-    clean_expr(tmp, state, false);
-    vcc(tmp, "", state);
-  }
-}
-
-void symex_bmc_clusteringt::print_learnt_map()
-{
-  std::cout << "\n*** The map learnt ***\n";
-  for(auto &x: learnt_map)
-  {
-    if(x.second.is_false()) continue;
-    std::cout << x.first.pc->source_location;
-    std::cout << ": ";
-    std::cout << from_expr(x.second) << "\n";
-  }
-}
-
-void symex_bmc_clusteringt::backtrack_learn(statet &state)
-{
-  exprt learnt_expr=true_exprt();
-  std::cout << "map size: " << learnt_map.size() << "\n";
-  for(auto it=state.locations.rbegin(); it!=state.locations.rend(); ++it)
-  {
-    if(it->pc->type==ASSERT)
-      learnt_expr=and_exprt(learnt_expr, it->pc->guard);
-    else if(it->pc->type==ASSUME)
-      learnt_expr=or_exprt(learnt_expr, it->pc->guard);
-    else if(it->pc->type==GOTO)
-    {
-      codet code=it->pc->code;
-      code.set_statement(ID_assume);
-      code.operands().push_back(it->pc->guard);
-      if(it->if_branch) code.op0().make_not();
-      learnt_expr=wp(code, learnt_expr, ns);
-      exprt tmp(it->pc->guard);
-      if(it->if_branch) tmp.make_not();
-      //do_simplify(learnt_expr);
-      //std::cout << "from_expr: " << from_expr(learnt_expr) << "\n";
-      //std::cout << "** " << learnt_expr.operands().size() << "\n";
-      assert(learnt_expr.operands().size()==2);
-      // manually A==>B to (!A)||B
-      or_exprt or_expr;
-      or_expr.operands().push_back(learnt_expr.op0());
-      or_expr.operands().push_back(learnt_expr.op1());
-      or_expr.op0().make_not();
-      // manually (!A||B)&&C to !A&&C || B&&C
-      or_expr.op0()=and_exprt(or_expr.op0(), tmp);
-      or_expr.op1()=and_exprt(or_expr.op1(), tmp);
-      learnt_expr=or_expr;
-      //learnt_expr=and_exprt(learnt_expr, tmp);
-    }
-    else if(it->pc->type==ASSIGN)
-    {
-      learnt_expr=wp(it->pc->code, learnt_expr, ns);
-    }
-
-    if(it->pc->incoming_edges.size()>1)
-    {
-      bool backwards_loop=false;
-      for(auto &in: it->pc->incoming_edges)
-        if(it->pc->location_number<in->location_number)
-        {
-          backwards_loop=true;
-          break;
-        }
-      if(backwards_loop)
-      {
-        std::cout << "backwards loop: " << it->pc->source_location << "\n";
-        continue;
-      }
-      learnt_map[*it]=or_exprt(learnt_map[*it], learnt_expr);
-      //do_simplify(learnt_map[*it]);
-    }
-    //do_simplify(learnt_expr);
-  }
-  for(auto &x: learnt_map) do_simplify(x.second);
 }
 
 void symex_bmc_clusteringt::mock_step(
@@ -197,23 +89,6 @@ void symex_bmc_clusteringt::mock_step(
   const goto_functionst &goto_functions)
 {
   symex_step(goto_functions, state);
-  //symex_transition(state, state.source.pc);
-}
-
-void symex_bmc_clusteringt::mock_reach(
-  statet &state,
-  const goto_functionst &goto_functions)
-{
-  if(!state.guard.is_false())
-  {
-    exprt tmp=false_exprt();
-
-    clean_expr(tmp, state, false);
-    vcc(tmp, "mock reach", state);
-  }
-
-  //if(learning_symex)
-  //  add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::mock_goto_if_condition(
@@ -223,27 +98,26 @@ void symex_bmc_clusteringt::mock_goto_if_condition(
   if(!state.guard.is_false())
   {
     std::string msg=id2string(state.source.pc->source_location.get_comment());
-	if(msg=="")
+    if(msg=="")
       msg="__CPROVER_goto_cond: if";
     exprt tmp(state.source.pc->guard);
 
     clean_expr(tmp, state, false);
     vcc(tmp, msg, state);
-
-    std::cout << "mock goto-if condition: " << from_expr(tmp) << "\n";
   }
-
 }
 
 void symex_bmc_clusteringt::add_goto_if_assumption(
   statet &state,
   const goto_functionst &goto_functions)
 {
+#if 0
   std::cout << "[add goto if assumption]: "
     << state.source.pc->source_location
-	<< "; " << from_expr(state.guard) << "\n";
-  assert(!state.threads.empty());
-  assert(!state.call_stack().empty());
+    << "; " << from_expr(state.guard) << "\n";
+#endif
+  PRECONDITION(!state.threads.empty());
+  PRECONDITION(!state.call_stack().empty());
 
   // depth exceeded?
   {
@@ -262,16 +136,12 @@ void symex_bmc_clusteringt::add_goto_if_assumption(
     symex_assume(state, tmp);
   }
   symex_guard_goto(state, false_exprt());
-  //state.guard.make_false();
-  //symex_goto(state);
-  //goto_symext::symex_step(goto_functions, state);
 }
 
 void symex_bmc_clusteringt::mock_goto_else_condition(
   statet &state,
   const goto_functionst &goto_functions)
 {
-
   if(!state.guard.is_false())
   {
     std::string msg=id2string(state.source.pc->source_location.get_comment());
@@ -281,11 +151,7 @@ void symex_bmc_clusteringt::mock_goto_else_condition(
     tmp.make_not();
     clean_expr(tmp, state, false);
     vcc(tmp, msg, state);
-
-    std::cout << "mock goto-else condition: " << from_expr(tmp) << "\n";
   }
-  //if(learning_symex)
-  //  add_learnt_info(state, goto_functions);
 }
 
 void symex_bmc_clusteringt::add_goto_else_assumption(
@@ -299,8 +165,8 @@ void symex_bmc_clusteringt::add_goto_else_assumption(
   std::cout << "Code: " << from_expr(ns, "", state.source.pc->code) << '\n';
   #endif
 
-  assert(!state.threads.empty());
-  assert(!state.call_stack().empty());
+  PRECONDITION(!state.threads.empty());
+  PRECONDITION(!state.call_stack().empty());
 
   // depth exceeded?
   {
@@ -319,10 +185,6 @@ void symex_bmc_clusteringt::add_goto_else_assumption(
   }
 
   symex_guard_goto(state, true_exprt());
-  //state.guard.make_true();
-  //symex_goto(state);
-  //goto_symext::symex_step(goto_functions, state);
-
 }
 
 void symex_bmc_clusteringt::record(statet &state)
@@ -332,7 +194,9 @@ void symex_bmc_clusteringt::record(statet &state)
   ++counter;
 }
 
-void symex_bmc_clusteringt::create_a_cluster(statet &state, symex_targett &equation)
+void symex_bmc_clusteringt::create_a_cluster(
+  statet &state,
+  symex_targett &equation)
 {
   record(state);
   clusters[state.id]=state;
@@ -341,52 +205,13 @@ void symex_bmc_clusteringt::create_a_cluster(statet &state, symex_targett &equat
 
 goto_symext::statet& symex_bmc_clusteringt::cluster(const std::string &id)
 {
-  assert(clusters.find(id)!=clusters.end());
+  PRECONDITION(clusters.find(id)!=clusters.end());
   return clusters[id];
 }
 
 goto_symext::statet& symex_bmc_clusteringt::cluster(const statet &state)
 {
   return cluster(state.id);
-}
-
-bool symex_bmc_clusteringt::lotto() const
-{
-  srand (time(NULL));
-
-  int a=rand()%100+1;
-
-  int b=rand()%a;
-
-  return (b>a/2);
-}
-
-void symex_bmc_clusteringt::do_nothing(
-    statet &state,
-    const goto_functionst &goto_functions)
-{
-  #if 0
-  std::cout << "\ninstruction type is " << state.source.pc->type << '\n';
-  std::cout << "Location: " << state.source.pc->source_location << '\n';
-  std::cout << "Guard: " << from_expr(ns, "", state.guard.as_expr()) << '\n';
-  std::cout << "Code: " << from_expr(ns, "", state.source.pc->code) << '\n';
-  #endif
-
-  assert(!state.threads.empty());
-  assert(!state.call_stack().empty());
-
-  // depth exceeded?
-  {
-    unsigned max_depth=options.get_unsigned_int_option("depth");
-    if(max_depth!=0 && state.depth>max_depth)
-      state.guard.add(false_exprt());
-    state.depth++;
-  }
-
-  //symex_goto(state);
-  //symex_goto(cluster(state));
-  symex_end_of_function(state);
-  symex_transition(state);
 }
 
 void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
@@ -406,21 +231,19 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   {
     if(!state.guard.is_false())
     {
-      //target.location(state.guard.as_expr(), state.source);
       state.symex_target->location(state.guard.as_expr(), state.source);
     }
     symex_transition(state);
-    //goto_programt::const_targett goto_target=
-    //  instruction.get_target();
-    //symex_transition(state, goto_target, true);
 
     return; // nothing to do
   }
 
-  //target.goto_instruction(state.guard.as_expr(), new_guard, state.source);
-  state.symex_target->goto_instruction(state.guard.as_expr(), new_guard, state.source);
+  state.symex_target->goto_instruction(
+    state.guard.as_expr(),
+    new_guard,
+    state.source);
 
-  assert(!instruction.targets.empty());
+  PRECONDITION(!instruction.targets.empty());
 
   // we only do deterministic gotos for now
   if(instruction.targets.size()!=1)
@@ -450,7 +273,6 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
 
       // next instruction
       symex_transition(state);
-      //symex_transition(state, goto_target, true);
       return;
     }
 
@@ -465,7 +287,6 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
 
       // next instruction
       symex_transition(state);
-      //symex_transition(state, goto_target, true);
       return;
     }
 
@@ -484,15 +305,15 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
     new_state_pc=goto_target;
     state_pc=state.source.pc;
     state_pc++;
-    //state.state_pc++; //customized pc
 
     // skip dead instructions
     if(new_guard.is_true())
+    {
       while(state_pc!=goto_target && !state_pc->is_target())
       {
         ++state_pc;
-        //++state.state_pc; //customized pc
       }
+    }
 
     if(state_pc==goto_target)
     {
@@ -504,7 +325,6 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   {
     new_state_pc=state.source.pc;
     new_state_pc++;
-    //state.state_pc++; // customized pc
     state_pc=goto_target;
   }
 
@@ -516,7 +336,6 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
   statet::goto_statet &new_state=goto_state_list.back();
 
   symex_transition(state, state_pc, !forward);
-  //symex_transition(state, goto_target, true);
 
   // adjust guards
   if(new_guard.is_true())
@@ -546,12 +365,6 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
 
       guardt guard;
 
-      //target.assignment(
-      //  guard.as_expr(),
-      //  new_lhs, new_lhs, guard_symbol_expr,
-      //  new_rhs,
-      //  original_source,
-      //  symex_targett::assignment_typet::GUARD);
       state.symex_target->assignment(
         guard.as_expr(),
         new_lhs, new_lhs, guard_symbol_expr,

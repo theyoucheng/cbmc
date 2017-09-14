@@ -33,10 +33,7 @@ void symex_bmct::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
-  std::cout << "enter symex step\n";
   const source_locationt &source_location=state.source.pc->source_location;
-
-  //std::cout << "source location: " << source_location << "\n";
 
   if(!source_location.is_nil() && last_source_location!=source_location)
   {
@@ -134,11 +131,12 @@ bool symex_bmct::get_unwind(
     else if(max_unwind_is_set)
       this_loop_limit=max_unwind;
   }
-
+  #if 0
   std::cout << "***get_unwind: " << id << ", max_unwind_is_set: "
 		    << max_unwind_is_set << ", " << this_loop_limit
 			<< ", max_unwind: " << max_unwind
 			<< "\n";
+  #endif
 
 
   bool abort=unwind>=this_loop_limit;

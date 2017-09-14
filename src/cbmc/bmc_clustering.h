@@ -21,7 +21,6 @@ Author:
 #include "bv_cbmc.h"
 #include "bmc.h"
 #include "cbmc_solvers.h"
-#include <iostream>
 
 class bmc_clusteringt:public bmct
 {
@@ -32,7 +31,7 @@ public:
     message_handlert &_message_handler,
     prop_convt& _prop_conv,
     const goto_functionst &_goto_functions,
-	const cbmc_solverst &_cbmc_solvers):
+    const cbmc_solverst &_cbmc_solvers):
     bmct(
       _options,
       _symbol_table,
@@ -69,7 +68,6 @@ public:
 protected:
   const goto_functionst &goto_functions;
 
-  // ENHANCE: move this into symex_bmc
   goto_symext::statet symex_state;
   symex_bmc_clusteringt symex_clustering;
 
@@ -79,7 +77,6 @@ protected:
   virtual void pick_up_a_new_state();
 
  private:
-
   symex_bmc_clusteringt &symex()
   {
     return symex_clustering;
@@ -92,15 +89,9 @@ protected:
   bool reachable();
   void clear(symex_target_equationt &equation);
 
-  void show_state_vcc(const goto_symext::statet &state);
-  void show_state_vcc_plain(const goto_symext::statet &state, std::ostream &out);
-
   std::vector<symex_target_equationt> equations;
 
-  enum class state_resultt { D_SATISFIABLE, D_UNSATISFIABLE, D_ERROR, D_UNSAFE };
-
   void setup_clustering_unwind();
-
 };
 
 #endif

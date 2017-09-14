@@ -34,21 +34,6 @@ class symex_bmc_clusteringt:
     statet &state,
     const goto_functionst &goto_functions);
 
-  virtual void mock_reach(
-    statet &state,
-    const goto_functionst &goto_functions);
-
-  virtual void backtrack_learn(statet &state);
-
-  virtual void print_learnt_map();
-
-
-  virtual bool learnt(const symex_targett::sourcet &source);
-
-  virtual void add_latest_learnt_info(
-    statet &state,
-    const goto_functionst &goto_functions);
-
   virtual void add_goto_if_assumption(
       statet &state,
       const goto_functionst &goto_functions);
@@ -58,10 +43,6 @@ class symex_bmc_clusteringt:
     const goto_functionst &goto_functions);
 
   virtual void add_goto_else_assumption(
-      statet &state,
-      const goto_functionst &goto_functions);
-
-  virtual void do_nothing(
       statet &state,
       const goto_functionst &goto_functions);
 
@@ -79,18 +60,9 @@ class symex_bmc_clusteringt:
 
   statet &cluster(const statet &state);
 
-  bool lotto() const;
-
   virtual void symex_guard_goto(statet &state, const exprt &guard);
 
-  bool learning_symex=false;
-  typedef std::map<symex_targett::sourcet, exprt> learnt_mapt;
-  learnt_mapt learnt_map;
-
 protected:
-
-
-
 };
 
 #endif

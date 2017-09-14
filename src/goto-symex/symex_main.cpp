@@ -19,7 +19,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/replace_symbol.h>
 
 #include <analyses/dirty.h>
-#include <iostream>
 
 void goto_symext::symex_transition(
   statet &state,
@@ -203,7 +202,6 @@ void goto_symext::symex_step(
 
   assert(!state.threads.empty());
   assert(!state.call_stack().empty());
-  std::cout << "K:\n";
 
   const goto_programt::instructiont &instruction=*state.source.pc;
 
@@ -216,7 +214,6 @@ void goto_symext::symex_step(
       state.guard.add(false_exprt());
     state.depth++;
   }
-  std::cout << "L:\n";
 
   // actually do instruction
   switch(instruction.type)
@@ -241,7 +238,6 @@ void goto_symext::symex_step(
     if(!state.guard.is_false())
     {
       //target.location(state.guard.as_expr(), state.source);
-      std::cout << "M:\n";
       state.symex_target->location(state.guard.as_expr(), state.source);
     }
     symex_transition(state);

@@ -504,7 +504,6 @@ int cbmc_parse_optionst::doit()
   std::unique_ptr<bmct> bmc;
   if(options.get_bool_option("clustering"))
   {
-    std::cout << "*** clustering is set *** \n";
     bmc=std::unique_ptr<bmct>(
       new bmc_clusteringt(
         options,
