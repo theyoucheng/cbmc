@@ -53,6 +53,7 @@ void goto_symext::symex_goto(statet &state)
     instruction.get_target();
 
   bool forward=!instruction.is_backwards_goto();
+
   if(!forward) // backwards?
   {
     // is it label: goto label; or while(cond); - popular in SV-COMP
