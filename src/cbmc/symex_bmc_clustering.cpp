@@ -86,6 +86,7 @@ void symex_bmc_clusteringt::operator()(
     if(state.source.pc->type==GOTO)
     {
       const auto &guard=state.source.pc->guard;
+
       if(!guard.is_true() && !guard.is_false())
       {
     	merge_gotos(state); // in case there is pending goto
@@ -196,6 +197,7 @@ void symex_bmc_clusteringt::mock_step(
   const goto_functionst &goto_functions)
 {
   symex_step(goto_functions, state);
+  //symex_transition(state, state.source.pc);
 }
 
 void symex_bmc_clusteringt::mock_reach(
@@ -234,10 +236,12 @@ void symex_bmc_clusteringt::mock_goto_if_condition(
 }
 
 void symex_bmc_clusteringt::add_goto_if_assumption(
-    statet &state,
-    const goto_functionst &goto_functions)
+  statet &state,
+  const goto_functionst &goto_functions)
 {
-
+  std::cout << "[add goto if assumption]: "
+    << state.source.pc->source_location
+	<< "; " << from_expr(state.guard) << "\n";
   assert(!state.threads.empty());
   assert(!state.call_stack().empty());
 
@@ -258,8 +262,9 @@ void symex_bmc_clusteringt::add_goto_if_assumption(
     symex_assume(state, tmp);
   }
   symex_guard_goto(state, false_exprt());
-  assert(state.locations.back().pc->type==GOTO);
-  state.locations.back().if_branch=true;
+  //state.guard.make_false();
+  //symex_goto(state);
+  //goto_symext::symex_step(goto_functions, state);
 }
 
 void symex_bmc_clusteringt::mock_goto_else_condition(
@@ -284,8 +289,8 @@ void symex_bmc_clusteringt::mock_goto_else_condition(
 }
 
 void symex_bmc_clusteringt::add_goto_else_assumption(
-    statet &state,
-    const goto_functionst &goto_functions)
+  statet &state,
+  const goto_functionst &goto_functions)
 {
   #if 0
   std::cout << "\ninstruction type is " << state.source.pc->type << '\n';
@@ -314,8 +319,10 @@ void symex_bmc_clusteringt::add_goto_else_assumption(
   }
 
   symex_guard_goto(state, true_exprt());
-  assert(state.locations.back().pc->type==GOTO);
-  state.locations.back().if_branch=false;
+  //state.guard.make_true();
+  //symex_goto(state);
+  //goto_symext::symex_step(goto_functions, state);
+
 }
 
 void symex_bmc_clusteringt::record(statet &state)
@@ -406,7 +413,6 @@ void symex_bmc_clusteringt::symex_guard_goto(statet &state, const exprt &guard)
     //goto_programt::const_targett goto_target=
     //  instruction.get_target();
     //symex_transition(state, goto_target, true);
-
 
     return; // nothing to do
   }

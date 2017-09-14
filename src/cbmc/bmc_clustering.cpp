@@ -73,7 +73,9 @@ safety_checkert::resultt bmc_clusteringt::step(
       if(!symex().states.empty())
       {
         pick_up_a_new_state();
+        std::cout << "****picked a new state: " << symex_state.source.pc->source_location << "\n";
         restored_state=true;
+        continue;
       }
       else break;
     }
@@ -89,6 +91,7 @@ safety_checkert::resultt bmc_clusteringt::step(
         build_goto_trace(equation, prop_conv, ns, goto_trace);
         std::cout << "\n" << "Counterexample:" << "\n";
         show_goto_trace(std::cout, ns, goto_trace);
+        result() << "VERIFICATION FAILED" << eom;
         return safety_checkert::resultt::UNSAFE;
       }
     }
@@ -119,11 +122,13 @@ safety_checkert::resultt bmc_clusteringt::step(
     	if(reachable_else())
     	{
     	  symex().add_goto_else_assumption(symex_state, goto_functions);
+    	  std::cout << "here...\n" << restored_state << "\n";
     	  continue;
     	}
         if(!symex().states.empty())
         {
           pick_up_a_new_state();
+          std::cout << "picked up a new state: " << symex_state.source.pc->source_location << "\n";
           restored_state=true;
         }
         else break;
@@ -193,26 +198,22 @@ bool bmc_clusteringt::violated_assert()
   std::cout << symex_state.source.pc->source_location << "\n";
   std::cout << from_expr(symex_state.source.pc->code) << "\n";
 
-  // make a snapshot
-  //goto_symext::statet backup_state=symex_state;
-  //auto tmp=equation;
-
   std::size_t num=equation.SSA_steps.size();
-  clear(equation);
   symex().mock_step(symex_state, goto_functions);
+  std::cout << symex_state.source.pc->source_location << ", " << symex_state.source.pc->type << "\n";
 
   if(num==equation.SSA_steps.size()) return false;
-  //show_vcc();
+
+  show_vcc();
+
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
+  //clear(equation);
+
   if(result==decision_proceduret::resultt::D_SATISFIABLE)
     return true;
 
-  // recover the analysis
-  //symex_state=backup_state;
-  //equation=tmp;
-
-  --symex().total_vccs;
-  --symex().remaining_vccs;
+  //--symex().total_vccs;
+  //--symex().remaining_vccs;
 
   return false;
 }
@@ -254,9 +255,9 @@ bool bmc_clusteringt::reachable()
 bool bmc_clusteringt::reachable_if()
 {
 #if 1
-  std::cout << "\n(goto-symex^2): reachable if\n";
-  std::cout << symex_state.source.pc->source_location << "\n";
-  std::cout << from_expr(symex_state.source.pc->code) << "\n";
+  std::cout << "\n[(goto-symex^2)]: reachable if\n";
+  std::cout << "[source]: " << symex_state.source.pc->source_location << "\n";
+  std::cout << "[type]: " << symex_state.source.pc->type << "\n";
 #endif
 
   // make a snapshot
@@ -268,6 +269,7 @@ bool bmc_clusteringt::reachable_if()
   symex().mock_goto_if_condition(symex_state, goto_functions);
 
   if(num==equation.SSA_steps.size()) return false;
+  show_vcc();
   decision_proceduret::resultt result=run_and_clear_decision_procedure();
 
   // recover the analysis
@@ -282,9 +284,9 @@ bool bmc_clusteringt::reachable_if()
 
 bool bmc_clusteringt::reachable_else()
 {
-  std::cout << "\n++++++++++++++++++++ reachable else +++++++++++++++++\n";
-  std::cout << symex_state.source.pc->source_location << "\n";
-  std::cout << from_expr(symex_state.source.pc->code) << "\n";
+  std::cout << "\n[(goto-symex^2)]: reachable else\n";
+  std::cout << "[source]: " << symex_state.source.pc->source_location << "\n";
+  std::cout << "[type]: " << symex_state.source.pc->type << "\n";
 
   // make a snapshot
   goto_symext::statet backup_state=symex_state;

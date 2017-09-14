@@ -33,7 +33,7 @@ void symex_bmct::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
-  //std::cout << "enter symex step\n";
+  std::cout << "enter symex step\n";
   const source_locationt &source_location=state.source.pc->source_location;
 
   //std::cout << "source location: " << source_location << "\n";
@@ -47,7 +47,6 @@ void symex_bmct::symex_step(
 
     last_source_location=source_location;
   }
-  std::cout << "G:\n";
 
   const goto_programt::const_targett cur_pc=state.source.pc;
   const guardt cur_guard=state.guard;
@@ -66,10 +65,8 @@ void symex_bmct::symex_step(
 
     statistics() << eom;
   }
-  std::cout << "H:\n";
 
   goto_symext::symex_step(goto_functions, state);
-  std::cout << "I:\n";
 
   if(record_coverage &&
      // avoid an invalid iterator in state.source.pc
