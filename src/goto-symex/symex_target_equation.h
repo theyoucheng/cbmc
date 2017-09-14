@@ -318,7 +318,6 @@ public:
 protected:
   namespacet ns;
 
-
   // for enforcing sharing in the expressions stored
   merge_irept merge_irep;
   void merge_ireps(SSA_stept &SSA_step);
