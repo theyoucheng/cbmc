@@ -500,7 +500,6 @@ int cbmc_parse_optionst::doit()
 
   prop_convt &prop_conv=cbmc_solver->prop_conv();
 
-  //bmct bmc(options, symbol_table, ui_message_handler, prop_conv);
   std::unique_ptr<bmct> bmc;
   if(options.get_bool_option("clustering"))
   {
