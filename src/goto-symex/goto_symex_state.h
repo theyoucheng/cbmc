@@ -203,7 +203,7 @@ public:
     unsigned atomic_section_id;
 
     //explicit
-	goto_statet(const goto_symex_statet &s):
+    goto_statet(const goto_symex_statet &s):
       depth(s.depth),
       level2_current_names(s.level2.current_names),
       value_set(s.value_set),

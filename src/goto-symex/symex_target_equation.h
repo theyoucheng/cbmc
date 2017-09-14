@@ -316,7 +316,6 @@ public:
   }
 
 protected:
-  //const namespacet &ns;
   namespacet ns;
 
 

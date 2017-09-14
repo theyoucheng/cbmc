@@ -49,7 +49,7 @@ public:
     }
 
     //explicit
-	sourcet(const goto_programt &_goto_program):
+    sourcet(const goto_programt &_goto_program):
       thread_nr(0),
       pc(_goto_program.instructions.begin()),
       is_set(true)

@@ -34,9 +34,7 @@ void goto_symext::symex_goto(statet &state)
      state.guard.is_false())
   {
     if(!state.guard.is_false())
-    {
       state.symex_target->location(state.guard.as_expr(), state.source);
-    }
 
     // next instruction
     symex_transition(state);
@@ -362,12 +360,6 @@ void goto_symext::phi_function(
     dest_state.assignment(new_lhs, rhs, ns, true, true);
     dest_state.record_events=record_events;
 
-    //target.assignment(
-    //  true_exprt(),
-    //  new_lhs, new_lhs, new_lhs.get_original_expr(),
-    //  rhs,
-    //  dest_state.source,
-    //  symex_targett::assignment_typet::PHI);
     dest_state.symex_target->assignment(
       true_exprt(),
       new_lhs, new_lhs, new_lhs.get_original_expr(),

@@ -76,7 +76,6 @@ void goto_symext::vcc(
 
   remaining_vccs++;
   state.remaining_vccs++;
-  //target.assertion(state.guard.as_expr(), expr, msg, state.source);
   state.symex_target->assertion(state.guard.as_expr(), expr, msg, state.source);
 }
 
@@ -93,7 +92,6 @@ void goto_symext::symex_assume(statet &state, const exprt &cond)
   {
     exprt tmp=simplified_cond;
     state.guard.guard_expr(tmp);
-    //target.assumption(state.guard.as_expr(), tmp, state.source);
     state.symex_target->assumption(state.guard.as_expr(), tmp, state.source);
   }
   // symex_target_equationt::convert_assertions would fail to
@@ -221,7 +219,6 @@ void goto_symext::symex_step(
   case SKIP:
     if(!state.guard.is_false())
     {
-      //target.location(state.guard.as_expr(), state.source);
       state.symex_target->location(state.guard.as_expr(), state.source);
     }
     symex_transition(state);
@@ -237,7 +234,6 @@ void goto_symext::symex_step(
   case LOCATION:
     if(!state.guard.is_false())
     {
-      //target.location(state.guard.as_expr(), state.source);
       state.symex_target->location(state.guard.as_expr(), state.source);
     }
     symex_transition(state);
