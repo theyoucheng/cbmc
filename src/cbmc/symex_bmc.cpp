@@ -15,7 +15,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/source_location.h>
 #include <util/simplify_expr.h>
-#include <iostream>
 
 symex_bmct::symex_bmct(
   const namespacet &_ns,
@@ -131,13 +130,6 @@ bool symex_bmct::get_unwind(
     else if(max_unwind_is_set)
       this_loop_limit=max_unwind;
   }
-  #if 0
-  std::cout << "***get_unwind: " << id << ", max_unwind_is_set: "
-		    << max_unwind_is_set << ", " << this_loop_limit
-			<< ", max_unwind: " << max_unwind
-			<< "\n";
-  #endif
-
 
   bool abort=unwind>=this_loop_limit;
 
