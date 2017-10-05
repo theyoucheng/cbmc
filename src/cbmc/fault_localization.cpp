@@ -309,11 +309,13 @@ void fault_localizationt::report(irep_idt goal_id)
       std::cout << "Single Bug Optimal Fault Localization\n";
     int max_display=10;
     if(options.get_option("localize-faults-max-display")!="")
-      max_display=atoi(options.get_option("localize-faults-max-display").c_str());
+      max_display=
+        atoi(options.get_option("localize-faults-max-display").c_str());
     int i=0;
     for(auto it=lpoints_vect.begin(); it!=lpoints_vect.end(); ++it)
     {
-      std::set<source_locationt> tmp;
+      std::set<source_locationt> &tmp=it->lines;
+#if 0
       for(auto &l: it->lines)
       {
         bool redundant=false;
@@ -325,6 +327,7 @@ void fault_localizationt::report(irep_idt goal_id)
           }
         if(!redundant) tmp.insert(l);
       }
+#endif
       if(tmp.empty()) continue;
       std::cout << "[score: " << it->score << "] ";
       for(auto &l:tmp)

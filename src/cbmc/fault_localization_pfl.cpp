@@ -300,7 +300,6 @@ void fault_localizationt::pflt::operator()()
   }
 #endif
   // to compute the probability
-  //merge_traces();
   simplify_traces();
   compute_spectra();
   measure_sb();
@@ -580,93 +579,6 @@ bool fault_localizationt::pflt::lpoint_equal(
   }
 
   return true;
-}
-
-/*******************************************************************\
-
-Function: fault_localizationt::pflt:merge_traces
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-void fault_localizationt::pflt::merge_traces()
-{
-  // Because of loop unwinding, there exist multiple copies of
-  // the same line, and they have to be merged before applying
-  // fault localization
-  std::size_t i=0;
-  auto it=P.begin();
-  while(it!=P.end())
-  {
-    auto &lines=it->second.lines;
-	auto lt=lines.begin();
-	while(lt!=lines.end())
-    {
-      std::size_t j=0;
-      for(auto jt=P.begin(); jt!=it; ++jt)
-      {
-        if(jt->second.lines.find(*lt)!=jt->second.lines.end())
-          break;
-        ++j;
-      }
-      if(j==i)
-      {
-        lt++;
-        continue;
-      }
-      lt=lines.erase(lt);
-      assert(j<i);
-      for(auto &p: failing_traces)
-        if(p[i].is_true()) p[j]=p[i];
-      for(auto &p: passing_traces)
-        if(p[i].is_true()) p[j]=p[i];
-    }
-	++it;
-	++i;
-  }
-  // to remove these empty blocks
-  i=0;
-  it=P.begin();
-  while(it!=P.end())
-  {
-    auto &lines=it->second.lines;
-	if(lines.empty())
-	{
-      for(auto &p: passing_traces)
-	    p[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
-      for(auto &p: failing_traces)
-	    p[i]=tvt(tvt::tv_enumt::TV_UNKNOWN);
-      it=P.erase(it);
-	}
-	else ++it;
-	++i;
-  }
-  // to remove unknown columns
-  for(auto &p: passing_traces)
-  {
-    auto p_it=p.begin();
-    while(p_it!=p.end())
-    {
-      if(p_it->is_unknown())
-        p_it=p.erase(p_it);
-      else ++p_it;
-    }
-  }
-  for(auto &p: failing_traces)
-  {
-    auto p_it=p.begin();
-    while(p_it!=p.end())
-    {
-      if(p_it->is_unknown())
-        p_it=p.erase(p_it);
-      else ++p_it;
-    }
-  }
 }
 
 /*******************************************************************\
