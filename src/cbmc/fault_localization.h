@@ -140,6 +140,10 @@ protected:
     void measure_sb();
     void compute_ppv();
     void compute_probability();
+
+    // This is used as a reference case where only one failing trace
+    // is considered for fault localization
+    bool single_trace=false;
   };
 
   symex_target_equationt::SSA_stepst::const_iterator get_failed_property();

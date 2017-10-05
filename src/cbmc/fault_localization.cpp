@@ -251,11 +251,11 @@ void fault_localizationt::run(irep_idt goal_id)
   if(method=="pfl" || method=="sbo")
   {
     pflt pfl(lpoints, bmc, failed->cond_literal, method);
-    //std::cout << "the set of points:\n";
-    //for(auto &l: lpoints)
-    	//std::cout << l.first << ", " << l.second.target->source_location << "\n";
     if(options.get_option("localize-faults-max-traces")!="")
-      pfl.max_traces=atoi(options.get_option("localize-faults-max-traces").c_str());
+      pfl.max_traces=
+        atoi(options.get_option("localize-faults-max-traces").c_str());
+    if(options.get_bool_option("single-trace"))
+      pfl.single_trace=true;
     pfl();
   }
   else localize_linear(lpoints);

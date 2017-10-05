@@ -213,6 +213,8 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
       "localize-faults-max-display",
       cmdline.get_value("localize-faults-max-display"));
   }
+  if(cmdline.isset("single-trace"))
+    options.set_option("single-trace", true);
 
   if(cmdline.isset("unwind-max"))
     options.set_option("unwind-max", cmdline.get_value("unwind-max"));

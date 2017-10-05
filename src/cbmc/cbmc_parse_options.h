@@ -61,6 +61,7 @@ class optionst;
   "(graphml-witness):" \
   "(localize-faults)(localize-faults-method):" \
   "(localize-faults-max-traces):(localize-faults-max-display):" \
+  "(single-trace)" \
   "(floatbv)(all-claims)(all-properties)" // legacy, and will eventually disappear
 
 class cbmc_parse_optionst:

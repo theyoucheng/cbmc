@@ -180,6 +180,19 @@ void fault_localizationt::pflt::operator()()
 {
 
   pre_merge();
+  if(single_trace)
+  {
+    lpoints_valuet f_trace;
+    if(get_a_trace(!property, f_trace))
+      failing_traces.push_back(f_trace);
+    // simplify_traces();
+    compute_spectra();
+    measure_sb();
+    if(type=="sbo") return;
+    compute_ppv();
+    compute_probability();
+    return;
+  }
 
   // 1) to build the "set" of failing traces
   lpoints_valuet f_trace;
@@ -192,7 +205,6 @@ void fault_localizationt::pflt::operator()()
     } while(mc(property, common(failing_traces), {}, failing_traces));
 
   }
-std::cout << "@@@ number of failing traces: " << failing_traces.size() << "\n";
   // 2) to build the "set" of passing traces
   lpoints_valuet p_trace;
   if(get_a_trace(property, p_trace))
@@ -204,7 +216,6 @@ std::cout << "@@@ number of failing traces: " << failing_traces.size() << "\n";
     }
     while(mc(!property, common(passing_traces), {}, passing_traces));
   }
-  std::cout << "@@@ number of passing traces: " << passing_traces.size() << "\n";
 
   // 3) to build the "set" of "s" traces
   std::vector<lpoints_valuet> s_traces;
@@ -219,7 +230,6 @@ std::cout << "@@@ number of failing traces: " << failing_traces.size() << "\n";
 
     mc(!property, {}, v_single_element, s_traces);
   }
-  std::cout << "@@@ number of s traces: " <<s_traces.size() << "\n";
 
 #if 0
   std::cout << "failing traces:\n";
@@ -661,7 +671,7 @@ void fault_localizationt::pflt::merge_traces()
 
 /*******************************************************************\
 
-Function: fault_localizationt::pflt:merge_traces
+Function: fault_localizationt::pflt:pre_merge
 
   Inputs:
 
@@ -704,7 +714,6 @@ void fault_localizationt::pflt::pre_merge()
       assert(j<i);
       merged_literals[j].push_back(it->first);
     }
-	//std::cout << "*** " << i << ", " << it->second.lines.size() << "\n";
 	++it;
 	++i;
   }
@@ -722,7 +731,6 @@ void fault_localizationt::pflt::pre_merge()
       bv.push_back(literal_exprt(l));
     assert(!bv.empty());
     literalt m=bmc.prop_conv.convert(disjunction(bv));
-    //std::cout << "@@@ " << i << ", " << m << "\n";
     if(P_new.find(m)!=P_new.end())
       P_new[m].lines.insert(
 		p.second.lines.begin(),
