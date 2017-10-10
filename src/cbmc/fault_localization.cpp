@@ -311,6 +311,33 @@ void fault_localizationt::report(irep_idt goal_id)
     if(options.get_option("localize-faults-max-display")!="")
       max_display=
         atoi(options.get_option("localize-faults-max-display").c_str());
+
+    // to merge equivalent scores
+    auto xt=lpoints_vect.begin();
+    while(xt!=lpoints_vect.end())
+    {
+      bool to_remove=false;
+      for(auto it=lpoints_vect.begin(); it!=lpoints_vect.end(); ++it)
+      {
+        if(it==xt)
+          continue;
+        if(it->score<xt->score)
+          break;
+        if(it->score==xt->score)
+        {
+          it->lines.insert(xt->lines.begin(), xt->lines.end());
+          to_remove=true;
+          break;
+        }
+      }
+      if(to_remove)
+      {
+        xt=lpoints_vect.erase(xt);
+      }
+      else
+        xt++;
+    }
+
     int i=0;
     for(auto it=lpoints_vect.begin(); it!=lpoints_vect.end(); ++it)
     {
@@ -334,18 +361,25 @@ void fault_localizationt::report(irep_idt goal_id)
       //   std::cout << "##" << l << " ";
 #if 1
       std::cout << it->score << ": ";
+      std::vector<int> res;
       for(auto it=tmp.begin(); it!=tmp.end(); ++it)
       {
-        if(it!=tmp.begin())
-          std::cout << ", ";
         std::string str=it->as_string();
         std::size_t pos = str.find("line ");
         str=str.substr(pos+5);
         pos=str.find(" ");
-        std::cout << str.substr(0, pos);
+        res.push_back(std::stoi(str.substr(0, pos)));
+        // std::cout << str.substr(0, pos);
       }
-#endif
+      std::sort(res.begin(), res.end());
+      for(auto it=res.begin(); it!=res.end(); ++it)
+      {
+        if(it!=res.begin())
+          std::cout << ", ";
+        std::cout << *it;
+      }
       std::cout << "\n";
+#endif
       if(++i==max_display) break;
     }
   }
