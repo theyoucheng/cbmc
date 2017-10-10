@@ -328,10 +328,23 @@ void fault_localizationt::report(irep_idt goal_id)
         if(!redundant) tmp.insert(l);
       }
 #endif
-      if(tmp.empty()) continue;
-      std::cout << "[score: " << it->score << "] ";
-      for(auto &l:tmp)
-        std::cout << "##" << l << " ";
+      // if(tmp.empty()) continue;
+      // std::cout << "[score: " << it->score << "] ";
+      // for(auto &l:tmp)
+      //   std::cout << "##" << l << " ";
+#if 1
+      std::cout << it->score << ": ";
+      for(auto it=tmp.begin(); it!=tmp.end(); ++it)
+      {
+        if(it!=tmp.begin())
+          std::cout << ", ";
+        std::string str=it->as_string();
+        std::size_t pos = str.find("line ");
+        str=str.substr(pos+5);
+        pos=str.find(" ");
+        std::cout << str.substr(0, pos);
+      }
+#endif
       std::cout << "\n";
       if(++i==max_display) break;
     }
