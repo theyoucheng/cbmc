@@ -366,6 +366,8 @@ void fault_localizationt::report(irep_idt goal_id)
       {
         std::string str=it->as_string();
         std::size_t pos = str.find("line ");
+        if(pos==std::string::npos)
+          continue;
         str=str.substr(pos+5);
         pos=str.find(" ");
         res.push_back(std::stoi(str.substr(0, pos)));
