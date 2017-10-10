@@ -262,11 +262,11 @@ void fault_localizationt::pflt::operator()()
   }
 
   // to obtain some extra traces
-  while(failing_traces.size()<max_traces)
-  {
-    if(!get_a_trace(!property, failing_traces))
-      break;
-  }
+  // while(failing_traces.size()<max_traces)
+  // {
+  //   if(!get_a_trace(!property, failing_traces))
+  //     break;
+  // }
 
   while(passing_traces.size()<max_traces)
   {
