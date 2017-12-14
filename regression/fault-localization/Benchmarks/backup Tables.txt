@@ -1,0 +1,13 @@
+1  & cdaudio\_simpl1\_unsafe.cil.c                                                    & 1  & 2  & 2901   \\
+2  & floppy\_simpl3...c                                                               & 2  & 3  & 1082   \\
+3  & s3\_clnt\_1\...c.cil.c                                                              & 10 & 15 & 578    \\
+4  & kundu2\_unsafe.cil.c                                                             & 6  & 11 & 536   \\
+5  & rule57\_ebda\_blast.c\_unsafe.cil.c                                              & 3  & 5  & 251    \\
+6  & tcas.c                                                                           & 4  & 11 & 170  \\
+7  & rule60\_list2.c\_unsafe\_1.cil.c                                                 & 3  & 13 & 132   \\
+8  & merge\_sort\_BUG.c                                                               & 4  & 12 & 110    \\
+9  & alternating\_list.c                                                              & 5  & 8  & 105    \\
+10  & byte\_add\_false-unreach...c                                                      & 1  & 1  & 101   \\
+11  & eureka\_01\_unsafe.c                                                            & 3  & 4  & 53     \\
+12  & string\_unsafe.c                                                                & 1  & 4  & 44     \\
+13  & insertion\_sort\_unsafe.c                                                       & 1  & 1  & 26    

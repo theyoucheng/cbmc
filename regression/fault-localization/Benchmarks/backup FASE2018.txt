@@ -1,0 +1,709 @@
+
+%%%%%%%%%%%%%%%%%%%%%%% file typeinst.tex %%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This is the LaTeX source for the instructions to authors using
+% the LaTeX document class 'llncs.cls' for contributions to
+% the Lecture Notes in Computer Sciences series.
+% http://www.springer.com/lncs       Springer Heidelberg 2006/05/04
+%
+% It may be used as a template for your own input - copy it
+% to a new file with a new name and use it as the basis
+% for your article.
+%
+% NB: the document class 'llncs' has its own and detailed documentation, see
+% ftp://ftp.springer.de/data/pubftp/pub/tex/latex/llncs/latex2e/llncsdoc.pdf
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\documentclass[runningheads,a4paper]{llncs}
+
+\usepackage{amssymb}
+\setcounter{tocdepth}{3}
+\usepackage{graphicx}
+%\usepackage{algorithm}
+%\usepackage{algorithmic}
+\usepackage{url}
+
+\usepackage[linesnumbered, ruled]{algorithm2e}
+\SetKwRepeat{Do}{do}{while}%
+
+\usepackage{cite}
+
+
+   
+\newcommand{\keywords}[1]{\par\addvspace\baselineskip
+\noindent\keywordname\enspace\ignorespaces#1}
+
+\begin{document}
+\sloppy
+\mainmatter  % start of an individual contribution
+
+% first the title is needed
+\title{Lightweight and Optimised Spectrum Based Fault Localisation of Single Fault Programs using Specifications}
+
+% a short form should be given in case it is too long for the running head
+\titlerunning{Single Fault Optimal Test Suite Generation for SBFL}
+
+% the name(s) of the author(s) follow(s) next
+%
+% NB: Chinese authors should write their first names(s) in front of
+% their surnames. This ensures that the names appear correctly in
+% the running heads and the author index.
+%
+%\author{David Landsberg, Youcheng Sun}
+%
+%\authorrunning{D. Landsberg, Y. Sun}
+% (feature abused for this document to repeat the title also on left hand pages)
+
+% the affiliations are given next; don't give your e-mail address
+% unless you accept that it will be published
+%\institute{Department of Computer Science, Oxford University}
+
+%
+% NB: a more complex sample for affiliations and the mapping to the
+% corresponding authors can be found in the file "llncs.dem"
+% (search for the string "\mainmatter" where a contribution starts).
+% "llncs.dem" accompanies the document class "llncs.cls".
+%
+
+\toctitle{Lecture Notes in Computer Science}
+\tocauthor{Authors' Instructions}
+\maketitle
+
+
+\begin{abstract}
+Spectrum based fault localisation measures determine how
+suspicious a {\sc loc} is with respect to being faulty as a function of a given test
+suite. Outstanding problems include identifying properties that test suites should satisfy in order to improve fault localisation effectiveness for a given measure, and developing methods which generate these test suites efficiently for a paradigm of lightweight fault localisation. We address these problems as follows. First, when single bug optimal measures are being used with a single fault program, we identify a formal property that test suites should satisfy to optimise fault localisation. Second, we introduce a new method which generates test suites which satisfy this property.  Finally, we empirically demonstrate the practical utility of our implementation at fault localisation on {\sc sv-comp} benchmarks, demonstrating that test suites can be generated in almost a second with a fault identified after inspecting 1\% of the program.
+
+%Our results show that, for a given faulty program and specification, fault localisation data can be generated in under 2 seconds with the fault identified after inspecting 1\% of the program on average.
+
+% 144 words - nb 150 limit
+
+%Our results show that a test suite and resultant fault localisation analysis can be efficiently generated using {\sc CBMC} tool in a few seconds with the fault identified after inspecting 1.1\% of the program.
+
+%, and that the resulting fault localisation effort is effective - on average the user having to inspect only a small number of lines of code until a fault is located.
+
+\keywords{Software quality, spectrum based fault localisation, debugging}
+\end{abstract}
+
+
+\section{Introduction}
+
+
+Faulty software is estimated to cost 60 billion dollars to the US economy
+per year~\cite{ZhivichC09} and has been single-handedly responsible for
+major newsworthy
+catastrophes\footnote{https://www.newscientist.com/gallery/software-faults/}. 
+This problem is exacerbated by the fact that debugging (defined as the
+process of finding and rectifying a fault) is a complex and time consuming
+one -- estimated to consume 50--60\% of the time a programmer spends in the
+maintenance and development cycle~\cite{Collofello:evaluating}. 
+Consequently, the development of effective and efficient methods of software
+fault localisation has the potential to greatly reduce costs, wasted
+programmer time and the possibility of catastrophe.
+
+In this paper we advance the state of the art in lightweight fault localisation by building on research in spectrum-based fault localisation ({\sc Sbfl}). {\sc Sbfl} is one of the most prominent areas of software fault localisation research estimated to make up 35\% of  published
+work in the field to date~\cite{7390282}, and has been demonstrated to be effective at
+finding faults. This effectiveness relies on two factors, (1) the quality of the measure used to rank lines of code in terms of suspiciousness wrt being at fault, and (2) the quality of the test suite. Where most research in the field has been on finding improved measures~\cite{Abreu:2007:ASF:1308173.1308264, conf/issre/BriandLL07, Jones:2005:EET:1101908.1101949, Liblit:2005:SSB:1064978.1065014,
+Liu:2006:SDH:1248726.1248773, Zhang:2009:CPI:1595696.1595705, Xie,
+Landsberg, Renieris:R03, Wong:2007:EFL:1299135.1299726, Pytlik2003, Naish:2011:MSS:2000791.2000795,
+LLJTB14, Dstar, EricWong:2010:FCC:1672348.1672568,
+DBLP:journals/tr/WongDGXT12, Yoo12, Kim:2015:NHA:2701126.2701207}, less has been done on addressing the problem of improving the quality of test suites. 
+Indeed, it is often standard practice for test suites to be created without much forethought for the fault localisation stage. To address this problem we provide three contributions in this paper:
+
+\begin{enumerate}
+
+\item First, when a single fault optimal {\sc sbfl} measure is being used, we identify a formal property that a test suite must satisfy in order to be optimal for fault localisation on a given program with a single fault. 
+
+\item  Secondly, we provide an algorithm which generates test suites which are formally shown to satisfy this property. 
+
+\item  Finally, we integrate this algorithm into an implementation which leverages model checkers to generate small test suites. We empirically demonstrate its practical utility at fault localisation on {\sc SV-COMP} benchmarks. 
+
+\end{enumerate} 
+
+In this paper we restrict our approach to programs which have the following features. Firstly, they contain a single fault. Programs with a single fault are of special interest, as a recent study demonstrated that 82\% of projects with bugs could be repaired with a "single fix", suggesting that methods optimised for use with single fault programs can be potentially helpful in practice. Secondly, a program specification (such as those expressible in the form of an assertion statement) is available. Finally, for our implementation and experimentation we will limit ourselves to C code. 
+
+The rest of this paper is organized as follows. In section~\ref{Preliminaries} we present the technical definitions and formal preliminaries for {\sc sbfl} and our approach. In section 3 we motivate and describe a property of single fault optimality to hold of test suites. In section 4 we present an algorithm which generates a test suite for a given faulty program, and prove that the test suite generated satisfies the property of single fault optimality. In section 5 we present our experimental results where we demonstrate the utility of an implementation of our algorithm on C programs, and in section 6 we present related work. Finally, in section 7 we make some concluding remarks.
+
+\section{Preliminaries}~\label{Preliminaries}
+
+In this section we describe some formal preliminaries underlying SBFL and our approach. 
+
+\subsection{Probands}
+
+Using the terminology of Steimann et al.~\cite{Steimann:2013:TVV:2483760.2483767}, 
+a \textit{proband} is a faulty program together with its test suite that we use for evaluating the performance of a given fault localization method. A \textit{faulty program} is a program which fails to always satisfy a specification, where a specification is a property expressible in some formal language and describes the intended behaviour of some part of the program under test (PUT). When a specification fails  to be satisfied for a given execution (i.e. an error occurs), it is assumed there exists something in the program which was the cause of that error, identified as the fault for that execution. 
+
+\begin{example}
+ An example of a faulty {\sc c} program is given in Fig.~\ref{Code 1} (called {\tt{minmax.c}}). This example is taken from Groce et al.~\cite{Groce04errorexplanation}, and we shall use it as our running example throughout. There are some executions of the program in which the assertion {\tt least <= most} is violated, and thus the program fails to always satisfy the specification. In such executions, the cause of the error is the fault marked {\tt C4}, which should be an assignment to {\tt least} instead of {\tt most}.~\label{faultyprogs}
+\end{example}
+
+\begin{figure}[t!]
+\begin{minipage}[b]{0.5\linewidth}
+\noindent
+
+\begin{verbatim}
+int main() { 
+  int input1, input2, input3; // C1
+  int least = input1; 
+  int most = input1; 
+  
+  if (most < input2) 	
+    most = input2;  // C2	
+      
+  if (most < input3) 	
+    most = input3; // C3
+    
+  if (least > input2) 	
+    most = input2; // C4 (bug) 
+    
+  if (least > input3) 	
+    least = input3; // C5
+     
+  assert(least <= most); // E 
+  }   
+\end{verbatim}~\caption{{\tt minmax.c}}~\label{Code 1} 
+\noindent
+    
+\end{minipage}\hfill
+\begin{minipage}[b]{0.5\linewidth}
+
+\centering
+
+
+\bgroup
+\def\arraystretch{1.6}%  
+\setlength\tabcolsep{1.6mm}
+\begin{tabular}{l||l|l|l|l|l||l}
+
+\multicolumn{1}{l|}{} & { $C_{1}$} & { $C_{2}$} & { $C_{3}$} & { $C_{4}$} & { $C_{5}$} & { $E$}\tabularnewline
+\hline 
+\hline
+$t_{1}$  & 1 & 0 & 1 & 1 & 0 & 1 \tabularnewline %<1,0,2>
+\hline 
+$t_{2}$  & 1 & 0 & 0 & 1 & 1 & 1 \tabularnewline %<2,0,1>
+\hline 
+$t_{3}$  & 1 & 0 & 0 & 1 & 0 & 1 \tabularnewline %<2,0,2>
+\hline 
+$t_{4}$  & 1 & 1 & 0 & 0 & 0 & 0 \tabularnewline %<0,1,0>
+\hline 
+$t_{5}$  & 1 & 0 & 1 & 0 & 0 & 0 \tabularnewline %001
+\hline 
+$t_{6}$  & 1 & 0 & 0 & 0 & 1 & 0 \tabularnewline %110
+\hline 
+$t_{7}$  & 1 & 0 & 0 & 1 & 1 & 0 \tabularnewline %200
+\hline 
+$t_{8}$  & 1 & 0 & 0 & 0 & 0 & 0 \tabularnewline %222
+\hline 
+$t_{9}$  & 1 & 1 & 0 & 0 & 1 & 0 \tabularnewline %120
+\hline 
+$t_{10}$ & 1 & 1 & 1 & 0 & 0 & 0 \tabularnewline %012
+
+\end{tabular}
+\egroup
+\vspace*{5mm}
+\caption{coverage matrix}~\label{Coverage Matrix}
+ 
+\end{minipage}
+\end{figure}
+
+\medskip
+
+
+
+
+A \textit{test suite} is a collection of test cases whose result is independent
+of the order of their execution, where 
+a \textit{test case} is an execution of some part of a program. Each test case is associated with an input vector, where the $n$th value of the vector is assigned to the $n$th input of the given program for the purposes of a test (according to some given method of assigning values in the vector to inputs in the program). Each test suite is associated with a set of input vectors which can be used to generate the test cases. A test case \textit{fails} (or is \textit{failing}) if it violates a given specification, and \textit{passes} (or is \textit{passing}) otherwise. The \textit{population test suite} for a given program is a test suite consisting of all possible test cases for the program, a \textit{sample test suite} for a given program is a test suite consisting of some (but not necessarily all) possible test cases for the program. All test suites are sample test suites drawn from a given population. 
+
+\begin{example}
+We give an example of a (sample) test case for the running example. The test case with associated input vector $\langle 0, 1, 2 \rangle$ is an execution in which {\tt input1} is assigned 0, {\tt input2} is assigned 1, and {\tt input3} is assigned 2, the statements labeled {\tt C1}, {\tt C2} and {\tt C3} are executed, but {\tt C4} and {\tt C5} are not executed, and the assertion is not violated at termination, as {\tt least} and {\tt most} assume values of 0 and 2 respectively. Accordingly, we may associate a collection of test cases (a test suite) with a set of input vectors. For the running example the following ten input vectors are associated with a test suite of ten test cases:
+$\langle 1, 0, 2 \rangle$,
+$\langle 2, 0, 1 \rangle$,
+$\langle 2, 0, 2 \rangle$,
+$\langle 0, 1, 0 \rangle$,
+$\langle 0, 0, 1 \rangle$,
+$\langle 1, 1, 0 \rangle$,
+$\langle 2, 0, 0 \rangle$,
+$\langle 2, 2, 2 \rangle$,
+$\langle 1, 2, 0 \rangle$, and 
+$\langle 0, 1, 2 \rangle$. Here, the first three input vectors result in error (and thus their associated test cases are failing), and the last seven do not (and thus their associated test cases are passing).~\label{testcase}
+\end{example}
+
+An important concept in fault localisation is a \textit{unit under test} (UUT). A UUT is a concrete artifact in a program which is a candidate for being at fault. Many types of UUTS have been defined and used in the literature, including methods~\cite{DBLP:conf/issre/SteimannF12}, blocks~\cite{Abreu:2006:ESC:1193217.1194368,DiGiuseppe:2011:IMF:2001420.2001446}, branches~\cite{5070508}, and statements~\cite{Jones:2002:VTI:581339.581397,journals/jss/WongQ06, Liblit:2005:SSB:1064978.1065014}. A UUT is said to be \textit{covered} by a test case just in case that test case executes the UUT. For simplicity and convenience, it will help to always think of UUTS as being labeled {\tt C1}, {\tt C2}, ... etc. in the program itself (as they are in the running example). Assertion statements are not considered to be UUTs, and we assume that each fault in the program has a corresponding UUT.
+
+\begin{example}
+To illustrate some UUTs for the running example (Figure~\ref{Code 1}), we have chosen the units under test to be the statements labeled in comments marked {\tt C1}, $\dots$, {\tt C5}. The assertion is labeled {\tt E}, which is violated when an error occurs. To illustrate a proband, the faulty program {\tt minmax.c} (described in example~\ref{faultyprogs}), and the test suite associated with the input vectors described in example~\ref{testcase}, together describe a proband.~\label{UUTs} 
+\end{example}
+
+
+
+
+\subsection{Proband Models}~\label{Test Suites}
+
+In this section we define proband models, which are the principle formal objects used by SBFL. Informally, a proband model is a mathematical abstraction of a proband. In our development we assume the existence of a given proband in which the UUTs have already been identified for the faulty program and appropriately labeled {\tt C1}, ..., {\tt Cn}, and assume a total of $n$ UUTs. We begin as follows. 
+
+\begin{definition} A set of \textit{coverage vectors}, symbolised \textbf{T}, is a set $\{ t_{1},\ldots, t_{|\textbf{T}|} \}$ in which each $t_k \in \textbf{T}$ is a coverage vector defined
+$t_k = \langle c_1^k,\ldots, c_{n+1}^k,k  \rangle$, where
+
+\begin{itemize}
+\item For all $0 < i \leqslant n$,
+$c_i^k = 1$ if the \textit{i}th UUT is covered by the test case associated with $t_k$, and $0$ otherwise. 
+\item $c_{n+1}^k =$ $1$ if the test case associated with $t_k$ fails and $0$ if it passes. 
+\end{itemize}
+\end{definition}
+ 
+We also call a set of coverage vectors \textbf{T} fault localisation \textit{data}.  
+Intuitively, each coverage vector can be thought of as a mathematical abstraction of an associated test case which describes which UUTs were executed/covered in that test case. 
+We also use the following additional notation. 
+If the last argument of a coverage vector in \textbf{T} is the number $k$ it is symbolised $t_k$.  
+where $k$ uniquely identifies a coverage vector in \textbf{T} and the corresponding test case in the associated test suite. 
+In general, for each $t_k \in \textbf{T}$, $c_i^k$ is the value of the $i$th argument in $t_k$.
+If $c_{n+1}^k =$ $1$ then $t_k$ is also described as a \textit{failing} coverage vector, and as \textit{passing} otherwise. The set of failing coverage vectors/the event of an error is denoted $E$ (such that the set of passing vectors is then $\overline{E}$).
+$c_{n+1}^k$ is also denoted $e^k$ (as it describes whether the error occurred).  
+For convenience, we may represent the set of coverage vectors \textbf{T} with a \emph{coverage matrix}, where for all $0 < i \leqslant n$ and $t_k \in \textbf{T}$ the cell intersecting the $i$th column and $k$th row is $c_i^k$ and represents whether the \textit{i}-th UUT was covered in the test case corresponding to $t_k$. The cell intersecting the last column and $k$th row is $e^k$ and represents whether $t_k$ is a failing or passing trace. Table~\ref{Coverage Matrix} is an example coverage matrix.
+
+\begin{example}
+For the test suite described in~\ref{testcase} we can describe a set of coverage vectors $\textbf{T} = \{t_1, \ldots, t_{10}\}$ in which 
+$t_1 = \langle 1, 0, 1, 1, 0, 1, 1 \rangle$,
+$t_2 = \langle 1, 0, 0, 1, 1, 1, 2 \rangle$,
+$t_3 = \langle 1, 0, 0, 1, 0, 1, 3 \rangle$,
+$t_4 = \langle 1, 1, 0, 0, 0, 0, 4 \rangle$,
+$t_5 = \langle 1, 1, 0, 0, 0, 0, 5 \rangle$,
+$t_6 = \langle 1, 0, 0, 0, 1, 0, 6 \rangle$,
+$t_7 = \langle 1, 0, 0, 1, 1, 0, 7 \rangle$,
+$t_8 = \langle 1, 0, 0, 0, 0, 0, 8 \rangle$,
+$t_9 = \langle 1, 1, 0, 0, 1, 0, 9 \rangle$, and
+$t_{10} = \langle 1, 1, 1, 0, 0, 0, 10 \rangle$.
+Here, coverage vector $t_k$ is associated with the $k$th input vector described in the list in Example~\ref{testcase}. To illustrate how input and coverage vectors relate, we observe that  $t_{10}$ is associated with a test case with input vector $\langle 0, 1, 2 \rangle$ which executes the statements labeled {\tt C1}, {\tt C2} and {\tt C3}, does not execute the statements labeled {\tt C4} and {\tt C5}, and does not result in error. Consequently $c_1^{10} = c_2^{10} = c_3^{10} = 1$, and $c_4^{10} = c_5^{10} = e^{10} = 0$, and $k = 10$, such that $t_{10} = \langle 1, 1, 1, 0, 0, 0, 10 \rangle$ (by the definition of coverage vectors). A coverage matrix representing \textbf{T} is given in Table~\ref{Coverage Matrix}. In practice, given a program and an input vector, one can extract coverage information from the associated test case by using established tools (for example, for C programs, Gcov~\cite{Gcov} can be used). 
+\end{example}
+
+\begin{definition}~\label{program_model}
+Let \textbf{T} be a non-empty set of coverage vectors, then \textbf{T}'s \textit{program model} $\textbf{\textit{PM}}$ is defined as an ordered set
+$\langle C_1, \dots, C_{n} \rangle$, where for each $C_i \in \textbf{\textit{PM}}$, $C_i = \{t_k \in \textbf{T}| c_i^k = 1\}$.
+\end{definition}
+
+We shall often use the notation $\textbf{{PM}}_{\textbf{T}}$ to denote the program model \textbf{{PM}} associated with \textbf{T}. $C_{|\textbf{PM}|}$ is also denoted $E$ (denoting the event of the error).
+Each member of a program model is called a \textit{program component} or  \textit{event}, and if $c_i^k = 1$ we say $C_i$ \textit{occurred} in $t_k$, that $t_k$ \textit{covers} $C_i$, and say that $C_i$ is \textit{faulty} just in case its corresponding UUT is faulty.  Following this, each event can be intuitively thought of as the set of vectors in which it occurs.  We assume that $E$ contains at least one failing coverage vector and each coverage vector covers at least one component. 
+
+\begin{example}
+We use the running example to illustrate an example program model. 
+For the set of coverage vectors \textbf{T} = $\{t_1, \dots, t_{10}\}$, we may define a program model \textbf{\textit{PM}} = $\langle C_1, C_2, C_3, C_4, C_5 E \rangle$, where 
+$C_1 = \{t_1, \dots, t_{10}\}$,
+$C_2 = \{t_4, t_9, t_{10}\}$, 
+$C_3 = \{t_1, t_{5}, t_{10}\}$, 
+$C_4 = \{t_1, t_{2}, t_{3}, t_{7}\}$, 
+$C_5 = \{t_2, t_{6}, t_{7}, t_{9}\}$, 
+$E = \{t_1, t_2, t_3\}$.
+Here, we may think of $C_1, \dots, C_5$ as events which occur just in case a corresponding UUT (lines of code labelled {\tt C1, ..., C5} respectively) is executed, and $E$ as an event which occurs just in case the assertion {\tt least <= most} is violated. $C_4$ is identified as the faulty component. 
+\end{example}
+
+
+\begin{definition}
+For a given proband we define a \textit{proband model} $\langle \textbf{{PM}}, \textbf{T}\rangle$, consisting of the given faulty program's program model \textbf{{PM}}, and a given sample test suite's set of coverage vectors \textbf{T}. 
+\end{definition}~\label{proband_model}
+
+We also use the following notation. Let  $\langle \textbf{{PM}}, \textbf{T}\rangle$ be a  given proband model for of a given faulty program and sample test suite. Then 
+we denote the \textit{population set of coverage vectors} corresponding to the population test suite for the 
+given faulty program as \textbf{T}* 
+(and $E$* and $\overline{E}$*
+as the population set of failing and passing traces in \textbf{T}* respectively). The \textit{population program model} for the population test suite is denoted \textbf{PM}* (aka $\textbf{PM*}_{\textbf{T*}}$). By convention, each component in the population program model is also superscripted with a *. Finally, $\langle \textbf{PM*}, \textbf{T*} \rangle$ is called the \textit{population proband model}. For a given sample proband model $\langle \textbf{{PM}}, \textbf{T} \rangle$ and its population proband model  $\langle \textbf{PM}^*, \textbf{T}^* \rangle$,  it is observed that $\textbf{T} \subseteq \textbf{T}*$, and for each $i \in \mathbb{N}$ if $C_i \in \textbf{{PM}}$ and $C_i^{*} \in \textbf{PM}^*$, then $C_i \subseteq$ $ C_i^{*}$.
+
+
+
+
+
+
+
+
+
+
+\subsection{Spectrum Based Fault Localisation}
+
+We first define program spectra, which is a principle formal object used in spectrum based fault localization. 
+
+\begin{definition}
+For each proband model $\langle \textbf{\textit{PM}}, \textbf{T}\rangle$, and each $C_i \in \textbf{\textit{PM}}$, a component's
+program spectrum, is a vector $\langle |C_i \cap E|, |\overline{C_i} \cap E|, |C_i \cap \overline{E}|, |\overline{C_i} \cap \overline{E}| \rangle$.
+\end{definition}
+%$\langle a_{ef}^i, a_{nf}^i, a_{ep}^i, a_{np}^i \rangle$, where  
+
+Informally, 
+$|C_i \cap E|$ is the number of  failing coverage vectors in $\textbf{T}$ that cover $C_i$,
+$|\overline{C_i} \cap E|$ is the number of failing coverage vectors  in $\textbf{T}$ that do not cover $C_i$,
+$|C_i \cap \overline{E}|$ is the number of passing coverage vectors  in $\textbf{T}$ that cover $C_i$,  and
+$|\overline{C_i} \cap \overline{E}|$ is the number of passing coverage vectors in $\textbf{T}$ that do
+not cover $C_i$. $|C_i \cap E|, |\overline{C_i} \cap E|, |C_i \cap \overline{E}|$ and $|\overline{C_i} \cap \overline{E}|$ are often denoted $a_{ef}^i$, $a_{nf}^i$, $a_{ep}^i$, and $a_{np}^i$ respectively in the literature.  We often drop the numerical indices when the context is clear, writing $a_{ef}$ instead of $a_{ef}^i$, and $C$ instead of $C_i$ etc.
+
+
+\begin{example}
+For the proband model of the running example $\langle \textbf{\textit{PM}}, \textbf{T} \rangle$ (where \textbf{\textit{PM}} = $\langle C_1, \dots, E \rangle$ and \textbf{T} is represented by the coverage matrix in Table~\ref{Coverage Matrix}), 
+the spectra for $C_1$, ... $C_5$, and $E$ are
+$\langle 3, 0, 7, 0 \rangle$,
+$\langle 0, 3, 3, 4 \rangle$,
+$\langle 1, 2, 2, 5 \rangle$,  
+$\langle 3, 0, 1, 6 \rangle$, 
+$\langle 1, 2, 3, 4 \rangle$, and
+$\langle 3, 0, 0, 7 \rangle$ respectively.~\label{spectraexample}
+\end{example}
+
+Following Naish et al.~\cite{Naish:2011:MSS:2000791.2000795} we define a suspiciousness measure as follows. 
+
+\begin{definition}
+A \emph{suspiciousness measure} $w$ is a function with signature $w : \textbf{\textit{PM}} \rightarrow \mathbb{R}$, and maps each $C_i \in$ \textbf{\textit{PM}} to a
+real number as a function of $C_i$'s program spectrum $\langle |C_i \cap E|, |\overline{C_i} \cap E|, |C_i \cap \overline{E}|, |\overline{C_i} \cap \overline{E}| \rangle$, where this number is called the component's \textit{degree of suspiciousness}.
+\end{definition}
+
+ The higher/lower the degree of suspiciousness the more/less
+suspicious $C_i$ is assumed to be with respect to being a
+fault. 
+A property of some {\sc sbfl} measures is
+\emph{single-fault optimality}~\cite{Naish:2011:MSS:2000791.2000795,Naish:Duals}. This property is based on the observation that if a program contains only a
+single fault then all failing test cases must cover that fault~\cite{Naish:2011:MSS:2000791.2000795,Naish:Duals}. 
+Using our notation we can express this property as follows:
+
+\begin{definition}
+
+A suspiciousness measure $w$ is \emph{single-fault optimal} if it satisfies the following two conditions.
+
+\begin{enumerate}
+\item If $|C_i \cap E| < |E|$ and $|C_j \cap E| = |E|$, then $w(C_j) > w(C_i)$ and 
+\item If $|C_i \cap E|  = |C_j \cap E| = |E|$ and $|{C_i} \cap \overline{E}| = k$, and $|{C_j} \cap \overline{E}| < k$ then $w(C_j) > w(C_i)$.
+\end{enumerate}
+
+\end{definition}
+
+%Letting $w$ be a single fault optimal measure, it is observed that $AN_{\textbf{T}} >_w^{\textbf{T}} AS_{\textbf{T}} >_w^{\textbf{T}} AA_{\textbf{T}}$.
+
+Informally, the first condition states that UUTs executed by all failing traces are more suspicious than anything else, and that of two UUTs covered by all failing traces, the one which is executed by fewer passing traces is more suspicious. An example of a single fault optimal measure is the Naish-I measure $w(C_i) = a_{ef}^i - \frac{a_{ep}^i }{a_{ep}^i  + a_{np}^i + 1}$~\cite{Naish:2012:SDM:2483654.2483666}.
+A framework that
+optimises any given {\sc sbfl} measure to being single fault optimal was first given
+by Naish in~\cite{Naish:2012:SDM:2483654.2483666}.  For any suspiciousness measure $w$
+scaled from 0 to 1, we can construct the \emph{single fault
+optimised} version for $w$ (written $Opt_w$) as follows (here, we use the equivalent formulation of Landsberg et al~\cite{Landsberg}): 
+$Opt_w(C_i) = a_{np}^i + 2$ if $a_{ef}^i = |E|$, and
+$w(C_i)$ otherwise.
+
+
+We now describe the established {\sc sbfl} algorithm. The method produces a list of program component indices ordered by suspiciousness, as a function of set of coverage vectors \textbf{T} (taken from a proband model $\langle \textbf{\textit{PM}}, \textbf{T}\rangle$) and suspiciousness measure $w$. Versions of this algorithm are presented in~\cite{Abreu:2009.phd,Jones_thesis}. As the algorithm is simple, we informally describe the algorithm in three stages, as follows. First, the program spectra for each program component is constructed as a function of \textbf{T}. Second, the indices of program components are ordered in a \textit{suspiciousness list} according to decreasing order of suspiciousness. Third, the suspiciousness list is returned to the user, who will inspect each UUT corresponding to each index in the suspiciousness list in decreasing order of suspiciousness until a fault is found. 
+
+%We illustrate the algorithm in Example~\ref{example408}.
+%\input{Tables_ch2//sbfl_algorithm}
+
+\begin{example}~\label{example408}
+We illustrate an instance of {\sc sbfl} using our running {\tt minmax.c} example of Fig.~\ref{Code 1}, and the Naish-I measure as an example suspiciousness measure. First, the program spectra (given in example~\ref{spectraexample}) are constructed as a function of the given coverage vectors (represented by the coverage matrix of Table~\ref{Coverage Matrix}). Second, the suspiciousness of each program component is computed (here, the suspiciousness of the five components are 2.125, -0.375, 0.75, 2.875, 0.625 respectively), and the indices of components are ordered according to decreasing order of suspiciousness. Thus we get the list $\langle 4, 1, 3, 5, 2 \rangle$. Finally, the list is returned to the user, and the UUTs in the program are inspected according to this list in descending order of suspiciousness until a fault is found. In our running example {\tt C4} (the fault) is investigated first.
+
+\iffalse
+\begin{table}[t!]
+\centering
+\bgroup
+\def\arraystretch{2.0}%  
+\setlength\tabcolsep{2mm}
+\begin{tabular}{l||l|l|l|l||l}
+
+$C_i$ & $a_{ef}^i$ & $a_{nf}^i$ & $a_{ep}^i$ & $a_{np}^i$ & $a_{ef}^i - \frac{a_{ep}^i }{a_{ep}^i  + a_{np}^i + 1}$  \tabularnewline
+\hline 
+\hline 
+$C_1$ & 3 & 0 & 7 & 0 & 2.125   \tabularnewline \hline %3 - 7/8
+$C_2$ & 0 & 3 & 3 & 4 & -0.375  \tabularnewline \hline 
+$C_3$ & 1 & 2 & 2 & 5 & 0.75    \tabularnewline \hline 
+$C_4$ & 3 & 0 & 1 & 6 & 2.875   \tabularnewline \hline 
+$C_5$ & 1 & 2 & 3 & 4 & 0.625   \tabularnewline  
+
+\end{tabular}
+\egroup
+\vspace*{5mm}
+\caption{Suspiciousness scores for running example using Naish-I measure}~\label{example spectra}
+\end{table}
+\fi
+
+\end{example} 
+
+
+Finally, it will be useful to introduce the following new notation. Let $\langle \textbf{PM}, \textbf{T} \rangle$  be a proband model where $X \subseteq \textbf{T}$, then $Cov(X)$ =
+$\{i < |\textbf{PM}|| (\forall t_k \in X) c_{i}^k = 1 \}$.
+Intuitively, $Cov(X)$ is the set of indices to components which are covered by every vector in $X$.
+We say these indices \textit{specify} the UUTs they correspond to, and thus $Cov(X)$ can be said to specify the UUTs which are covered by all executions corresponding to vectors in $X$. 
+Note that if $X$ is non-empty then for any $t_k \in X$, $|\textbf{PM}| = |t_k|-1$, and thus the length of $|\textbf{PM}|$ can always be found by appeal to any member of $X$.
+
+\begin{example}
+We give two examples to illustrate the $Cov$ function. First, let $X = \{t_1\} = \{ \langle 1, 0, 1, 1, 0, 1, 1 \rangle \}$, where $t_1$ is described in the coverage matrix of Table~\ref{Coverage Matrix}. Thus, $Cov(\{t_1\}) = \{i < |t_1|-1| (\forall t_k \in \{t_1\}) c_{i}^k = 1 \} = \{i < 6| c_{i}^1 = 1 \} = \{i < 6| c_{1}^1 = 1 \vee \dots \vee c_{|t_1|}^1 = 1 \} = \{1,3,4\}$. Intuitively, this set specifies the UUTS executed by $t_1$. 
+We now describe a larger example.  Here, let $X = \{t_1, t_2\} = \{ \langle 1, 0, 1, 1, 0, 1, 1 \rangle, \langle 1, 0, 0, 1, 1, 1, 2 \rangle\}$ described in the coverage matrix of Table~\ref{Coverage Matrix}. $Cov(\{t_1, t_2\}) = \{i < |t_1|-1| (\forall t_k \in \{t_1, t_2\}) c_{i}^k = 1 \} = \{i < 6| c_{i}^1 = 1 \wedge c_{i}^2 = 1\} = \{i < 6| (c_{1}^1 = 1 \wedge c_{1}^2 = 1) \vee \dots \vee (c_{|t_1|}^1 = 1 \wedge c_{|t_2|}^2 = 1)\} = \{1,4\}$.
+ Intuitively, this set specifies the UUTS executed by both $t_1$ and $t_2$.~\label{cov}
+\end{example}
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{Single Fault Optimality Property}
+
+We now identify a new property we would like a given set of coverage vectors \textbf{T} to satisfy. In our development,
+we assume a single bug optimal measure $w$ is being used,  and that there is a single bug in a given faulty program. 
+For a sample proband model $\langle \textbf{\textit{PM}}, \textbf{T} \rangle$ and its population 
+$\langle \textbf{\textit{PM*}}, \textbf{T*} \rangle$, 
+where $E \subseteq \textbf{T}$ and $E$ is a sample set of failing 
+coverage vectors, and $E^* \subseteq \textbf{T*}$ and 
+$E^*$ is the population set of failing coverage vectors, then
+
+\begin{definition} {\sc A Property of Single Fault Optimal Data}. If \textbf{T} is single bug optimal then $Cov(E) = Cov(E^*)$
+\end{definition}~\label{SFO property}
+ 
+If this condition holds, then we say \textbf{T} (and its associated sample test suite) satisfies this condition of single fault optimality (SFO). Informally, the condition demands that a UTT is executed by all failing traces in a sample test suite just in case that UTT is executed by all failing traces in the population test suite. 
+If a single fault optimal measure $w$ is being used, and there is a single fault in the program, we argue it is a desirable that a test suite satisfies this property. This is because in single fault programs the fault must be executed by all failing traces in the population (following the reasoning of Naish et al~\cite{Naish:Duals}), and as UUTs executed by all failing traces in the sample are investigated first when a single fault optimal measure is being used, it is desirable that UUTs not covered by all failing traces in the population are less suspicious in order to guarantee the fault is found earlier. A second desirable feature is that as soon as a test suite satisfies SFO we know we do not have to add any more failing test cases to it, given it is then impossible to improve fault localization effectiveness with by adding more failing test cases.
+
+
+
+
+
+
+
+
+
+\section{Algorithm}~\label{TSO algorithm}
+
+In this section we present an algorithm which, for a given population proband model, outputs a sample set of coverage vectors which satisfies the condition of single fault optimality. 
+We assume the following additional preconditions to our algorithm.  We assume the existence of some proband with a formalised specification, and that there is always a UUT executed by all failing traces (which is in practice guaranteed by ensuring some LOC, such as one that initializes a variable in the main function, is itself a UUT). In addition, for the formal presentation of our algorithm we will also assume the existence of the population proband model (but as we shall see later, practical implementations will not require this). In our presentation of the algorithm we assume that $E$ is a mutable set. Finally, we shall make use of a $choose(X)$ subroutine which non-deterministically returns the set of a single a member of $X$ (if one exists, otherwise it returns the empty set). The algorithm is formally presented in Algorithm 1.
+
+\begin{algorithm}[t!]
+  \KwData{$E$, $E^*$ (pre-condition: $E$ $\subseteq E^*$ $\wedge E \neq \emptyset$)}
+  \KwResult{$E$, (post-condition: $Cov(E)$ = $Cov(E^*$))} 
+
+    \Repeat{$T \neq \emptyset$}{
+     $T$ $\leftarrow$ $choose(\{ t_k \in E^* | \bigvee\limits_{i \in Cov(E)} c_i^k = 0 \})$\;
+     $E$ $\leftarrow$  $E$ $\cup$ $T$\;
+    }
+    
+    \Return $E$
+  \caption{Single-fault optimal data generation algorithm}
+\end{algorithm}
+
+We illustrate Algorithm 1 by showing how the set of coverage vectors \textit{E} it returns is constructed, using the running example of the {\tt minmax.c} program.
+
+\begin{example}
+For the purposes of our illustration we will assume the existence of some population set of failing coverage vectors $E^*$, which we identify with the set $\{t_1, t_2, t_3\} = \{ \langle 1, 0, 1, 1, 0, 1, 1 \rangle, \langle 1, 0, 0, 1, 1, 1, 2 \rangle,\langle 1, 0, 0, 1, 0, 1, 3 \rangle \}$ described in the coverage matrix of Table~\ref{Coverage Matrix}. In reality, the population set of failing coverage vectors for this faulty program is of course much larger than this. The algorithm proceeds as follows. First, we assume $E$ is a non-empty subset of $E^*$, and thus may assume $E = \{ \langle 1, 0, 1, 1, 0, 1, 1 \rangle \}$. Now, $Cov(E) = \{1, 3, 4\}$ (see example~\ref{cov}). Accordingly at step 2 we must first evaluate $\{t_k \in  \{t_1, t_2, t_3\}| c_1^k = 0 \vee c_3^k = 0 \vee c_4^k = 0\}$. This is equal to $\{t_2, t_3\}$. We may assume that $choose$ non-deterministically returns $t_2$, and thus the new version of $E$ is 
+$E = \{ \langle 1, 0, 1, 1, 0, 1, 1 \rangle, \langle 1, 0, 0, 1, 1, 1, 2 \rangle \}$. Here we can see that $Cov(E) = Cov(E^*) = \{1, 4\}$ (see example~\ref{cov}). Consequently, on the next iteration of the loop $\{t_k \in  \{t_1, t_2, t_3\}| c_1^k = 0 \vee c_4^k = 0\}$ will be empty, $choose$ will return the empty set, and thus the algorithm terminates returning $E$ to the user. On the assumption there is one fault in the program, the fault will be specified by an index in $Cov(E)$, and indeed {\tt C4} is the fault in the example. 
+\end{example}
+
+\begin{proposition}
+The set of coverage vectors returned by Algorithm 1 satisfies the condition of single fault optimality
+\end{proposition}
+
+\begin{proof}
+ Let $\langle \textbf{PM*}, \textbf{T*} \rangle$ be the population proband model for a given proband, where $E^* \subseteq \textbf{T*}$ is the population set of failing coverage vectors, and let $E$ be the set returned by Algorithm 1. We must show that $Cov(E) = Cov(E^*)$ is its postcondition (by def. of single fault optimality).
+ We first show that $Cov(E^*) \subseteq Cov(E)$ is an invariant. 
+We observe that $E$ is always a non-empty subset of $E^*$ (this holds as a stipulated pre-condition of the algorithm, and from the observation that $E$ is only changed at step 2 which only adds members of $E^*$ to $E$), and thus if a component is covered by all vectors in $E^*$, then it must be covered by all vectors in $E$, thus $Cov(E^*) \subseteq Cov(E)$ (by def. of \textit{Cov}). 
+
+It remains to show that $Cov(E) \subseteq Cov(E^*)$ is a post-condition. We first show that if this holds on some iteration then the loop terminates.  $Cov(E^*) \subseteq Cov(E)$ is an invariant, thus if $Cov(E) \subseteq Cov(E^*)$ then $Cov(E) = Cov(E^*)$, in which case there is no $t_k \in E^*$ such that $\bigvee_{i \in Cov(E)} c_i^k = 0$, in which case $choose$ returns $\emptyset$ and the loop terminates. It remains to show that $Cov(E) \subseteq Cov(E^*)$ will always be a reached program state. 
+For each iteration of the loop, let $E_{pre}/E_{post}$ describe $E$  after/before step 2 has taken place respectively. 
+It is sufficient to show that on each such iteration, there is at least one member of $Cov(E_{pre})$ which is not a member of $Cov(E_{post})$ (given we have already established that $Cov(E^*) \subseteq Cov(E)$ is an invariant).
+Assume $Cov(E_{pre})$ = $\{1,2,\dots,m\}$. The $choose$ sub-routine non-deterministically selects some $t_k \in E^*$  which satisfies the condition $c_1^k = 0 \vee c_2^k = 0 \vee \dots \vee c_m^k = 0$. Accordingly, a failing vector from the population is returned which does not cover all components covered by all components in $E_{pre}$, and so there is at least one element of $Cov(E_{pre})$ which is not a member of $Cov(E_{post})$.
+\end{proof}
+
+Finally, we observe that that the maximum size of the $E$ returned is the number of UUTs. In this case $E$ is input to the algorithm with a failing vector which covers all components, and $choose$ always returns a failing vector which covers 1 fewer UUTs than the failing vector covering the fewest UUTS already in $E$ (noting that at least one component will always be covered given our assumption that $Cov(E*) \neq \emptyset$).  
+The minimum is one. In this case $E$ is input to the algorithm with a failing vector which covers some components and the post-condition is already fulfilled. In general, $E$ can potentially be much smaller than $E*$.
+
+\section{Implementation}
+
+We now discuss implementation of the algorithm. In practice, we can leverage model checkers to compute members of $E^*$ on the fly, without having to compute the population set of failing coverage vectors (which is usually intractable). This can be done by appeal to a SAT solving subroutine which returns a satisfying assignment to its input. Given a formal model of some code 
+$F_{code}$, a formal specification $\phi$, set of Booleans which are true just in case a corresponding UUT is executed in a given execution $\{C1, \dots, Cn\}$, and a set $E \subseteq$ $E^*$,
+then at each iteration of the loop we can use a SAT solver to return a satisfying assignment by calling SAT($F_{code}$ $\wedge$ $\neg \phi$ $\wedge$ $\bigvee_{i \in Cov(E)} \texttt{Ci} = 0$), and then extracting a coverage vector from that assignment.
+
+We now discuss how the latter implementation can be used in a larger lightweight fault localisation implementation. We discovered that adding passing executions helped fault localization, thus the implementation we test is as follows, and we call FCBMC (fault localisation using {\sc cbmc}). 
+
+First, we use an implemenation of Algorithm 1 to return a set of failing coverage vectors $E$. Second, we used that implementation again on the same faulty program but with the formal specification negated (thus providing a set of passing coverage vectors $P$ with the property that a component is covered by all passing vectors in the set just in case this is also the case in the population set of passing vectors). Thirdly, for each UUT specified by $Cov(E)$ not covered by a vector in $P$, we called the SAT solver to find a passing vector which covered it. If there was one this was added to P. This gave us a set of failing and passing traces for use with fault localization. After the set of coverage vectors have been generated we then used the Naish to rank components by degree of suspiciousness.
+Our implementation of this method is integrated into a branch of {\sc cbmc}~\cite{cbmc}. Our branch of the tool is available for download here~\cite{youcheng}. 
+
+
+\section{Experimentation}
+
+In this section we provide details of our experiment. The purpose of the experiment was to demonstrate that an implementation of the algorithm can be used to facilitate efficient and effective fault localization in practice on small programs ($\leq$3KLOC). We think generation of fault localization information in a few seconds ($\leq$5) is sufficient to demonstrate practical efficiency, and ranking the fault in the top handful of most suspicious lines of code ($\leq$5) on average is sufficient to demonstrate practical effectiveness. We first describe the implementation, our experimental setup, and then present our results.
+
+ All programs we used the smallest unwinding number which facilitated {\sc cbmc} finding a failing execution. TODO
+
+For the purposes of comparison, we also tested the fault localisation potential of the above method against {\sc sbfl} when only a single failing test case was generated by {\sc cbmc}.  In this scenario the only possible spectra are $\langle 1, 0, 0, 0 \rangle$ and $\langle 0, 1, 0, 0 \rangle$ . To our knowledge, all SBFL measures rank components which the former spectrum as more suspicious than the latter (reflecting the intuition that components covered by at least some failing vectors are more suspicious than those covered by none), thus it is sufficient to design a measure $w$ which assigns a suspicious score of 1 to any component with the former spectrum, and 0 otherwise. 
+
+We used the following scoring method to evaluate the performance of each of the SBFL methods for each benchmark. 
+We envisage an engineer who is inspecting each LOC in descending order of suspiciousness using a given method (inspecting LOC which are earlier in the code first in the case of ties). Using this method, our scoring method is to report the number of non-faulty LOC investigated until the engineer finds a fault. Finally, we additionally report the average of these scores for the 12 benchmarks to give us an overall estimation of fault localisation effectiveness. 
+
+
+\subsection{Setup}~\label{Setupch8}
+
+
+
+
+We now discuss the benchmarks used in our experiments. In order to perform an unbiased and high quality experiment on our implementation using CBMC, we imposed that our benchmarks needed to satisfy the following three properties (aside from being a C program):
+
+\begin{enumerate}
+\item Each benchmark was created by an independent source. This is desirable in order to prevent any implicit bias caused by creating benchmarks ourselves. 
+
+\item Each benchmark has an explicit formally stated specification which can be tested by a bounded model checker such as {\sc cbmc}. In practice, this would come in the form of an assertion statement. 
+
+\item The faulty code was clearly and explicitly identified by the corresponding authors of the code, or the faulty program came with a fault free version comparisons between which clearly identified the location of the fault. 
+\end{enumerate}
+
+Unfortunately, benchmarks satisfying the above three conditions were found to be extremely rare for C programs. In general, benchmarks exist in verification research to satisfy either the second or third criterion, but rarely both. For instance, the available {\sc sir} benchmarks satisfy the third criterion, but not the second~\cite{SIR}. The software verification competition ({\sc sv-comp}) benchmarks satisfied the second criterion, but almost never satisfied the third~\cite{svcomp}. Finally, it is often difficult obtaining benchmarks from authors even when usable benchmarks do in fact exist. 
+
+Available benchmarks are described in Table~\ref{Benchmarks}, where we give the benchmark name, the year of the ~\cite{svcomp} repository in which the benchmark exists, the number of faults in the program, and lines of code (LOC). 
+
+Faults in a benchmark were identified as follows. 
+LOC were counted using the cloc utility in Linux. 
+
+The modified version of {\tt tcas} were made available by Alex Groce via personal correspondence and were used with the {\sc Explain} tool in~\cite{Groce2005thesis}. The remaining benchmarks were identified as usuable by manual investigation and testing in the   repositories of {\sc sv-comp} from 2012 to 2017~\cite{svcomp}. All benchmarks are available for download directly from the SVcomp repositories, but we have made them available as a bundle from here: TODO. 
+
+In each benchmark each LOC (variable initialisation, executable, or condition statement) was determined as a UUT for the purposes of our experiments. 
+
+the benchmark names of 1 and 2 are shortened in the table, where ... is a placeholder for {\tt  \_false-unreach-call\_true-valid-memsafety\_true-termination.cil}
+The benchmark names of 8 and 10 are also shortened in the table, where ... is a placeholder for {\tt \_false-unreach-call\_false-valid-memcleanup } 
+
+
+
+
+\begin{table}[t!]
+\centering
+\begin{tabular}{l|l|lll}
+
+\# & Benchmark                                                                           & {\sc svcomp} & Faults & {\sc loc}  \\ \hline
+1  & {\tt cdaudio\_simpl1 ... .c} & 2017    & 4      & 2102 \\ 
+2  & {\tt floppy\_simpl3 ... .c}  & 2017    & 6      & 1080 \\ 
+3  & {\tt s3\_clnt\_1\_false-unreach-call.cil.c}                                             & 2017    & 1      & 546  \\ 
+4  & {\tt kundu2\_unsafe.cil.c}                                                              & 2013    & 3      & 534  \\ 
+5  & {\tt tcas.c           }                                                                 & $na$      & 1      & 396  \\ 
+6  & {\tt rule57\_ebda\_blast.c\_unsafe.cil.c}                                               & 2013    & 4      & 249  \\ 
+7  & {\tt rule60\_list2.c\_unsafe\_1.cil.c}                                                  & 2013    & 1      & 187  \\ 
+8  & {\tt merge\_sort\ ... .c}                         & 2017    & 1      & 111  \\ 
+9  & {\tt byte\_add\_unsafe.c}                                                               & 2013    & 1      & 90   \\ 
+10 & {\tt alternating\_list ... .c}                   & 2017    & 2      & 56   \\
+11 & {\tt eureka\_01\_unsafe.c}                                                              & 2013    & 1      & 52   \\ 
+12 & {\tt string\_unsafe.c}                                                                  & 2013    & 1      & 43   \\ 
+13 & {\tt insertion\_sort\_unsafe.c}                                                         & 2013    & 1      & 25   \\ 
+\end{tabular}\label{Benchmarks}
+\vspace*{5mm}
+\caption{Benchmarks}
+\end{table}
+
+TODO FCBMC CONDITIONS - kundu no slice
+- make benchmarks available
+
+\subsection{Results and Discussion}
+
+In this section we provide the results to our experimentation. Our results are summarised in Table~\ref{Benchmarks}. TODO
+
+
+\begin{table}[t!]
+\centering
+\begin{tabular}{l|lll|ll|lll|ll}
+\#    & Benchmark   & Faults & {\sc loc}      & {\sc cbmc}       & $t$    & SFO-p & SFO+p & $t$    &  $|E|$   & $|\overline{E}|$    \\ \hline 
+1  & {\tt cdaudio}     & 4      & 2102   & 24         & 1.04 & 22    & 13    & 1.10 & 3    & 8    \\
+2  & {\tt floppy }     & 6      & 1080   & 39         & 0.36 & 33    & 8     & 0.38 & 3    & 11   \\
+3  & {\tt s3     }     & 1      & 546    & 35         & 3.52 & 33    & 3     & 3.56 & 2    & 7    \\
+4  & {\tt kundu2 }     & 3      & 534    & 63         & 0.58 & 63    & 7     & 0.60 & 1    & 13   \\
+5  & {\tt tcas   }     & 1      & 396    & 6          & 0.20 & 5     & 5     & 0.21 & 2    & 4    \\
+6  & {\tt rule57 }     & 4      & 249    & 9          & 0.17 & 9     & 2     & 0.18 & 1    & 4    \\
+7  & {\tt rule60 }     & 1      & 187    & 14         & 0.17 & 14    & 8     & 0.18 & 1    & 3    \\
+8  & {\tt merge  }     & 1      & 111    & 1          & 2.19 & 1     & 1     & 2.32 & 1    & 0    \\
+9  & {\tt byte   }     & 1      & 90     & 17         & 0.18 & 15    & 0     & 0.18 & 3    & 8    \\
+10 & {\tt alternating} & 2      & 56     & 1          & 0.31 & 1     & 1     & 0.32 & 1    & 0    \\
+11 & {\tt eureka }     & 1      & 52     & 7          & 0.17 & 7     & 3     & 0.26 & 1    & 7    \\
+12 & {\tt string }     & 1      & 43     & 5          & 0.17 & 2     & 2     & 0.17 & 3    & 3    \\
+13 & {\tt insertion}   & 1      & 25     & 3          & 1.05 & 3     & 0     & 4.28 & 1    & 3    \\ \hline 
+   & AVG         & 2.08   & 420.85 & 17.23      & 0.78 & 16.00 & 4.08  & 1.06 & 1.77 & 5.46
+\end{tabular}~\label{Results}
+\vspace*{5mm}
+\caption{Experimental Results}
+\end{table}
+
+All faults found were specified by Cov(E*). Thus, 
+2. SFO optimal set of failing traces, always improved fault localisation. This is true by definition. if only failing traces are being used, then it will improve FL automatically. This is observed when there is more than one failing trace available (benchmarks 1,2,3,5,9,12). It is observed that ... This improvement is consistent, albeit small. It is expected that on programs with more failing traces available in the population, and on longer faulty programs, that this improvement will be larger. 
+
+Both SFOs always improves over the single trace method when there is more than one trace available.
+
+BENCHMARKS (ordered by size):
+
+
+
+
+
+
+Discussion - what do the results of FCBMC show?
+
+what does the comparison show? This comparison was to demonstrate that if one is going to use a state of the art model checker like CBMC to find counter-examples to specifications, then integrating our algorithm into the model checker to generate a handful of extra failing traces improves fault localisation.
+
+Discussion - how can the algorithm be used
+
+
+\section{Related Work}
+
+The algorithm discussed in this paper aims to improve the quality of test suites usuable for {\sc sbfl}.  being done on improving the quality of test suites. The major areas of research being done we divide into the following appraoches:
+
+
+\textit{Test suite expansion}. One approach to improving test suites is to add more test cases which satisfy a given criterion. A prominent criterion is that the test suite has sufficient program coverage, where studies suggest that test suites with high coverage improve fault localisation~\cite{10.1109/QSIC.2011.37, 5070508, DBLP:journals/corr/FeldtPCY15}. 
+To this end, Diaz et al.'s \textit{Tabu Search} automatically generates test suites with maximum coverage using   meta-heuristics.
+Artzi et al.'s\textit{Apollo} tool automatically generate test suites based on concrete and symbolic executions~\cite{Artzi:2010:DTG:1831708.1831715}. Feldt et al. argue that test suites with a high test suite diameter according to their measure develop I-TSDm are potentially superior for fault localisation. 
+
+Aside coverage criteria, the {\sc bugex} tool is a method which generates test cases with a minimal distance from a given failed trace~\cite{Robetaler:2012:IFC:2338965.2336790}, and a similar approach is applied for {\sc sbfl}~\cite{Jin:2013:FFL:2483760.2483763}. Baudry et al. use a bacteriological approach in order to generate test suites which are simultaneously facilitate both testing and fault localisation~\cite{baudry06a}. Concolic execution methods (which integrate both concrete and symbolic executions) have been developed to incrementally add test cases to a test suite based on their similarity to an initial failing run~\cite{Sen:2005:CCU:1081706.1081750,Artzi:2010:DTG:1831708.1831715}.
+
+\textit{Test suite reduction}. The above methods involve expanding a given test suite to satisfy some criterion. In contrast, an alternative approach is test suite reduction methods. 
+Recently, many approaches have demonstrated that it is not necessary for all test cases in a test suite to be used. Rather, one can select a handful of test cases in order to minimise the number of test cases required for fault localisation~\cite{Vidacs2014CSMRWCRE,Yu:2008:ESE:1368088.1368116,1508095,Xuan:2014:TCP:2635868.2635906,ase13_entropy,Gong:2012:DMS:2351676.2351682,5562943,HaoZZMS05,Vidacs2014CSMRWCRE,conf/icsm/McMasterM07}. Most approaches are based on a strategy of eliminating redundant test cases relative to some coverage criterion. The effectiveness of applying various coverage criteria in test suite reduction is traditionally based on empirical comparison of two metrics: one which measures the size of the reduction, and the other which measures how much fault detection is preserved. Studies of the effectiveness of different reduction techniques is given in Gonzalez et al~\cite{gonzalez2011empirical}. 
+
+\textit{Slicing}. A prominent approach to improving the quality of test suites involves the process of slicing test cases. Here, {\sc sbfl} proceeds as usual except the program and/or the traces composing the test suite are sliced~\cite{conf/kbse/AlvesGJd11,conf/ecai/HoferW12,conf/compsac/LeiMDW12,6227049}. For example, Alves et al.~\cite{conf/kbse/AlvesGJd11} combine Tarantula along with dynamic slices, Ju et al.~\cite{Ju:2014:HEF:2588914.2589288} use {\sc sbfl} in combination with both dynamic and execution slices in their HSFal (hybrid slice
+spectrum fault locater) tool, and a third approach extends the combination of {\sc sbfl} and slicing even further by using automated methods (to generate hitting sets)~\cite{conf/ecai/HoferW12} in the HS-Slice algorithm~\cite{conf/qsic/Wotawa10}).
+
+ A similar approach to ours is that of Gopinath et al.~\cite{Gopinath:2012:IES:2351676.2351683}.
+They similarly use specifications to improve spectrum based fault localisation by generating test suites with SAT solvers. Differences are as follows: First, 
+they compute minimal unsatisfiable cores (MUCS) in a given failing trace, where statements in the MUC will be given a higher suspiciousness level in the spectra ranking. Secondly, when generating a new test, they " generate an input whose trace is most similar to the initial run in terms of its coverage of the statements". Instead, our work tries to generate a different test/trace each time so as to fulfill the 'single-bug optimality' property.
+
+Two other methods which are not directly used with SBFL, but which use model checkers similar to {\sc cbmc}, are as follows. First, there are approaches that use model checkers to find 
+failing traces which cover the smallest amount of the program possible\cite{Gastin2004, Schuppan2005,Ravi2004}. The \textit{Explain} tool of Groce et al.~\cite{Groce03whatwent,Groce04errorexplanation,Groce2004} uses a model checker to find two execution traces: The first is a failing trace, and the second is a passing trace which is most similar to the failing trace, where similarity is defined using a formally defined distance metric. The difference between the failing and passing trace provides a potential explanation for the error~\cite{Chaki:2004:EAC:1029894.1029908}. A similar approach is the approach of Ball et al~\cite{Ball:2003:SCL:604131.604140}. 
+
+
+
+To our knowledge, no previous methods generate test suites which exhibit single fault optimality. Moreover, our technique can potentially be combined with many existing techniques in order to improve fault localization.
+
+MORE PAPERS:
+ Li et al. generate test suites for SBFL, considering failing to passing test case ratio to be more important than number~\cite{Li}. 
+
+2) Zhang et al. consider cloning failed test cases to improve SBFL. 
+
+A theoretical analysis on cloning the failed test cases to improve spectrum-based fault localization
+
+3) Perez et al. develop a metric for diagnosing whether a test suite is of sufficient quality for SBFL to take place~\cite{Perez:2017:TDM:3097368.3097446}
+
+A Test-suite Diagnosability Metric for
+Spectrum-based Fault Localization Approaches
+
+4) Li et al. consider weighing different test cases differently. 
+
+An Effective Fault Localization Approach Based on Weighted Test Cases
+
+5)
+
+Improving the Effectiveness of Spectra-Based Fault
+Localization Using Specifications
+
+\section{Conclusion}
+
+
+
+In this paper we have presented a method which leverages model checkers (such as {\sc cbmc}) in order to generate test suites which satisfy a formal property of single bug optimality. 
+Experimental results demonstrated that small optimized test suites could be generated efficiently in practice on our benchmarks, and that fault localization could be performed effectively using these test suites. Our findings suggest that lightweight fault localisation methods can be used in conjunction with lightweight test suite generation methods to provide fault localisation information on small programs in seconds. Our algorithm was implemented alongside CBMC, and is downloadable (alongside the benchmarks) from here~\cite{youcheng}. 
+
+We envisage that implementations of the algorithm can be used in two different scenarios. In the first, the test suite generated can be used in standalone fault localisation, providing a small and low cost test suites useful for on the fly fault localisation during program development. In the second, the test suite generated can be added to any pre-existing test suite for a given program in order to optimise it, which may be useful at the final testing stage where we may wish to optimise a large test suite for the purposes of fault localisation.
+
+Future work involves finding multiple fault C programs to test our algorithm on, and developing properties methods for use with programs with multiple faults. We would also like to combine our technique with existing test suite generation algorithms in order to experiment how much test suites can potentially be improved for the purposes of fault localization. 
+
+\bibliographystyle{unsrt}
+
+\bibliography{paper}
+
+\end{document}
