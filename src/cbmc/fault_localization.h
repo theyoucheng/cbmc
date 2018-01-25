@@ -13,6 +13,7 @@ Author: Peter Schrammel
 #include <util/options.h>
 #include <util/threeval.h>
 #include <langapi/language_ui.h>
+#include <limits>
 
 #include <goto-symex/symex_target_equation.h>
 
@@ -83,7 +84,9 @@ protected:
 
   struct pflt
   {
-	int max_traces=0;
+    int max_traces=0;
+    int max_failing_traces=std::numeric_limits<int>::max();
+    int max_passing_traces=std::numeric_limits<int>::max();
     literalt activation_literal;
     const literalt &property; // the failed cond
     lpointst &P; // this is the program under analysis

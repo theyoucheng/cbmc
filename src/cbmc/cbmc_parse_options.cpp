@@ -215,6 +215,18 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
   }
   if(cmdline.isset("single-trace"))
     options.set_option("single-trace", true);
+  if(cmdline.isset("max-passing-traces"))
+  {
+    options.set_option(
+      "max-passing-traces",
+      cmdline.get_value("max-passing-traces"));
+  }
+  if(cmdline.isset("max-failing-traces"))
+  {
+    options.set_option(
+      "max-failing-traces",
+      cmdline.get_value("max-failing-traces"));
+  }
 
   if(cmdline.isset("unwind-max"))
     options.set_option("unwind-max", cmdline.get_value("unwind-max"));
@@ -1263,6 +1275,13 @@ void cbmc_parse_optionst::help()
     " --dimacs                     generate CNF in DIMACS format\n"
     " --beautify                   beautify the counterexample (greedy heuristic)\n" // NOLINT(*)
     " --localize-faults            localize faults (experimental)\n"
+    " --localize-faults-method     sbo: single bug optimal\n"
+    "                              pfl: probabilistic fault localization\n"
+    " --localize-faults-max-traces max number of passing/failing traces generated for fault localization\n"
+    " --localize-faults-max-display max number of rankings to display after fault localization\n"
+    " --max-passing-traces         bound the number of passing traces for fault localization\n"
+    " --max-failing-traces         bound the number of failing traces for fault localization\n"
+    " --single-trace               fault localization based on one single trace\n"
     " --smt1                       use default SMT1 solver (obsolete)\n"
     " --smt2                       use default SMT2 solver (Z3)\n"
     " --boolector                  use Boolector\n"

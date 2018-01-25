@@ -198,9 +198,12 @@ void fault_localizationt::pflt::operator()()
   lpoints_valuet f_trace;
   if(get_a_trace(!property, f_trace))
   {
-    failing_traces.push_back(f_trace);
+    if(failing_traces.size()<max_failing_traces)
+      failing_traces.push_back(f_trace);
     do
     {
+      if(failing_traces.size()>=max_failing_traces)
+        break;
       bmc.prop_conv.set_assumptions({});
     } while(mc(property, common(failing_traces), {}, failing_traces));
 
@@ -209,9 +212,12 @@ void fault_localizationt::pflt::operator()()
   lpoints_valuet p_trace;
   if(get_a_trace(property, p_trace))
   {
-    passing_traces.push_back(p_trace);
+    if(passing_traces.size()<max_passing_traces)
+      passing_traces.push_back(p_trace);
     do
     {
+      if(passing_traces.size()>=max_passing_traces)
+        break;
       bmc.prop_conv.set_assumptions({});
     }
     while(mc(!property, common(passing_traces), {}, passing_traces));
@@ -222,12 +228,15 @@ void fault_localizationt::pflt::operator()()
   lpoints_valuet v=complement(common(failing_traces), common(passing_traces));
   for(std::size_t i=0; i<P.size(); ++i)
   {
+    if(passing_traces.size()+s_traces.size()>=max_passing_traces)
+      break;
     if(!v[i].is_true()) continue;
     lpoints_valuet v_single_element;
     for(std::size_t j=0; j<v.size(); ++j)
+    {
       if(i!=j) v_single_element.push_back(tvt(tvt::tv_enumt::TV_UNKNOWN));
       else v_single_element.push_back(tvt(tvt::tv_enumt::TV_TRUE));
-
+    }
     mc(!property, {}, v_single_element, s_traces);
   }
 
@@ -270,6 +279,8 @@ void fault_localizationt::pflt::operator()()
 
   while(passing_traces.size()<max_traces)
   {
+    if(passing_traces.size()>=max_passing_traces)
+      break;
     if(!get_a_trace(property, passing_traces))
       break;
   }

@@ -61,6 +61,7 @@ class optionst;
   "(graphml-witness):" \
   "(localize-faults)(localize-faults-method):" \
   "(localize-faults-max-traces):(localize-faults-max-display):" \
+  "(max-passing-traces):(max-failing-traces):" \
   "(single-trace)" \
   "(floatbv)(all-claims)(all-properties)" // legacy, and will eventually disappear
 

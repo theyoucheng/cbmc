@@ -252,8 +252,18 @@ void fault_localizationt::run(irep_idt goal_id)
   {
     pflt pfl(lpoints, bmc, failed->cond_literal, method);
     if(options.get_option("localize-faults-max-traces")!="")
+    {
       pfl.max_traces=
         atoi(options.get_option("localize-faults-max-traces").c_str());
+    }
+    if(options.get_option("max-failing-traces")!="")
+    {
+      pfl.max_failing_traces=atoi(options.get_option("max-failing-traces").c_str());
+    }
+    if(options.get_option("max-passing-traces")!="")
+    {
+      pfl.max_passing_traces=atoi(options.get_option("max-passing-traces").c_str());
+    }
     if(options.get_bool_option("single-trace"))
       pfl.single_trace=true;
     pfl();
