@@ -17,6 +17,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "prop.h"
 #include "prop_conv.h"
 #include "literal_expr.h"
+#include <iostream>
 
 // #define DEBUG
 
@@ -313,14 +314,17 @@ Function: prop_conv_solvert::convert_bool
 
 \*******************************************************************/
 
-literalt prop_conv_solvert::convert_bool(const exprt &expr)
+literalt prop_conv_solvert::convert_bool(const exprt &expr0)
 {
+  exprt expr=expr0;
   if(expr.type().id()!=ID_bool)
   {
     std::string msg="prop_convt::convert_bool got "
                     "non-boolean expression: ";
-    msg+=expr.pretty();
-    throw msg;
+    //  msg+=expr.pretty();
+    //  throw msg;
+    std::cout << "##### " << msg << "\n";
+    expr.type().id(ID_bool);
   }
 
   const exprt::operandst &op=expr.operands();

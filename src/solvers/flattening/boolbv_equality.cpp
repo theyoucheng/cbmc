@@ -28,13 +28,16 @@ Function: boolbvt::convert_equality
 
 \*******************************************************************/
 
-literalt boolbvt::convert_equality(const equal_exprt &expr)
+literalt boolbvt::convert_equality(const equal_exprt &expr0)
 {
+  equal_exprt expr=expr0;
   if(!base_type_eq(expr.lhs().type(), expr.rhs().type(), ns))
   {
     std::cout << "######### lhs: " << expr.lhs().pretty() << std::endl;
     std::cout << "######### rhs: " << expr.rhs().pretty() << std::endl;
-    throw "equality without matching types";
+    std::cout << "######### equality without matching types\n";
+    //  throw "equality without matching types";
+    expr.rhs().type()=expr.lhs().type();
   }
 
   // see if it is an unbounded array
